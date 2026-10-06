@@ -1,17 +1,64 @@
-# sport_shop
+# SPORT — онлайн-магазин спортивных товаров с ИИ-подбором экипировки
 
-A new Flutter project.
+Мобильное приложение на Flutter (курсовой проект → дипломный проект).
+Автор: Габдулина Мария, группа ПО2401, колледж Astana IT University.
 
-## Getting Started
+## Идея
 
-This project is a starting point for a Flutter application.
+Пользователь указывает вид спорта, уровень, стаж, размеры и бюджет,
+а приложение собирает персональный набор экипировки:
+обязательные товары + «Что ещё купить?».
 
-A few resources to get you started if this is your first Flutter project:
+## Стек
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+| Сейчас (курсовая)            | Позже (диплом)                    |
+|------------------------------|-----------------------------------|
+| Flutter + Dart               | Flutter + Dart                    |
+| SQLite (sqflite)             | REST API → Backend → PostgreSQL   |
+| Локальная логика рекомендаций | Настоящий AI API                 |
+| Provider (ChangeNotifier)    | Provider / при необходимости иное |
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Архитектура
+
+```
+Screen → State (ChangeNotifier) → Service → Repository (abstract)
+                                               ├── LocalXxxRepository → LocalDataSource → SQLite
+                                               └── ApiXxxRepository   → REST API → PostgreSQL (диплом)
+```
+
+UI не знает, откуда пришли данные: при переходе на сервер
+меняется только реализация репозитория.
+
+## Структура
+
+```
+lib/
+├── main.dart
+├── core/          константы, тема, маршруты, утилиты
+├── models/        модели данных (fromMap/toMap для SQLite, fromJson/toJson для API)
+├── data/          база данных, источники данных, репозитории
+├── services/      авторизация, корзина, рекомендации
+├── state/         состояния экранов (ChangeNotifier)
+├── screens/       экраны по разделам
+└── widgets/       переиспользуемые компоненты
+```
+
+## Запуск
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
+flutter run   # Android-эмулятор или устройство
+```
+
+## Ход работы
+
+- [x] Этап 1 — структура проекта, тема, роутер
+- [x] Этап 2 — модели
+- [ ] Этап 3 — SQLite и таблицы
+- [ ] Этап 4 — seed-данные
+- [ ] Этап 5 — Repository / DataSource
+- [ ] Этапы 6–10 — вёрстка экранов по Figma
+- [ ] Этапы 11–14 — БД, навигация, валидация, сообщения
+- [ ] Этапы 15–16 — тестирование сценариев, сравнение с Figma
