@@ -18,4 +18,21 @@ class Formatters {
 
   /// 24 → «#0024», 1024 → «#1024»
   static String orderNumber(int id) => '#${id.toString().padLeft(4, '0')}';
+
+  /// Русское склонение: plural(3, 'товар', 'товара', 'товаров') → «товара».
+  static String plural(int count, String one, String few, String many) {
+    final int mod10 = count % 10;
+    final int mod100 = count % 100;
+    if (mod10 == 1 && mod100 != 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  }
+
+  /// 3 → «3 товара»
+  static String itemsCount(int count) =>
+      '$count ${plural(count, 'товар', 'товара', 'товаров')}';
+
+  /// 6 → «6 лет»
+  static String years(int count) =>
+      '$count ${plural(count, 'год', 'года', 'лет')}';
 }

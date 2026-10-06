@@ -35,6 +35,20 @@ class Product {
 
   bool get isAvailable => stock > 0;
 
+  /// Нужно ли выбирать размер перед покупкой.
+  bool get requiresSize => availableSizes.isNotEmpty;
+
+  /// Подходящий размер из параметров пользователя или null.
+  String? pickSize({String? clothingSize, int? shoeSize}) {
+    final List<String> sizes = availableSizes;
+    if (sizes.isEmpty) return null;
+    if (clothingSize != null && sizes.contains(clothingSize)) {
+      return clothingSize;
+    }
+    if (shoeSize != null && sizes.contains('$shoeSize')) return '$shoeSize';
+    return null;
+  }
+
   bool get isNetworkImage => imageUrl?.startsWith('http') ?? false;
 
   List<String> get availableSizes {

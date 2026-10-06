@@ -1,33 +1,49 @@
 import 'package:flutter/material.dart';
 
+import '../../models/order.dart';
+import '../../screens/auth/login_screen.dart';
+import '../../screens/auth/registration_screen.dart';
+import '../../screens/cart/checkout_screen.dart';
+import '../../screens/cart/order_success_screen.dart';
+import '../../screens/catalog/filter_screen.dart';
+import '../../screens/catalog/product_screen.dart';
+import '../../screens/common/not_found_screen.dart';
+import '../../screens/orders/order_details_screen.dart';
+import '../../screens/orders/order_history_screen.dart';
+import '../../screens/profile/edit_profile_screen.dart';
+import '../../screens/recommendation/recommendation_quiz_screen.dart';
+import '../../screens/recommendation/recommendation_result_screen.dart';
+import '../../screens/shell/main_shell.dart';
 import 'app_routes.dart';
-import 'stage_placeholder_screen.dart';
+import 'main_tab.dart';
 
-/// Централизованная навигация.
-/// Все переходы проходят через onGenerateRoute: здесь же
-/// позже будет проверка роли (гость не попадёт в корзину и профиль).
+/// Централизованная навигация: все переходы проходят через onGenerateRoute.
+/// Здесь же проверяются аргументы перехода (id товара, заказ).
 class AppRouter {
   AppRouter._();
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    final String routeName = settings.name ?? AppRoutes.main;
+    final Object? args = settings.arguments;
 
-    switch (routeName) {
-      // На этапах 6–10 сюда будут добавляться реальные экраны:
-      // case AppRoutes.login:
-      //   return _buildPage(settings, const LoginScreen());
-      default:
-        return _buildPage(
-          settings,
-          StagePlaceholderScreen(routeName: routeName),
-        );
-    }
-  }
+    final Widget screen = switch (settings.name) {
+      AppRoutes.main =>
+        MainShell(initialTab: args is MainTab ? args : MainTab.home),
+      AppRoutes.login => const LoginScreen(),
+      AppRoutes.registration => const RegistrationScreen(),
+      AppRoutes.filter => const FilterScreen(),
+      AppRoutes.product when args is int => ProductScreen(productId: args),
+      AppRoutes.editProfile => const EditProfileScreen(),
+      AppRoutes.checkout => const CheckoutScreen(),
+      AppRoutes.orderSuccess when args is Order =>
+        OrderSuccessScreen(order: args),
+      AppRoutes.orderHistory => const OrderHistoryScreen(),
+      AppRoutes.orderDetails when args is int =>
+        OrderDetailsScreen(orderId: args),
+      AppRoutes.recommendationQuiz => const RecommendationQuizScreen(),
+      AppRoutes.recommendationResult => const RecommendationResultScreen(),
+      _ => const NotFoundScreen(),
+    };
 
-  static MaterialPageRoute<dynamic> _buildPage(
-    RouteSettings settings,
-    Widget screen,
-  ) {
     return MaterialPageRoute<dynamic>(
       settings: settings,
       builder: (_) => screen,

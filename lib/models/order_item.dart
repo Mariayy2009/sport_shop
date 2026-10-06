@@ -6,6 +6,7 @@ class OrderItem {
     required this.productId,
     required this.quantity,
     required this.price,
+    this.size,
     this.productName,
     this.productImageUrl,
   });
@@ -20,6 +21,9 @@ class OrderItem {
   /// Цена на момент заказа — не меняется, даже если товар подорожает.
   final double price;
 
+  /// Выбранный размер (колонка добавлена в схеме v2).
+  final String? size;
+
   // Заполняются через JOIN с products.
   final String? productName;
   final String? productImageUrl;
@@ -33,6 +37,7 @@ class OrderItem {
       productId: map['product_id'] as int,
       quantity: map['quantity'] as int,
       price: (map['price'] as num).toDouble(),
+      size: map['size'] as String?,
       productName: map['product_name'] as String?,
       productImageUrl: map['product_image_url'] as String?,
     );
@@ -45,6 +50,7 @@ class OrderItem {
       'product_id': productId,
       'quantity': quantity,
       'price': price,
+      'size': size,
     };
   }
 
@@ -60,6 +66,7 @@ class OrderItem {
       productId: productId,
       quantity: quantity,
       price: price,
+      size: size,
       productName: productName,
       productImageUrl: productImageUrl,
     );

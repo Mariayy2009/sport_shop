@@ -1,7 +1,6 @@
 import 'product.dart';
 
-/// Позиция корзины. Корзина живёт в CartState до оформления заказа,
-/// после оформления позиции превращаются в OrderItem.
+/// Позиция корзины (таблица cart_items + данные товара).
 class CartItem {
   const CartItem({
     required this.product,

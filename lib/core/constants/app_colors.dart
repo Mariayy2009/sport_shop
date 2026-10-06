@@ -18,6 +18,9 @@ class AppColors {
   static const Color textHint = Color(0xFFA0A0A5);
   static const Color textOnDark = Color(0xFFFFFFFF);
 
+  // Фон картинки-заглушки
+  static const Color imagePlaceholder = Color(0xFFF1F3F6);
+
   // Обводки и разделители
   static const Color border = Color(0xFFD9D9D9);
   static const Color divider = Color(0xFFE5E5EA);

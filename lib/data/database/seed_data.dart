@@ -1,0 +1,583 @@
+import 'package:sqflite/sqflite.dart';
+
+import '../../core/constants/app_constants.dart';
+import '../../core/utils/password_hasher.dart';
+import '../../models/enums.dart';
+import 'database_schema.dart';
+
+/// Демонстрационные данные, которые записываются в SQLite
+/// при первом запуске приложения.
+///
+/// Записи связываются по текстовым ключам ('volleyball', 'knee_pads'),
+/// а реальные id берутся из результата INSERT — так в данных нет
+/// «магических» чисел и их легко дополнять.
+class SeedData {
+  SeedData._();
+
+  static const String _imagesFolder = 'assets/images/products';
+  static const String _clothes = 'XS,S,M,L,XL';
+  static const String _shoes = '36,37,38,39,40,41,42,43,44,45';
+
+  // ---------------------------------------------------------------------------
+  // Виды спорта (как на экране ии2): ключ, название, описание
+  // ---------------------------------------------------------------------------
+  static const List<(String, String, String)> _sports = [
+    ('volleyball', 'Волейбол', 'Командная игра с мячом через сетку'),
+    ('running', 'Бег', 'Пробежки, марафоны и беговые тренировки'),
+    ('football', 'Футбол', 'Командная игра с мячом на поле'),
+    ('swimming', 'Плавание', 'Тренировки в бассейне и открытой воде'),
+    ('boxing', 'Бокс', 'Ударный вид единоборств'),
+    ('karate', 'Карате', 'Японское боевое искусство'),
+    ('basketball', 'Баскетбол', 'Командная игра с мячом и кольцом'),
+    ('yoga', 'Йога', 'Практики гибкости, баланса и дыхания'),
+    ('fitness', 'Фитнес', 'Силовые и функциональные тренировки в зале'),
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Категории (общие для всех видов спорта, sport_id = NULL)
+  // ---------------------------------------------------------------------------
+  static const List<(String, String)> _categories = [
+    ('clothes', 'Одежда'),
+    ('shoes', 'Обувь'),
+    ('accessories', 'Аксессуары'),
+    ('protection', 'Защита'),
+    ('equipment', 'Инвентарь'),
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Товары: ключ (= имя файла картинки), название, описание, цена ₸,
+  // категория, вид спорта, размеры, остаток на складе
+  // ---------------------------------------------------------------------------
+  static const List<(String, String, String, int, String, String, String?, int)>
+      _products = [
+    // Волейбол
+    ('volleyball_uniform', 'Волейбольная форма',
+        'Комплект из майки и шорт из дышащей ткани с быстрым отводом влаги.',
+        6990, 'clothes', 'volleyball', _clothes, 12),
+    ('volleyball_knee_pads', 'Наколенники волейбольные',
+        'Мягкие наколенники защищают колени при падениях и приёмах мяча.',
+        1500, 'protection', 'volleyball', 'S,M,L', 25),
+    ('volleyball_shoes', 'Кроссовки для волейбола',
+        'Лёгкие кроссовки с амортизацией и нескользящей подошвой для зала.',
+        18990, 'shoes', 'volleyball', _shoes, 8),
+    ('volleyball_shorts', 'Шорты волейбольные',
+        'Эластичные шорты, не сковывают движения в прыжке.',
+        2900, 'clothes', 'volleyball', _clothes, 20),
+    ('knee_brace', 'Фиксатор на колени',
+        'Поддерживает коленный сустав при высоких нагрузках.',
+        2300, 'protection', 'volleyball', 'S,M,L', 15),
+    ('mikasa_ball', 'Профессиональный мяч MIKASA',
+        'Официальный мяч соревнований: точный полёт и мягкое касание.',
+        29990, 'equipment', 'volleyball', null, 6),
+    ('mikasa_backpack', 'Рюкзак Mikasa',
+        'Вместительный рюкзак с отделением для мяча и обуви.',
+        12990, 'accessories', 'volleyball', null, 5),
+
+    // Бег
+    ('running_shoes', 'Кроссовки для бега',
+        'Беговые кроссовки с амортизирующей подошвой для асфальта.',
+        45990, 'shoes', 'running', _shoes, 10),
+    ('running_tshirt', 'Беговая футболка',
+        'Лёгкая футболка из дышащей сетки, быстро сохнет.',
+        5990, 'clothes', 'running', _clothes, 18),
+    ('running_tights', 'Тайтсы беговые',
+        'Компрессионные тайтсы поддерживают мышцы на длинных дистанциях.',
+        8990, 'clothes', 'running', _clothes, 14),
+    ('running_belt', 'Беговой пояс для телефона',
+        'Пояс с карманом для телефона и ключей, не болтается при беге.',
+        3490, 'accessories', 'running', null, 20),
+    ('sport_watch', 'Спортивные часы с пульсометром',
+        'GPS, пульс, темп и план тренировок прямо на запястье.',
+        39990, 'accessories', 'running', null, 4),
+
+    // Футбол
+    ('football_boots', 'Бутсы футбольные',
+        'Бутсы с шипами для натурального и искусственного газона.',
+        24990, 'shoes', 'football', '38,39,40,41,42,43,44,45', 9),
+    ('shin_guards', 'Щитки футбольные',
+        'Защищают голень от ударов, крепятся фиксатором.',
+        3990, 'protection', 'football', 'S,M,L', 22),
+    ('football_socks', 'Гетры футбольные',
+        'Плотные гетры, удерживают щитки на месте.',
+        1990, 'clothes', 'football', 'S,M,L', 30),
+    ('football_shorts', 'Шорты для футбола',
+        'Лёгкие шорты с эластичным поясом.',
+        3490, 'clothes', 'football', _clothes, 16),
+    ('football_ball', 'Футбольный мяч Adidas',
+        'Мяч 5 размера для тренировок и игр.',
+        12990, 'equipment', 'football', null, 11),
+    ('goalkeeper_gloves', 'Вратарские перчатки',
+        'Перчатки с латексным покрытием для надёжного хвата мяча.',
+        9990, 'accessories', 'football', '7,8,9,10', 6),
+
+    // Фитнес
+    ('sport_tshirt', 'Спортивная футболка',
+        'Универсальная футболка для зала из дышащей ткани.',
+        4990, 'clothes', 'fitness', _clothes, 25),
+    ('adidas_pants', 'Штаны Adidas',
+        'Спортивные штаны свободного кроя с карманами на молнии.',
+        14990, 'clothes', 'fitness', _clothes, 10),
+    ('gym_shoes', 'Кроссовки для зала',
+        'Устойчивая подошва для силовых и функциональных тренировок.',
+        22990, 'shoes', 'fitness', _shoes, 9),
+    ('kettlebell', 'Гиря 8 кг',
+        'Литая гиря с удобной рукоятью.',
+        6990, 'equipment', 'fitness', null, 12),
+    ('dumbbells', 'Гантели 2 × 5 кг',
+        'Пара гантелей с прорезиненным покрытием.',
+        11990, 'equipment', 'fitness', null, 8),
+    ('water_bottle', 'Бутылка для тренировок',
+        'Бутылка 750 мл с удобным клапаном.',
+        1990, 'accessories', 'fitness', null, 40),
+
+    // Баскетбол
+    ('basketball_ball', 'Баскетбольный мяч Spalding',
+        'Мяч 7 размера с хорошим сцеплением.',
+        14990, 'equipment', 'basketball', null, 10),
+    ('basketball_shoes', 'Баскетбольные кроссовки',
+        'Высокие кроссовки фиксируют голеностоп при прыжках.',
+        39990, 'shoes', 'basketball', _shoes, 7),
+    ('basketball_uniform', 'Баскетбольная форма',
+        'Майка и шорты свободного кроя.',
+        8990, 'clothes', 'basketball', _clothes, 12),
+
+    // Плавание
+    ('swim_goggles', 'Очки для плавания',
+        'Очки с защитой от запотевания и UV-фильтром.',
+        4490, 'accessories', 'swimming', null, 20),
+    ('swim_cap', 'Шапочка для плавания',
+        'Силиконовая шапочка, защищает волосы от хлорки.',
+        2490, 'accessories', 'swimming', null, 25),
+    ('swimsuit', 'Спортивный купальник',
+        'Купальник из хлоростойкой ткани для тренировок.',
+        11990, 'clothes', 'swimming', 'XS,S,M,L', 10),
+
+    // Бокс
+    ('boxing_gloves', 'Боксёрские перчатки',
+        'Перчатки из искусственной кожи с плотным наполнителем.',
+        14990, 'accessories', 'boxing', '10oz,12oz,14oz,16oz', 9),
+    ('hand_wraps', 'Бинты боксёрские',
+        'Эластичные бинты 3,5 м защищают кисти.',
+        1990, 'protection', 'boxing', null, 30),
+    ('mouth_guard', 'Капа',
+        'Термопластичная капа защищает зубы.',
+        2490, 'protection', 'boxing', null, 20),
+
+    // Карате
+    ('karate_kimono', 'Кимоно для карате',
+        'Хлопковое кимоно для тренировок.',
+        15990, 'clothes', 'karate', '130,140,150,160,170,180,190', 10),
+    ('karate_belt', 'Пояс для карате',
+        'Прочный хлопковый пояс.',
+        2990, 'accessories', 'karate', null, 20),
+
+    // Йога
+    ('yoga_mat', 'Коврик для йоги',
+        'Нескользящий коврик толщиной 6 мм.',
+        7990, 'accessories', 'yoga', null, 15),
+    ('yoga_block', 'Блок для йоги',
+        'Блок из лёгкой пены для сложных асан.',
+        2990, 'accessories', 'yoga', null, 20),
+    ('yoga_leggings', 'Леггинсы для йоги',
+        'Мягкие леггинсы с высокой посадкой.',
+        9990, 'clothes', 'yoga', 'XS,S,M,L,XL', 12),
+  ];
+
+  // ---------------------------------------------------------------------------
+  // sport_requirements: вид спорта, уровень, товар, обязательный?
+  // ---------------------------------------------------------------------------
+  static const SportLevel _beginner = SportLevel.beginner;
+  static const SportLevel _amateur = SportLevel.amateur;
+  static const SportLevel _experienced = SportLevel.experienced;
+
+  static const List<(String, SportLevel, String, bool)> _requirements = [
+    // Волейбол
+    ('volleyball', _beginner, 'volleyball_uniform', true),
+    ('volleyball', _beginner, 'volleyball_knee_pads', true),
+    ('volleyball', _beginner, 'volleyball_shoes', true),
+    ('volleyball', _beginner, 'water_bottle', false),
+    ('volleyball', _amateur, 'volleyball_uniform', true),
+    ('volleyball', _amateur, 'volleyball_knee_pads', true),
+    ('volleyball', _amateur, 'volleyball_shoes', true),
+    ('volleyball', _amateur, 'volleyball_shorts', false),
+    ('volleyball', _amateur, 'water_bottle', false),
+    ('volleyball', _experienced, 'volleyball_uniform', true),
+    ('volleyball', _experienced, 'volleyball_knee_pads', true),
+    ('volleyball', _experienced, 'volleyball_shoes', true),
+    ('volleyball', _experienced, 'water_bottle', true),
+    ('volleyball', _experienced, 'knee_brace', false),
+
+    // Бег
+    ('running', _beginner, 'running_shoes', true),
+    ('running', _beginner, 'running_tshirt', true),
+    ('running', _beginner, 'water_bottle', false),
+    ('running', _amateur, 'running_shoes', true),
+    ('running', _amateur, 'running_tshirt', true),
+    ('running', _amateur, 'running_tights', true),
+    ('running', _amateur, 'running_belt', false),
+    ('running', _experienced, 'running_shoes', true),
+    ('running', _experienced, 'running_tshirt', true),
+    ('running', _experienced, 'running_tights', true),
+    ('running', _experienced, 'running_belt', false),
+
+    // Футбол
+    ('football', _beginner, 'football_boots', true),
+    ('football', _beginner, 'shin_guards', true),
+    ('football', _beginner, 'football_socks', true),
+    ('football', _beginner, 'football_shorts', false),
+    ('football', _amateur, 'football_boots', true),
+    ('football', _amateur, 'shin_guards', true),
+    ('football', _amateur, 'football_socks', true),
+    ('football', _amateur, 'football_shorts', true),
+    ('football', _experienced, 'football_boots', true),
+    ('football', _experienced, 'shin_guards', true),
+    ('football', _experienced, 'football_socks', true),
+    ('football', _experienced, 'football_shorts', true),
+
+    // Фитнес
+    ('fitness', _beginner, 'sport_tshirt', true),
+    ('fitness', _beginner, 'gym_shoes', true),
+    ('fitness', _beginner, 'water_bottle', false),
+    ('fitness', _amateur, 'sport_tshirt', true),
+    ('fitness', _amateur, 'gym_shoes', true),
+    ('fitness', _amateur, 'adidas_pants', false),
+    ('fitness', _amateur, 'water_bottle', false),
+    ('fitness', _experienced, 'sport_tshirt', true),
+    ('fitness', _experienced, 'gym_shoes', true),
+    ('fitness', _experienced, 'adidas_pants', false),
+
+    // Баскетбол
+    ('basketball', _beginner, 'basketball_shoes', true),
+    ('basketball', _beginner, 'basketball_uniform', true),
+    ('basketball', _beginner, 'basketball_ball', false),
+    ('basketball', _amateur, 'basketball_shoes', true),
+    ('basketball', _amateur, 'basketball_uniform', true),
+    ('basketball', _amateur, 'basketball_ball', true),
+    ('basketball', _experienced, 'basketball_shoes', true),
+    ('basketball', _experienced, 'basketball_uniform', true),
+    ('basketball', _experienced, 'basketball_ball', true),
+
+    // Плавание
+    ('swimming', _beginner, 'swimsuit', true),
+    ('swimming', _beginner, 'swim_cap', true),
+    ('swimming', _beginner, 'swim_goggles', true),
+    ('swimming', _amateur, 'swimsuit', true),
+    ('swimming', _amateur, 'swim_cap', true),
+    ('swimming', _amateur, 'swim_goggles', true),
+    ('swimming', _experienced, 'swimsuit', true),
+    ('swimming', _experienced, 'swim_cap', true),
+    ('swimming', _experienced, 'swim_goggles', true),
+
+    // Бокс
+    ('boxing', _beginner, 'boxing_gloves', true),
+    ('boxing', _beginner, 'hand_wraps', true),
+    ('boxing', _beginner, 'mouth_guard', false),
+    ('boxing', _amateur, 'boxing_gloves', true),
+    ('boxing', _amateur, 'hand_wraps', true),
+    ('boxing', _amateur, 'mouth_guard', true),
+    ('boxing', _experienced, 'boxing_gloves', true),
+    ('boxing', _experienced, 'hand_wraps', true),
+    ('boxing', _experienced, 'mouth_guard', true),
+
+    // Карате
+    ('karate', _beginner, 'karate_kimono', true),
+    ('karate', _beginner, 'karate_belt', true),
+    ('karate', _amateur, 'karate_kimono', true),
+    ('karate', _amateur, 'karate_belt', true),
+    ('karate', _experienced, 'karate_kimono', true),
+    ('karate', _experienced, 'karate_belt', true),
+
+    // Йога
+    ('yoga', _beginner, 'yoga_mat', true),
+    ('yoga', _beginner, 'yoga_leggings', false),
+    ('yoga', _amateur, 'yoga_mat', true),
+    ('yoga', _amateur, 'yoga_leggings', true),
+    ('yoga', _amateur, 'yoga_block', false),
+    ('yoga', _experienced, 'yoga_mat', true),
+    ('yoga', _experienced, 'yoga_leggings', true),
+    ('yoga', _experienced, 'yoga_block', true),
+  ];
+
+  // ---------------------------------------------------------------------------
+  // recommendations («Что ещё купить?»): вид спорта, мин. стаж, товар, причина
+  // ---------------------------------------------------------------------------
+  static const List<(String, int, String, String)> _recommendations = [
+    ('volleyball', 0, 'water_bottle',
+        'Пить воду нужно на каждой тренировке'),
+    ('volleyball', 1, 'knee_brace',
+        'При регулярных тренировках колени испытывают нагрузку — фиксатор её снижает'),
+    ('volleyball', 2, 'mikasa_backpack',
+        'Удобно носить мяч, форму и обувь на тренировки'),
+    ('volleyball', 3, 'mikasa_ball',
+        'С вашим стажем стоит тренироваться с профессиональным мячом'),
+    ('running', 0, 'running_belt',
+        'Телефон и ключи не будут мешать на пробежке'),
+    ('running', 1, 'running_tights',
+        'Компрессия помогает мышцам при увеличении дистанций'),
+    ('running', 3, 'sport_watch',
+        'Опытным бегунам важно контролировать пульс и темп'),
+    ('football', 0, 'football_ball',
+        'Собственный мяч — чтобы тренироваться в любое время'),
+    ('football', 2, 'goalkeeper_gloves',
+        'Пригодятся, если играете на воротах'),
+    ('fitness', 0, 'water_bottle',
+        'Пить воду нужно на каждой тренировке'),
+    ('fitness', 1, 'dumbbells',
+        'Для тренировок дома между походами в зал'),
+    ('fitness', 2, 'kettlebell',
+        'Гиря развивает силу и выносливость на продвинутом уровне'),
+    ('basketball', 0, 'water_bottle',
+        'Пить воду нужно на каждой тренировке'),
+    ('swimming', 0, 'water_bottle',
+        'После бассейна важно восполнить жидкость'),
+    ('boxing', 0, 'mouth_guard',
+        'Обязательная защита при спаррингах'),
+    ('boxing', 1, 'water_bottle',
+        'Интенсивные тренировки требуют много воды'),
+    ('karate', 1, 'water_bottle',
+        'Пить воду нужно на каждой тренировке'),
+    ('yoga', 0, 'yoga_block',
+        'Помогает правильно выполнять асаны на первых занятиях'),
+    ('yoga', 1, 'water_bottle',
+        'Пить воду нужно после каждой практики'),
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Запись в базу
+  // ---------------------------------------------------------------------------
+
+  static Future<void> insertAll(DatabaseExecutor db) async {
+    final Map<String, int> sportIds = {};
+    for (final (key, name, description) in _sports) {
+      sportIds[key] = await db.insert(DatabaseSchema.sports, {
+        'name': name,
+        'description': description,
+      });
+    }
+
+    final Map<String, int> categoryIds = {};
+    for (final (key, name) in _categories) {
+      categoryIds[key] = await db.insert(DatabaseSchema.categories, {
+        'name': name,
+        'sport_id': null,
+      });
+    }
+
+    final Map<String, int> productIds = {};
+    for (final (key, name, description, price, category, sport, size, stock)
+        in _products) {
+      productIds[key] = await db.insert(DatabaseSchema.products, {
+        'name': name,
+        'description': description,
+        'price': price.toDouble(),
+        'category_id': _id(categoryIds, category),
+        'sport_id': _id(sportIds, sport),
+        'size': size,
+        'stock': stock,
+        'image_url': '$_imagesFolder/$key.png',
+      });
+    }
+
+    for (final (sport, level, product, isMandatory) in _requirements) {
+      await db.insert(DatabaseSchema.sportRequirements, {
+        'sport_id': _id(sportIds, sport),
+        'product_id': _id(productIds, product),
+        'level': level.value,
+        'is_mandatory': isMandatory ? 1 : 0,
+      });
+    }
+
+    for (final (sport, minExperience, product, reason) in _recommendations) {
+      await db.insert(DatabaseSchema.recommendations, {
+        'sport_id': _id(sportIds, sport),
+        'min_experience': minExperience,
+        'product_id': _id(productIds, product),
+        'reason': reason,
+      });
+    }
+
+    await _insertUsersAndOrders(db, sportIds, productIds);
+  }
+
+  static Future<void> _insertUsersAndOrders(
+    DatabaseExecutor db,
+    Map<String, int> sportIds,
+    Map<String, int> productIds,
+  ) async {
+    // Администратор: admin@sport.kz / Admin123
+    await db.insert(DatabaseSchema.users, {
+      'email': 'admin@sport.kz',
+      'password_hash': PasswordHasher.hash('Admin123'),
+      'role': UserRole.admin.value,
+      'first_name': 'Администратор',
+      'last_name': null,
+      'phone': null,
+      'created_at': DateTime(2026, 1, 10).toIso8601String(),
+    });
+
+    // Покупатель из макетов: maria@mail.kz / Maria123
+    final int mariaId = await db.insert(DatabaseSchema.users, {
+      'email': 'maria@mail.kz',
+      'password_hash': PasswordHasher.hash('Maria123'),
+      'role': UserRole.customer.value,
+      'first_name': 'Мария',
+      'last_name': 'Габдулина',
+      'phone': '+7 708 777 5555',
+      'created_at': DateTime(2026, 2, 3).toIso8601String(),
+    });
+    await db.insert(DatabaseSchema.userSizes, {
+      'user_id': mariaId,
+      'height': 160,
+      'weight': 60,
+      'clothing_size': 'S',
+      'shoe_size': 38,
+      'experience_years': 6,
+      'sport_id': _id(sportIds, 'volleyball'),
+    });
+
+    // Покупатель-новичок: ivan@mail.kz / Ivan1234
+    final int ivanId = await db.insert(DatabaseSchema.users, {
+      'email': 'ivan@mail.kz',
+      'password_hash': PasswordHasher.hash('Ivan1234'),
+      'role': UserRole.customer.value,
+      'first_name': 'Иван',
+      'last_name': 'Петров',
+      'phone': '+7 701 123 4567',
+      'created_at': DateTime(2026, 3, 15).toIso8601String(),
+    });
+    await db.insert(DatabaseSchema.userSizes, {
+      'user_id': ivanId,
+      'height': 180,
+      'weight': 75,
+      'clothing_size': 'L',
+      'shoe_size': 43,
+      'experience_years': 0,
+      'sport_id': _id(sportIds, 'running'),
+    });
+
+    // Заказы Марии — номера как в макете «История заказов»
+    const String mariaAddress = 'г. Астана, пр. Абая, д. 10, кв. 25';
+    await _insertOrder(
+      db,
+      productIds: productIds,
+      id: 1003,
+      userId: mariaId,
+      status: OrderStatus.newOrder,
+      createdAt: DateTime(2026, 5, 20),
+      customerName: 'Мария Габдулина',
+      phone: '+7 708 777 5555',
+      address: mariaAddress,
+      deliveryMethod: DeliveryMethod.pickup,
+      items: const [('water_bottle', 1)],
+    );
+    await _insertOrder(
+      db,
+      productIds: productIds,
+      id: 1019,
+      userId: mariaId,
+      status: OrderStatus.inTransit,
+      createdAt: DateTime(2026, 5, 16),
+      customerName: 'Мария Габдулина',
+      phone: '+7 708 777 5555',
+      address: mariaAddress,
+      deliveryMethod: DeliveryMethod.courier,
+      items: const [('volleyball_uniform', 1), ('volleyball_knee_pads', 1)],
+    );
+    await _insertOrder(
+      db,
+      productIds: productIds,
+      id: 1024,
+      userId: mariaId,
+      status: OrderStatus.delivered,
+      createdAt: DateTime(2026, 5, 12),
+      customerName: 'Мария Габдулина',
+      phone: '+7 708 777 5555',
+      address: mariaAddress,
+      deliveryMethod: DeliveryMethod.courier,
+      items: const [
+        ('volleyball_knee_pads', 1),
+        ('volleyball_shorts', 1),
+        ('knee_brace', 1),
+      ],
+    );
+
+    // Заказ Ивана
+    await _insertOrder(
+      db,
+      productIds: productIds,
+      id: 1010,
+      userId: ivanId,
+      status: OrderStatus.delivered,
+      createdAt: DateTime(2026, 4, 2),
+      customerName: 'Иван Петров',
+      phone: '+7 701 123 4567',
+      address: 'г. Астана, ул. Кенесары, д. 5',
+      deliveryMethod: DeliveryMethod.courier,
+      items: const [('running_shoes', 1), ('running_tshirt', 2)],
+    );
+  }
+
+  /// Заказ + его позиции. Итог = товары + доставка.
+  static Future<void> _insertOrder(
+    DatabaseExecutor db, {
+    required Map<String, int> productIds,
+    required int id,
+    required int userId,
+    required OrderStatus status,
+    required DateTime createdAt,
+    required String customerName,
+    required String phone,
+    required String address,
+    required DeliveryMethod deliveryMethod,
+    required List<(String, int)> items,
+  }) async {
+    double itemsTotal = 0;
+    final List<Map<String, Object?>> itemRows = [];
+    for (final (productKey, quantity) in items) {
+      final double price = _priceOf(productKey);
+      itemsTotal += price * quantity;
+      itemRows.add({
+        'order_id': id,
+        'product_id': _id(productIds, productKey),
+        'quantity': quantity,
+        'price': price,
+      });
+    }
+
+    final double delivery = deliveryMethod == DeliveryMethod.courier
+        ? AppConstants.courierDeliveryPrice
+        : AppConstants.pickupDeliveryPrice;
+
+    await db.insert(DatabaseSchema.orders, {
+      'id': id,
+      'user_id': userId,
+      'status': status.value,
+      'total_price': itemsTotal + delivery,
+      'created_at': createdAt.toIso8601String(),
+      'customer_name': customerName,
+      'phone': phone,
+      'delivery_address':
+          deliveryMethod == DeliveryMethod.courier ? address : null,
+      'delivery_method': deliveryMethod.value,
+    });
+
+    for (final Map<String, Object?> row in itemRows) {
+      await db.insert(DatabaseSchema.orderItems, row);
+    }
+  }
+
+  static double _priceOf(String productKey) {
+    for (final product in _products) {
+      if (product.$1 == productKey) return product.$4.toDouble();
+    }
+    throw StateError('В seed-данных нет товара "$productKey"');
+  }
+
+  static int _id(Map<String, int> ids, String key) {
+    final int? id = ids[key];
+    if (id == null) {
+      throw StateError('В seed-данных нет ключа "$key"');
+    }
+    return id;
+  }
+}
