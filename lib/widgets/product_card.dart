@@ -26,10 +26,13 @@ class ProductCard extends StatelessWidget {
   /// Короткая подпись под названием, например причина рекомендации.
   final String? caption;
 
+  /// Высота карточки — её задаёт горизонтальная лента.
+  static const double height = 236;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 150,
+      width: 152,
       child: AppCard(
         onTap: onTap,
         padding: const EdgeInsets.all(AppSizes.s),
@@ -39,7 +42,7 @@ class ProductCard extends StatelessWidget {
             ProductImage(
               imageUrl: product.imageUrl,
               width: double.infinity,
-              height: 90,
+              height: 96,
               borderRadius: AppSizes.radiusS,
             ),
             const SizedBox(height: AppSizes.s),

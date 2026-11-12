@@ -23,4 +23,9 @@ class AppRoutes {
 
   static const String recommendationQuiz = '/recommendation/quiz';
   static const String recommendationResult = '/recommendation/result';
+
+  static const String kits = '/kits'; // аргумент: id вида спорта (необязателен)
+  static const String compare = '/compare';
+  static const String favorites = '/favorites';
+  static const String fittingRoom = '/fitting-room'; // аргумент: id товара (необязателен)
 }

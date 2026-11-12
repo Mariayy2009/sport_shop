@@ -13,15 +13,15 @@ class AppTextStyles {
   /// «Вход», «Регистрация»
   static const TextStyle screenTitle = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 24,
-    fontWeight: FontWeight.w500,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
   );
 
   /// «Каталог товаров», «Корзина», «Подбор экипировки»
   static const TextStyle sectionTitle = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
   );
@@ -29,7 +29,7 @@ class AppTextStyles {
   /// Вопросы опроса: «Какой у тебя вид спорта?»
   static const TextStyle questionTitle = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
   );
@@ -43,63 +43,63 @@ class AppTextStyles {
 
   static const TextStyle bodySecondary = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w400,
     color: AppColors.textSecondary,
   );
 
   static const TextStyle caption = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: FontWeight.w400,
     color: AppColors.textSecondary,
   );
 
   static const TextStyle price = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle priceLarge = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 20,
-    fontWeight: FontWeight.w700,
+    fontSize: 22,
+    fontWeight: FontWeight.w800,
     color: AppColors.textPrimary,
   );
 
   /// Подпись над полем ввода: «Email», «Password»
   static const TextStyle fieldLabel = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle fieldError = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: FontWeight.w400,
     color: AppColors.error,
   );
 
   static const TextStyle button = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w600,
   );
 
   static const TextStyle link = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle navLabel = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: FontWeight.w500,
   );
 }

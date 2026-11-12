@@ -3,26 +3,34 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/routes/main_tab.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_messages.dart';
 import '../../core/utils/cart_actions.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/product_actions.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../models/outfit.dart';
 import '../../models/product.dart';
 import '../../models/user_sizes.dart';
+import '../../services/size_advisor.dart';
 import '../../state/cart_state.dart';
+import '../../state/compare_state.dart';
+import '../../state/favorites_state.dart';
 import '../../state/profile_state.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/product_image.dart';
+import '../../widgets/rating_badge.dart';
 import '../../widgets/size_chart_sheet.dart';
 import '../../widgets/size_selector.dart';
 import '../../widgets/what_else_section.dart';
 
-/// Карточка товара (фрейм Figma «товар»).
+/// Карточка товара: фото, цена, совет по размеру, характеристики,
+/// избранное, сравнение и примерка.
 class ProductScreen extends StatefulWidget {
   const ProductScreen({super.key, required this.productId});
 
@@ -39,6 +47,8 @@ class _ProductScreenState extends State<ProductScreen> {
   bool _sizeInitialized = false;
   bool _isAdding = false;
 
+  static const SizeAdvisor _sizeAdvisor = SizeAdvisor();
+
   @override
   void initState() {
     super.initState();
@@ -48,11 +58,8 @@ class _ProductScreenState extends State<ProductScreen> {
   void _initSize(Product product) {
     if (_sizeInitialized) return;
     _sizeInitialized = true;
-    final UserSizes? sizes = context.read<ProfileState>().sizes;
-    _selectedSize = product.pickSize(
-      clothingSize: sizes?.clothingSize,
-      shoeSize: sizes?.shoeSize,
-    );
+    _selectedSize =
+        _sizeAdvisor.pickSize(product, context.read<ProfileState>().sizes);
   }
 
   Future<void> _addToCart(Product product) async {
@@ -110,6 +117,7 @@ class _ProductScreenState extends State<ProductScreen> {
         return AppScaffold(
           title: 'Товар',
           navTab: MainTab.catalog,
+          titleTrailing: _TitleActions(product: product),
           bottomAction: CustomButton(
             text: product.isAvailable ? 'Положить в корзину' : 'Нет в наличии',
             isLoading: _isAdding,
@@ -124,6 +132,8 @@ class _ProductScreenState extends State<ProductScreen> {
   Widget _buildContent(Product product) {
     final UserSizes? sizes = context.watch<ProfileState>().sizes;
     final Set<int> cartIds = context.watch<CartState>().productIds;
+    final SizeAdvice? advice = _sizeAdvisor.advise(product, sizes);
+    final bool canTryOn = Outfit.kindOf(product) != null;
 
     return ListView(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -142,7 +152,19 @@ class _ProductScreenState extends State<ProductScreen> {
           ),
         ),
         const SizedBox(height: AppSizes.l),
-        Text(product.name, style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                [product.brand, product.sportName].whereType<String>().join(' · '),
+                style: AppTextStyles.bodySecondary,
+              ),
+            ),
+            RatingBadge(rating: product.rating),
+          ],
+        ),
+        const SizedBox(height: AppSizes.xs),
+        Text(product.name, style: AppTextStyles.sectionTitle.copyWith(fontSize: 20)),
         const SizedBox(height: AppSizes.xs),
         Text(Formatters.price(product.price), style: AppTextStyles.priceLarge),
         const SizedBox(height: AppSizes.xs),
@@ -187,6 +209,26 @@ class _ProductScreenState extends State<ProductScreen> {
               padding: EdgeInsets.only(top: AppSizes.xs),
               child: Text('Выберите размер', style: AppTextStyles.fieldError),
             ),
+          const SizedBox(height: AppSizes.m),
+          _SizeAdviceCard(
+            advice: advice,
+            isSelected: advice != null && advice.size == _selectedSize,
+            onApply: advice == null
+                ? () => Navigator.of(context).pushNamed(AppRoutes.editProfile)
+                : () => setState(() {
+                      _selectedSize = advice.size;
+                      _sizeError = false;
+                    }),
+          ),
+        ],
+        if (canTryOn) ...[
+          const SizedBox(height: AppSizes.m),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context)
+                .pushNamed(AppRoutes.fittingRoom, arguments: product.id),
+            icon: const Icon(Icons.checkroom, size: 18),
+            label: const Text('Примерить на манекене'),
+          ),
         ],
         const SizedBox(height: AppSizes.l),
         AppCard(
@@ -195,6 +237,10 @@ class _ProductScreenState extends State<ProductScreen> {
             children: [
               const Text('Характеристики', style: AppTextStyles.sectionTitle),
               const SizedBox(height: AppSizes.s),
+              if (product.brand != null)
+                _InfoRow(label: 'Бренд', value: product.brand!),
+              if (product.material != null)
+                _InfoRow(label: 'Материал', value: product.material!),
               _InfoRow(label: 'Категория', value: product.categoryName ?? '—'),
               _InfoRow(label: 'Вид спорта', value: product.sportName ?? '—'),
               _InfoRow(
@@ -307,6 +353,108 @@ class _FileRow extends StatelessWidget {
             const Icon(Icons.download_outlined, size: 20),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Кнопки в строке заголовка: избранное и сравнение.
+class _TitleActions extends StatelessWidget {
+  const _TitleActions({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isFavorite = context.watch<FavoritesState>().contains(product.id);
+    final bool inCompare = context.watch<CompareState>().contains(product.id);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: inCompare ? 'Убрать из сравнения' : 'Сравнить',
+          onPressed: () => ProductActions.toggleCompare(context, product),
+          icon: Icon(
+            Icons.compare_arrows,
+            color: inCompare ? AppColors.accent : AppColors.textPrimary,
+          ),
+        ),
+        IconButton(
+          tooltip: isFavorite ? 'Убрать из избранного' : 'В избранное',
+          onPressed: () => ProductActions.toggleFavorite(context, product),
+          icon: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: isFavorite ? AppColors.favorite : AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Умный подбор размера: рекомендация с объяснением
+/// или приглашение заполнить параметры в профиле.
+class _SizeAdviceCard extends StatelessWidget {
+  const _SizeAdviceCard({
+    required this.advice,
+    required this.isSelected,
+    required this.onApply,
+  });
+
+  final SizeAdvice? advice;
+  final bool isSelected;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final SizeAdvice? advice = this.advice;
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.m),
+      decoration: BoxDecoration(
+        color: AppColors.accentSoft,
+        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.straighten, color: AppColors.accentDark, size: 20),
+          const SizedBox(width: AppSizes.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  advice == null
+                      ? 'Подберём размер за вас'
+                      : 'Рекомендуем размер ${advice.size}',
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.accentDark,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.xxs),
+                Text(
+                  advice?.explanation ??
+                      'Укажите рост, вес и размеры в профиле — и мы '
+                          'подскажем размер для каждого товара.',
+                  style: AppTextStyles.bodySecondary.copyWith(height: 1.35),
+                ),
+                if (advice == null || !isSelected) ...[
+                  const SizedBox(height: AppSizes.s),
+                  TextButton(
+                    onPressed: onApply,
+                    child: Text(
+                      advice == null
+                          ? 'Заполнить профиль'
+                          : 'Выбрать ${advice.size}',
+                      style: const TextStyle(color: AppColors.accentDark),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

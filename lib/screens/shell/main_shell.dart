@@ -7,15 +7,15 @@ import '../../state/cart_state.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/guest_prompt.dart';
+import '../assistant/assistant_screen.dart';
 import '../cart/cart_screen.dart';
 import '../catalog/catalog_screen.dart';
 import '../home/home_screen.dart';
 import '../profile/profile_screen.dart';
-import '../recommendation/recommendation_intro_screen.dart';
 
 /// Основная часть приложения: шапка + вкладки + нижняя навигация.
 /// IndexedStack сохраняет состояние вкладок при переключении.
-/// Гость видит каталог; AI, корзина и профиль — только после входа.
+/// Гость видит каталог и помощника; корзина и профиль — после входа.
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.initialTab = MainTab.home});
 
@@ -61,23 +61,15 @@ class _MainShellState extends State<MainShell> {
           onOpenAi: () => _selectTab(MainTab.ai),
         ),
       MainTab.catalog => const CatalogScreen(),
-      MainTab.ai => isLoggedIn
-          ? RecommendationIntroScreen(
-              onDecline: () => _selectTab(MainTab.home),
-            )
-          : const GuestPrompt(
-              title: 'AI-подбор экипировки',
-              message: 'Войдите, чтобы получить персональный набор '
-                  'экипировки под ваш вид спорта и уровень',
-              icon: Icons.auto_awesome_outlined,
-            ),
+      // Помощник доступен и гостю: спросить совет можно без аккаунта.
+      MainTab.ai => const AssistantScreen(),
       MainTab.basket => isLoggedIn
           ? CartScreen(onGoShopping: () => _selectTab(MainTab.catalog))
           : const GuestPrompt(
               title: 'Корзина',
               message: 'Войдите, чтобы добавлять товары в корзину '
                   'и оформлять заказы',
-              icon: Icons.shopping_basket_outlined,
+              icon: Icons.shopping_bag_outlined,
             ),
       MainTab.profile => isLoggedIn
           ? ProfileScreen(onOpenAi: () => _selectTab(MainTab.ai))

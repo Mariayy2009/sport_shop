@@ -19,7 +19,7 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: AppColors.black,
         onPrimary: AppColors.white,
-        secondary: AppColors.black,
+        secondary: AppColors.accent,
         onSecondary: AppColors.white,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
@@ -71,6 +71,14 @@ class AppTheme {
         ),
       ),
 
+      progressIndicatorTheme:
+          const ProgressIndicatorThemeData(color: AppColors.accent),
+      dividerTheme:
+          const DividerThemeData(color: AppColors.divider, thickness: 1),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.black,

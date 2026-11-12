@@ -18,15 +18,15 @@ class AppSizes {
   static const double screenPadding = 16;
 
   // Высоты элементов
-  static const double headerHeight = 52;
-  static const double bottomNavHeight = 60;
-  static const double buttonHeight = 44;
-  static const double fieldHeight = 40;
+  static const double headerHeight = 56;
+  static const double bottomNavHeight = 64;
+  static const double buttonHeight = 50;
+  static const double fieldHeight = 44;
 
   // Скругления
-  static const double radiusS = 8;
-  static const double radiusM = 12;
-  static const double radiusL = 16;
+  static const double radiusS = 10;
+  static const double radiusM = 16;
+  static const double radiusL = 22;
   static const double radiusPill = 100; // кнопки и поля-«таблетки»
 
   // Иконки

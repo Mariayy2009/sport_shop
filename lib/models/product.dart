@@ -10,6 +10,9 @@ class Product {
     this.size,
     required this.stock,
     this.imageUrl,
+    this.brand,
+    this.material,
+    this.rating,
     this.categoryName,
     this.sportName,
   });
@@ -28,6 +31,15 @@ class Product {
   /// Путь к картинке: «assets/images/products/...» сейчас,
   /// «https://...» после переноса изображений в облако.
   final String? imageUrl;
+
+  /// Производитель: «Mizuno», «Adidas».
+  final String? brand;
+
+  /// Основной материал: «Полиэстер 100%».
+  final String? material;
+
+  /// Средняя оценка покупателей от 0 до 5.
+  final double? rating;
 
   // Заполняются через JOIN, в таблицу products не сохраняются.
   final String? categoryName;
@@ -73,6 +85,9 @@ class Product {
       size: map['size'] as String?,
       stock: (map['stock'] as int?) ?? 0,
       imageUrl: map['image_url'] as String?,
+      brand: map['brand'] as String?,
+      material: map['material'] as String?,
+      rating: (map['rating'] as num?)?.toDouble(),
       categoryName: map['category_name'] as String?,
       sportName: map['sport_name'] as String?,
     );
@@ -89,6 +104,9 @@ class Product {
       'size': size,
       'stock': stock,
       'image_url': imageUrl,
+      'brand': brand,
+      'material': material,
+      'rating': rating,
     };
   }
 
@@ -106,6 +124,9 @@ class Product {
     String? size,
     int? stock,
     String? imageUrl,
+    String? brand,
+    String? material,
+    double? rating,
     String? categoryName,
     String? sportName,
   }) {
@@ -119,6 +140,9 @@ class Product {
       size: size ?? this.size,
       stock: stock ?? this.stock,
       imageUrl: imageUrl ?? this.imageUrl,
+      brand: brand ?? this.brand,
+      material: material ?? this.material,
+      rating: rating ?? this.rating,
       categoryName: categoryName ?? this.categoryName,
       sportName: sportName ?? this.sportName,
     );

@@ -59,9 +59,13 @@ class ProfileScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.black, width: 3),
+                border: Border.all(color: AppColors.accent, width: 3),
               ),
-              child: const Icon(Icons.person, size: 80),
+              alignment: Alignment.center,
+              child: Text(
+                user.greetingName.characters.first.toUpperCase(),
+                style: AppTextStyles.screenTitle.copyWith(fontSize: 44),
+              ),
             ),
           ),
           const SizedBox(height: AppSizes.m),
@@ -72,10 +76,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Text(
                   user.fullName,
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.sectionTitle.copyWith(
-                    fontSize: 18,
-                    fontStyle: FontStyle.italic,
-                  ),
+                  style: AppTextStyles.sectionTitle.copyWith(fontSize: 20),
                 ),
               ),
               IconButton(
@@ -107,9 +108,25 @@ class ProfileScreen extends StatelessWidget {
             onTap: () => Navigator.of(context).pushNamed(AppRoutes.orderHistory),
           ),
           _MenuItem(
+            icon: Icons.favorite_border,
+            title: 'Избранное',
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.favorites),
+          ),
+          _MenuItem(
             icon: Icons.auto_awesome_outlined,
-            title: 'Подобрать экипировку',
+            title: 'ИИ-помощник',
             onTap: onOpenAi,
+          ),
+          _MenuItem(
+            icon: Icons.inventory_2_outlined,
+            title: 'Мой комплект',
+            onTap: () => Navigator.of(context)
+                .pushNamed(AppRoutes.kits, arguments: sizes?.sportId),
+          ),
+          _MenuItem(
+            icon: Icons.checkroom,
+            title: 'Примерочная',
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.fittingRoom),
           ),
           _MenuItem(
             icon: Icons.edit_outlined,

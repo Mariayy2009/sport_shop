@@ -5,7 +5,7 @@ import '../core/constants/app_sizes.dart';
 import '../core/constants/sport_visuals.dart';
 import '../core/theme/app_text_styles.dart';
 
-/// Плитка-фото вида спорта на главной (сетка 2 × N из Figma).
+/// Плитка-фото вида спорта на главной (сетка 2 × N).
 class SportTile extends StatelessWidget {
   const SportTile({super.key, required this.sportName, required this.onTap});
 
@@ -16,7 +16,7 @@ class SportTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final SportVisual visual = SportVisuals.of(sportName);
     return Material(
-      color: AppColors.surface,
+      color: AppColors.accentSoft,
       borderRadius: BorderRadius.circular(AppSizes.radiusM),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -29,7 +29,11 @@ class SportTile extends StatelessWidget {
               fit: BoxFit.cover,
               // Пока фото нет — большая иконка вида спорта.
               errorBuilder: (context, error, stackTrace) => Center(
-                child: Icon(visual.icon, size: 56, color: AppColors.textHint),
+                child: Icon(
+                  visual.icon,
+                  size: 56,
+                  color: AppColors.accent.withValues(alpha: 0.6),
+                ),
               ),
             ),
             Positioned(
@@ -49,7 +53,7 @@ class SportTile extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       AppColors.black.withValues(alpha: 0),
-                      AppColors.black.withValues(alpha: 0.65),
+                      AppColors.black.withValues(alpha: 0.7),
                     ],
                   ),
                 ),

@@ -5,18 +5,18 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/utils/cart_actions.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/product.dart';
 import '../../models/product_filter.dart';
+import '../../state/compare_state.dart';
 import '../../state/product_state.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/product_list_item.dart';
+import '../../widgets/product_grid_card.dart';
 import '../../widgets/screen_title_bar.dart';
 import '../../widgets/search_field.dart';
 
-/// Каталог товаров (фрейм Figma «каталог»): поиск, фильтры, сортировка,
-/// активные фильтры чипами, список товаров.
+/// Каталог товаров: поиск, фильтры, сортировка, активные фильтры чипами,
+/// сетка карточек с избранным и сравнением.
 class CatalogScreen extends StatelessWidget {
   const CatalogScreen({super.key});
 
@@ -24,6 +24,7 @@ class CatalogScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final ProductState state = context.watch<ProductState>();
     final ProductFilter filter = state.filter;
+    final int compareCount = context.watch<CompareState>().count;
 
     return Column(
       children: [
@@ -58,6 +59,8 @@ class CatalogScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: AppSizes.s),
+        if (compareCount > 0) _CompareBar(count: compareCount),
         Expanded(child: _buildList(context, state)),
       ],
     );
@@ -89,26 +92,88 @@ class CatalogScreen extends StatelessWidget {
     final List<Product> products = state.products;
     return RefreshIndicator(
       onRefresh: state.loadProducts,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(AppSizes.screenPadding),
-        itemCount: products.length + 1,
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: AppSizes.s),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Text(
-              'Найдено: ${Formatters.itemsCount(products.length)}',
-              style: AppTextStyles.caption,
-            );
-          }
-          final Product product = products[index - 1];
-          return ProductListItem(
-            product: product,
-            onTap: () => Navigator.of(context)
-                .pushNamed(AppRoutes.product, arguments: product.id),
-            onAddToCart: () => CartActions.addToCart(context, product),
-          );
-        },
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.screenPadding,
+              AppSizes.m,
+              AppSizes.screenPadding,
+              AppSizes.s,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                'Найдено: ${Formatters.itemsCount(products.length)}',
+                style: AppTextStyles.caption,
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.screenPadding,
+              0,
+              AppSizes.screenPadding,
+              AppSizes.screenPadding,
+            ),
+            sliver: SliverGrid.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: AppSizes.m,
+                crossAxisSpacing: AppSizes.m,
+                childAspectRatio: ProductGridCard.aspectRatio,
+              ),
+              itemCount: products.length,
+              itemBuilder: (context, index) =>
+                  ProductGridCard(product: products[index]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Плашка над списком: сколько товаров выбрано для сравнения.
+class _CompareBar extends StatelessWidget {
+  const _CompareBar({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.accent,
+      child: InkWell(
+        onTap: () => Navigator.of(context).pushNamed(AppRoutes.compare),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.screenPadding,
+            vertical: AppSizes.s,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.compare_arrows, color: AppColors.white, size: 18),
+              const SizedBox(width: AppSizes.s),
+              Expanded(
+                child: Text(
+                  'В сравнении: ${Formatters.itemsCount(count)}',
+                  style: AppTextStyles.bodySecondary.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                'Сравнить',
+                style: AppTextStyles.bodySecondary.copyWith(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.white, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }

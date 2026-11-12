@@ -184,6 +184,50 @@ class SeedData {
   ];
 
   // ---------------------------------------------------------------------------
+  // Характеристики для сравнения товаров: бренд, материал, рейтинг
+  // ---------------------------------------------------------------------------
+  static const Map<String, (String, String, double)> _productDetails = {
+    'volleyball_uniform': ('Mizuno', 'Полиэстер 100%', 4.7),
+    'volleyball_knee_pads': ('Asics', 'Нейлон, пена EVA', 4.6),
+    'volleyball_shoes': ('Asics', 'Сетка, резина', 4.8),
+    'volleyball_shorts': ('Mizuno', 'Полиэстер, эластан', 4.4),
+    'knee_brace': ('McDavid', 'Неопрен', 4.5),
+    'mikasa_ball': ('Mikasa', 'Микрофибра', 4.9),
+    'mikasa_backpack': ('Mikasa', 'Полиэстер 600D', 4.6),
+    'running_shoes': ('Nike', 'Сетка, пена', 4.8),
+    'running_tshirt': ('Nike', 'Полиэстер 100%', 4.5),
+    'running_tights': ('Under Armour', 'Полиэстер, эластан', 4.6),
+    'running_belt': ('Kalenji', 'Неопрен', 4.3),
+    'sport_watch': ('Garmin', 'Пластик, силикон', 4.9),
+    'football_boots': ('Adidas', 'Синтетическая кожа', 4.7),
+    'shin_guards': ('Nike', 'Пластик, пена EVA', 4.4),
+    'football_socks': ('Adidas', 'Нейлон, эластан', 4.3),
+    'football_shorts': ('Puma', 'Полиэстер 100%', 4.4),
+    'football_ball': ('Adidas', 'Полиуретан', 4.7),
+    'goalkeeper_gloves': ('Reusch', 'Латекс', 4.5),
+    'sport_tshirt': ('Puma', 'Полиэстер 100%', 4.5),
+    'adidas_pants': ('Adidas', 'Хлопок, полиэстер', 4.6),
+    'gym_shoes': ('Reebok', 'Сетка, резина', 4.7),
+    'kettlebell': ('Torneo', 'Чугун', 4.8),
+    'dumbbells': ('Torneo', 'Сталь, резина', 4.7),
+    'water_bottle': ('Demix', 'Тритан', 4.5),
+    'basketball_ball': ('Spalding', 'Композитная кожа', 4.8),
+    'basketball_shoes': ('Nike', 'Сетка, резина', 4.7),
+    'basketball_uniform': ('Jogel', 'Полиэстер 100%', 4.4),
+    'swim_goggles': ('Speedo', 'Поликарбонат, силикон', 4.6),
+    'swim_cap': ('Arena', 'Силикон', 4.5),
+    'swimsuit': ('Speedo', 'Полиамид, эластан', 4.6),
+    'boxing_gloves': ('Everlast', 'Искусственная кожа', 4.7),
+    'hand_wraps': ('Everlast', 'Хлопок, эластан', 4.5),
+    'mouth_guard': ('Venum', 'Термопластик', 4.3),
+    'karate_kimono': ('Adidas', 'Хлопок 100%', 4.6),
+    'karate_belt': ('Adidas', 'Хлопок 100%', 4.5),
+    'yoga_mat': ('Manduka', 'ТПЭ', 4.8),
+    'yoga_block': ('Demix', 'Пена EVA', 4.4),
+    'yoga_leggings': ('Nike', 'Полиамид, эластан', 4.7),
+  };
+
+  // ---------------------------------------------------------------------------
   // sport_requirements: вид спорта, уровень, товар, обязательный?
   // ---------------------------------------------------------------------------
   static const SportLevel _beginner = SportLevel.beginner;
@@ -366,6 +410,7 @@ class SeedData {
     final Map<String, int> productIds = {};
     for (final (key, name, description, price, category, sport, size, stock)
         in _products) {
+      final (String, String, double)? details = _productDetails[key];
       productIds[key] = await db.insert(DatabaseSchema.products, {
         'name': name,
         'description': description,
@@ -375,6 +420,9 @@ class SeedData {
         'size': size,
         'stock': stock,
         'image_url': '$_imagesFolder/$key.png',
+        'brand': details?.$1,
+        'material': details?.$2,
+        'rating': details?.$3,
       });
     }
 

@@ -1,18 +1,17 @@
 /// Тексты интерфейса в одном месте.
-/// Подписи совпадают с макетами Figma: если нужно перевести
-/// английские подписи регистрации на русский, меняем только здесь.
+/// Весь интерфейс на русском; подписи меняются только здесь.
 class AppStrings {
   AppStrings._();
 
   static const String appName = 'SPORT';
   static const String currency = '₸';
 
-  // Подписи нижней навигации (как в Figma)
-  static const String navHome = 'Home';
-  static const String navCatalog = 'Catalog';
-  static const String navAi = 'AI';
-  static const String navBasket = 'Basket';
-  static const String navProfile = 'Profile';
+  // Подписи нижней навигации
+  static const String navHome = 'Главная';
+  static const String navCatalog = 'Каталог';
+  static const String navAi = 'Помощник';
+  static const String navBasket = 'Корзина';
+  static const String navProfile = 'Профиль';
 
   // Вход
   static const String loginTitle = 'Вход';
@@ -24,13 +23,14 @@ class AppStrings {
   static const String noAccount = 'У вас нет аккаунта?';
   static const String registrationLink = 'Регистрация';
 
-  // Регистрация (подписи полей как в Figma)
+  // Регистрация
   static const String registrationTitle = 'Регистрация';
-  static const String firstNameLabel = 'Name';
-  static const String lastNameLabel = 'Surname';
-  static const String registrationPasswordLabel = 'Password';
-  static const String confirmPasswordLabel = 'Repeat the password';
-  static const String agreement = 'I agree to the processing of personal data';
+  static const String firstNameLabel = 'Имя';
+  static const String lastNameLabel = 'Фамилия';
+  static const String registrationPasswordLabel = 'Пароль';
+  static const String confirmPasswordLabel = 'Повторите пароль';
+  static const String agreement = 
+      'Я согласен(на) на обработку персональных данных';
   static const String registrationButton = 'Регистрация';
 
   // Общие сообщения

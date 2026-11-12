@@ -13,10 +13,14 @@ import 'data/database/database_helper.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/product_repository.dart';
 import 'data/repositories/user_repository.dart';
+import 'services/kit_service.dart';
 import 'services/recommendation_service.dart';
 import 'state/app_states.dart';
+import 'state/assistant_state.dart';
 import 'state/auth_state.dart';
 import 'state/cart_state.dart';
+import 'state/compare_state.dart';
+import 'state/favorites_state.dart';
 import 'state/order_state.dart';
 import 'state/product_state.dart';
 import 'state/profile_state.dart';
@@ -62,6 +66,7 @@ class SportShopApp extends StatelessWidget {
         Provider<RecommendationService>.value(
           value: dependencies.recommendationService,
         ),
+        Provider<KitService>.value(value: dependencies.kitService),
         // Состояния экранов
         ChangeNotifierProvider<AuthState>.value(value: states.auth),
         ChangeNotifierProvider<ProductState>.value(value: states.products),
@@ -71,6 +76,9 @@ class SportShopApp extends StatelessWidget {
         ChangeNotifierProvider<RecommendationState>.value(
           value: states.recommendation,
         ),
+        ChangeNotifierProvider<FavoritesState>.value(value: states.favorites),
+        ChangeNotifierProvider<CompareState>.value(value: states.compare),
+        ChangeNotifierProvider<AssistantState>.value(value: states.assistant),
       ],
       child: MaterialApp(
         title: AppStrings.appName,

@@ -71,11 +71,13 @@ class _WhatElseSectionState extends State<WhatElseSection> {
             Text(widget.title, style: AppTextStyles.sectionTitle),
             const SizedBox(height: AppSizes.s),
             SizedBox(
-              height: 230,
+              height: ProductCard.height,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: items.length,
-                separatorBuilder: (context, index) => const SizedBox(width: AppSizes.s),
+                clipBehavior: Clip.none,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(width: AppSizes.m),
                 itemBuilder: (context, index) {
                   final RecommendedProduct item = items[index];
                   return ProductCard(

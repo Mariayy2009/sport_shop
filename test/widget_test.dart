@@ -19,11 +19,11 @@ void main() {
       states: AppStates.create(dependencies),
     ));
 
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Catalog'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Главная'), findsOneWidget);
+    expect(find.text('Каталог'), findsOneWidget);
+    expect(find.text('Профиль'), findsOneWidget);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.text('Профиль'));
     await tester.pump();
 
     expect(find.text('Войти'), findsOneWidget);

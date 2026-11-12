@@ -14,7 +14,9 @@ class DatabaseSchema {
 
   /// При изменении схемы увеличить версию — база пересоздастся (см. onUpgrade).
   /// v2: добавлены cart_items (корзина) и order_items.size (размер в заказе).
-  static const int version = 2;
+  /// v3: products.brand / material / rating (сравнение товаров),
+  ///     таблица favorites (избранное).
+  static const int version = 3;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -27,6 +29,7 @@ class DatabaseSchema {
   static const String orders = 'orders';
   static const String orderItems = 'order_items';
   static const String cartItems = 'cart_items';
+  static const String favorites = 'favorites';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
   static const List<String> tablesInCreateOrder = [
@@ -40,6 +43,7 @@ class DatabaseSchema {
     orders,
     orderItems,
     cartItems,
+    favorites,
   ];
 
   static List<String> get tablesInDropOrder =>
@@ -102,6 +106,9 @@ class DatabaseSchema {
       size TEXT,
       stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
       image_url TEXT,
+      brand TEXT,
+      material TEXT,
+      rating REAL CHECK (rating IS NULL OR rating BETWEEN 0 AND 5),
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -164,6 +171,16 @@ class DatabaseSchema {
       product_id INTEGER NOT NULL,
       size TEXT,
       quantity INTEGER NOT NULL CHECK (quantity > 0),
+      FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE CASCADE
+    )
+    ''',
+    '''
+    CREATE TABLE $favorites (
+      user_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, product_id),
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE,
       FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE CASCADE
     )

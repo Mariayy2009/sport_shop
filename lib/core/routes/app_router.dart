@@ -8,6 +8,10 @@ import '../../screens/cart/order_success_screen.dart';
 import '../../screens/catalog/filter_screen.dart';
 import '../../screens/catalog/product_screen.dart';
 import '../../screens/common/not_found_screen.dart';
+import '../../screens/compare/compare_screen.dart';
+import '../../screens/favorites/favorites_screen.dart';
+import '../../screens/fitting/fitting_room_screen.dart';
+import '../../screens/kits/kits_screen.dart';
 import '../../screens/orders/order_details_screen.dart';
 import '../../screens/orders/order_history_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
@@ -41,6 +45,11 @@ class AppRouter {
         OrderDetailsScreen(orderId: args),
       AppRoutes.recommendationQuiz => const RecommendationQuizScreen(),
       AppRoutes.recommendationResult => const RecommendationResultScreen(),
+      AppRoutes.kits => KitsScreen(initialSportId: args is int ? args : null),
+      AppRoutes.compare => const CompareScreen(),
+      AppRoutes.favorites => const FavoritesScreen(),
+      AppRoutes.fittingRoom =>
+        FittingRoomScreen(initialProductId: args is int ? args : null),
       _ => const NotFoundScreen(),
     };
 

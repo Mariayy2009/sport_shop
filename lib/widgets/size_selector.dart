@@ -65,13 +65,16 @@ class _SizePill extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 48),
           height: 36,
           padding: const EdgeInsets.symmetric(horizontal: AppSizes.m),
-          alignment: Alignment.center,
-          child: Text(
+          // widthFactor: «таблетка» по ширине текста, а не на всю строку.
+          child: Center(
+            widthFactor: 1,
+            child: Text(
             size,
             style: AppTextStyles.body.copyWith(
               fontWeight: FontWeight.w600,
               color: isSelected ? AppColors.textOnDark : AppColors.textPrimary,
             ),
+          ),
           ),
         ),
       ),
