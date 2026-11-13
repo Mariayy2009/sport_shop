@@ -147,11 +147,7 @@ class _AssistantBar extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.accent, AppColors.accentDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: AppColors.accent,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.auto_awesome, color: AppColors.white, size: 18),

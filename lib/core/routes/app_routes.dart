@@ -26,6 +26,9 @@ class AppRoutes {
 
   static const String kits = '/kits'; // аргумент: id вида спорта (необязателен)
   static const String compare = '/compare';
+  static const String admin = '/admin';
+  static const String adminProduct = '/admin/product'; // аргумент: товар (null — новый)
+  static const String fittingPhotos = '/fitting-room/photos';
   static const String favorites = '/favorites';
   static const String fittingRoom = '/fitting-room'; // аргумент: id товара (необязателен)
 }

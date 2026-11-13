@@ -144,11 +144,7 @@ class _AiBanner extends StatelessWidget {
     final BorderRadius radius = BorderRadius.circular(AppSizes.radiusL);
     return Ink(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.black, AppColors.accentDark],
-        ),
+        color: AppColors.black,
         borderRadius: radius,
       ),
       child: InkWell(
@@ -162,7 +158,7 @@ class _AiBanner extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.14),
+                  color: AppColors.accent,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.auto_awesome, color: AppColors.white),

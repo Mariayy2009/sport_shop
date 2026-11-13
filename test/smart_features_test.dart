@@ -5,16 +5,22 @@ import 'package:sport_shop/data/database/app_database.dart';
 import 'package:sport_shop/data/datasources/local/session_local_datasource.dart';
 import 'package:sport_shop/models/chat_message.dart';
 import 'package:sport_shop/models/enums.dart';
+import 'package:sport_shop/models/fitting_photos.dart';
 import 'package:sport_shop/models/outfit.dart';
 import 'package:sport_shop/models/product.dart';
 import 'package:sport_shop/models/product_filter.dart';
+import 'package:sport_shop/models/question.dart';
+import 'package:sport_shop/models/review.dart';
 import 'package:sport_shop/models/sport.dart';
 import 'package:sport_shop/models/sport_kit.dart';
 import 'package:sport_shop/models/user.dart';
 import 'package:sport_shop/models/user_sizes.dart';
+import 'package:sport_shop/services/media_storage.dart';
 import 'package:sport_shop/services/size_advisor.dart';
 import 'package:sport_shop/state/compare_state.dart';
 import 'package:sport_shop/state/favorites_state.dart';
+import 'package:sport_shop/state/fitting_state.dart';
+import 'package:sport_shop/state/profile_state.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Умные функции: подбор размера, комплекты, избранное, сравнение,
@@ -289,4 +295,190 @@ void main() {
       }
     });
   });
+
+  group('Отзывы', () {
+    test('отзыв доступен только после получения товара', () async {
+      final (User user, _) = await maria();
+      final Product delivered = await product('Шорты волейбольные');
+      final Product inTransit = await product('Волейбольная форма');
+      final Product never = await product('Гиря 8 кг');
+      expect(await deps.feedbackRepository.hasPurchased(user.id!, delivered.id!), isTrue);
+      expect(await deps.feedbackRepository.hasPurchased(user.id!, inTransit.id!), isFalse);
+      expect(await deps.feedbackRepository.hasPurchased(user.id!, never.id!), isFalse);
+    });
+
+    test('рейтинг товара — средняя оценка отзывов', () async {
+      final (User user, _) = await maria();
+      final User ivan = (await deps.userRepository.findByEmail('ivan@mail.kz'))!;
+      final Product shorts = await product('Шорты волейбольные');
+      Review review(int userId, int rating) => Review(
+            userId: userId,
+            productId: shorts.id!,
+            rating: rating,
+            text: 'Текст отзыва',
+            createdAt: DateTime(2026, 6, 1),
+          );
+
+      await deps.feedbackRepository.saveReview(review(user.id!, 5));
+      await deps.feedbackRepository.saveReview(review(ivan.id!, 2));
+      Product updated = await product('Шорты волейбольные');
+      expect(updated.rating, 3.5);
+      expect(updated.reviewsCount, 2);
+
+      // Повторный отзыв заменяет прежний, а не добавляется.
+      await deps.feedbackRepository.saveReview(review(ivan.id!, 4));
+      updated = await product('Шорты волейбольные');
+      expect(updated.rating, 4.5);
+      expect(updated.reviewsCount, 2);
+
+      final List<Review> reviews =
+          await deps.feedbackRepository.getReviews(shorts.id!);
+      expect(reviews.map((item) => item.authorName), containsAll(['Мария Г.', 'Иван П.']));
+      expect((await deps.feedbackRepository.getReviewsByUser(user.id!))[shorts.id]!.rating, 5);
+
+      await deps.feedbackRepository.deleteReview(ivan.id!, shorts.id!);
+      expect((await product('Шорты волейбольные')).reviewsCount, 1);
+    });
+  });
+
+  group('Вопросы о товаре', () {
+    test('вопрос, ответ администратора и порядок в панели', () async {
+      final (User user, _) = await maria();
+      final Product ball = await product('Профессиональный мяч MIKASA');
+      await deps.feedbackRepository.askQuestion(Question(
+        productId: ball.id!,
+        userId: user.id!,
+        text: 'Это мяч для зала или для пляжа?',
+        createdAt: DateTime(2026, 6, 2),
+      ));
+
+      Question asked =
+          (await deps.feedbackRepository.getQuestions(ball.id!)).single;
+      expect(asked.isAnswered, isFalse);
+      // В панели администратора вопросы без ответа идут первыми.
+      final List<Question> all = await deps.feedbackRepository.getAllQuestions();
+      expect(all.first.isAnswered, isFalse);
+      expect(all.last.isAnswered, isTrue);
+
+      await deps.feedbackRepository.answerQuestion(asked.id!, 'Для зала.');
+      asked = (await deps.feedbackRepository.getQuestions(ball.id!)).single;
+      expect(asked.answer, 'Для зала.');
+      expect(asked.answeredAt, isNotNull);
+
+      await deps.feedbackRepository.deleteQuestion(asked.id!);
+      expect(await deps.feedbackRepository.getQuestions(ball.id!), isEmpty);
+    });
+  });
+
+  group('Фото пользователя', () {
+    test('аватар сохраняется в профиле и удаляется', () async {
+      final (User user, _) = await maria();
+      final FakeMediaStorage storage = FakeMediaStorage();
+      final ProfileState profile = ProfileState(deps.userRepository, storage);
+
+      final User withAvatar = (await profile.pickAvatar(user, PhotoSource.gallery))!;
+      expect(withAvatar.avatarPath, '/fake/avatar_1.jpg');
+      expect((await deps.userRepository.findById(user.id!))!.avatarPath, isNotNull);
+
+      final User cleared = await profile.removeAvatar(withAvatar);
+      expect(cleared.avatarPath, isNull);
+      expect(storage.deleted, contains('/fake/avatar_1.jpg'));
+    });
+
+    test('фото для примерки: загрузка, подгонка, полное удаление', () async {
+      final (User user, _) = await maria();
+      final FakeMediaStorage storage = FakeMediaStorage();
+      final FittingState fitting = FittingState(deps.fittingRepository, storage);
+      await fitting.setUser(user.id);
+      expect(fitting.photos, isNull);
+
+      await fitting.pick(PhotoKind.body, PhotoSource.camera);
+      await fitting.pick(PhotoKind.face, PhotoSource.gallery);
+      expect(fitting.hasBody && fitting.hasFace, isTrue);
+
+      fitting.updateFit(scale: 5, dx: 0.1);
+      expect(fitting.photos!.fitScale, FittingPhotos.maxScale);
+      await fitting.persistFit();
+      expect((await deps.fittingRepository.get(user.id!))!.fitDx, 0.1);
+
+      // Замена фото удаляет прежний файл.
+      await fitting.pick(PhotoKind.body, PhotoSource.camera);
+      expect(storage.deleted, contains('/fake/body_1.jpg'));
+
+      await fitting.deleteAll();
+      expect(fitting.photos, isNull);
+      expect(await deps.fittingRepository.get(user.id!), isNull);
+      expect(storage.deleted, containsAll(['/fake/body_3.jpg', '/fake/face_2.jpg']));
+    });
+
+    test('отмена выбора ничего не меняет', () async {
+      final (User user, _) = await maria();
+      final FittingState fitting =
+          FittingState(deps.fittingRepository, FakeMediaStorage(cancel: true));
+      await fitting.setUser(user.id);
+      expect(await fitting.pick(PhotoKind.body, PhotoSource.camera), isFalse);
+      expect(fitting.photos, isNull);
+    });
+  });
+
+  group('Администратор', () {
+    test('создание, изменение и удаление товара', () async {
+      final Product source = await product('Гиря 8 кг');
+      final Product created = await deps.productRepository.createProduct(Product(
+        name: 'Гиря 12 кг',
+        price: 9990,
+        categoryId: source.categoryId,
+        sportId: source.sportId,
+        stock: 3,
+        brand: 'Torneo',
+      ));
+      expect((await product('Гиря 12 кг')).brand, 'Torneo');
+
+      await deps.productRepository.updateProduct(created.copyWith(stock: 0, price: 8990));
+      final Product updated = await product('Гиря 12 кг');
+      expect(updated.isAvailable, isFalse);
+      expect(updated.price, 8990);
+
+      await deps.productRepository.deleteProduct(created.id!);
+      expect(await deps.productRepository.getProductById(created.id!), isNull);
+    });
+
+    test('товар из заказов удалить нельзя', () async {
+      final Product ordered = await product('Наколенники волейбольные');
+      expect(
+        () => deps.productRepository.deleteProduct(ordered.id!),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('смена статуса открывает покупателю отзыв', () async {
+      final (User user, _) = await maria();
+      final Product uniform = await product('Волейбольная форма');
+      expect(await deps.feedbackRepository.hasPurchased(user.id!, uniform.id!), isFalse);
+      await deps.orderRepository.updateStatus(1019, OrderStatus.delivered);
+      expect(await deps.feedbackRepository.hasPurchased(user.id!, uniform.id!), isTrue);
+    });
+  });
+}
+
+/// Хранилище фото без камеры и диска: выдаёт пути по порядку.
+class FakeMediaStorage implements MediaStorage {
+  FakeMediaStorage({this.cancel = false});
+
+  final bool cancel;
+  final List<String> deleted = [];
+  int _counter = 0;
+
+  @override
+  Future<String?> pickAndSave({
+    required int userId,
+    required PhotoKind kind,
+    required PhotoSource source,
+  }) async =>
+      cancel ? null : '/fake/${kind.name}_${++_counter}.jpg';
+
+  @override
+  Future<void> delete(String? path) async {
+    if (path != null) deleted.add(path);
+  }
 }

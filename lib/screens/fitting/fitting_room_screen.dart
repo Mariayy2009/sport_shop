@@ -1,30 +1,37 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/routes/main_tab.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/utils/app_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/product_actions.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../models/fitting_photos.dart';
 import '../../models/outfit.dart';
 import '../../models/product.dart';
 import '../../models/user_sizes.dart';
 import '../../services/size_advisor.dart';
+import '../../state/fitting_state.dart';
 import '../../state/profile_state.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/avatar_painter.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/product_image.dart';
 
-/// Виртуальная примерочная (бета).
+/// Виртуальная примерочная.
 ///
-/// Манекен строится по росту и весу из профиля. На него надеваются
-/// товары каталога, цвет вещи можно менять, фигуру — поворачивать
-/// жестом. Модель по фотографиям появится вместе с серверной частью:
-/// реконструкция тела по фото выполняется на сервере.
+/// Два режима:
+///  • «На моём фото» — одежда каталога накладывается на фото пользователя
+///    в полный рост. Положение, размер и ширину одежды пользователь один
+///    раз подгоняет под себя, подгонка сохраняется.
+///  • «Манекен» — фигура по росту и весу из профиля с фото лица,
+///    её можно поворачивать жестом.
+/// В обоих режимах можно менять вещи и их цвет.
 class FittingRoomScreen extends StatefulWidget {
   const FittingRoomScreen({super.key, this.initialProductId});
 
@@ -45,6 +52,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
   WearSlot _slot = WearSlot.upper;
   double _angle = 0;
   bool _isAdding = false;
+
+  /// Режим «на моём фото»; без фото в полный рост работает манекен.
+  bool _onPhoto = true;
+
+  /// Идёт подгонка одежды под фото.
+  bool _isAdjusting = false;
 
   @override
   void initState() {
@@ -108,35 +121,31 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
     if (mounted) setState(() => _isAdding = false);
   }
 
-  void _showInfo() {
-    AppMessages.showInfoDialog(
-      context,
-      title: 'Как работает примерка',
-      message: 'Сейчас манекен строится по росту и весу из профиля — '
-          'это бета-версия, она показывает сочетание вещей и цветов, '
-          'но не точную посадку.\n\n'
-          'Персональная 3D-модель по фотографиям появится вместе '
-          'с серверной частью. Загрузка фото будет добровольной, '
-          'снимки будут храниться в зашифрованном виде, и их можно '
-          'будет удалить в любой момент.',
-    );
+  void _openPhotos() =>
+      Navigator.of(context).pushNamed(AppRoutes.fittingPhotos);
+
+  void _finishAdjusting() {
+    context.read<FittingState>().persistFit();
+    setState(() => _isAdjusting = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final UserSizes? sizes = context.watch<ProfileState>().sizes;
+    final FittingPhotos? photos = context.watch<FittingState>().photos;
+    final bool photoMode = _onPhoto && (photos?.hasBody ?? false);
     final double total =
         _outfit.values.fold(0, (sum, item) => sum + item.product.price);
 
     return AppScaffold(
       title: 'Примерочная',
       navTab: MainTab.home,
-      titleTrailing: IconButton(
-        tooltip: 'Как работает примерка',
-        onPressed: _showInfo,
-        icon: const Icon(Icons.info_outline),
+      titleTrailing: TextButton.icon(
+        onPressed: _openPhotos,
+        icon: const Icon(Icons.photo_camera_outlined, size: 18),
+        label: const Text('Мои фото'),
       ),
-      bottomAction: _outfit.isEmpty
+      bottomAction: _outfit.isEmpty || _isAdjusting
           ? null
           : CustomButton(
               text: 'В корзину: ${Formatters.itemsCount(_outfit.length)} — '
@@ -153,8 +162,16 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
           final List<Product> products = snapshot.data ?? const [];
           return Column(
             children: [
-              Expanded(child: _buildStage(sizes)),
-              _buildControls(products),
+              _buildModeSwitch(photos),
+              Expanded(
+                child: photoMode
+                    ? _buildPhotoStage(photos!)
+                    : _buildStage(sizes, photos),
+              ),
+              if (photoMode && _isAdjusting)
+                _buildAdjustPanel(photos!)
+              else
+                _buildControls(products),
             ],
           );
         },
@@ -162,8 +179,223 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
     );
   }
 
+  Widget _buildModeSwitch(FittingPhotos? photos) {
+    final bool hasBody = photos?.hasBody ?? false;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.screenPadding,
+        AppSizes.m,
+        AppSizes.screenPadding,
+        0,
+      ),
+      child: SegmentedButton<bool>(
+        showSelectedIcon: false,
+        expandedInsets: EdgeInsets.zero,
+        style: SegmentedButton.styleFrom(
+          backgroundColor: AppColors.surface,
+          selectedBackgroundColor: AppColors.black,
+          selectedForegroundColor: AppColors.white,
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.border),
+          textStyle:
+              AppTextStyles.bodySecondary.copyWith(fontWeight: FontWeight.w600),
+        ),
+        segments: const [
+          ButtonSegment(
+            value: true,
+            icon: Icon(Icons.person_outline, size: 18),
+            label: Text('На моём фото'),
+          ),
+          ButtonSegment(
+            value: false,
+            icon: Icon(Icons.accessibility_new, size: 18),
+            label: Text('Манекен'),
+          ),
+        ],
+        selected: {_onPhoto && hasBody},
+        onSelectionChanged: (value) {
+          if (value.first && !hasBody) {
+            // Фото ещё нет — сначала его нужно загрузить.
+            _openPhotos();
+            return;
+          }
+          setState(() {
+            _onPhoto = value.first;
+            _isAdjusting = false;
+          });
+        },
+      ),
+    );
+  }
+
+  /// Фото пользователя с одеждой поверх. Все размеры — в долях высоты
+  /// сцены, поэтому подгонка не «съезжает» при изменении её размера.
+  Widget _buildPhotoStage(FittingPhotos photos) {
+    final FittingState fitting = context.read<FittingState>();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(
+        AppSizes.screenPadding,
+        AppSizes.m,
+        AppSizes.screenPadding,
+        0,
+      ),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        borderRadius: BorderRadius.circular(AppSizes.radiusL),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double stageHeight = constraints.maxHeight;
+          final double figureHeight = stageHeight * 0.9 * photos.fitScale;
+          final double figureWidth = figureHeight * 0.7;
+          return GestureDetector(
+            // В режиме подгонки одежду двигают пальцем.
+            onPanUpdate: _isAdjusting
+                ? (details) => fitting.updateFit(
+                      dx: photos.fitDx + details.delta.dx / stageHeight,
+                      dy: photos.fitDy + details.delta.dy / stageHeight,
+                    )
+                : null,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.file(
+                    File(photos.bodyPath!),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Text(
+                        'Фото не найдено — загрузите его заново',
+                        style: TextStyle(color: AppColors.white),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: constraints.maxWidth / 2 +
+                      photos.fitDx * stageHeight -
+                      figureWidth / 2,
+                  top: stageHeight / 2 +
+                      photos.fitDy * stageHeight -
+                      figureHeight / 2,
+                  width: figureWidth,
+                  height: figureHeight,
+                  child: IgnorePointer(
+                    child: Stack(
+                      children: [
+                        if (_isAdjusting)
+                          // Контур фигуры помогает совместить одежду с телом.
+                          Positioned.fill(
+                            child: Opacity(
+                              opacity: 0.4,
+                              child: CustomPaint(
+                                painter: AvatarPainter(
+                                  heightCm: _defaultHeight,
+                                  weightKg: _defaultWeight,
+                                  angle: 0,
+                                  outfit: const {},
+                                  widthFactor: photos.fitWidth,
+                                  fillHeight: true,
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.95,
+                            child: CustomPaint(
+                              painter: AvatarPainter(
+                                heightCm: _defaultHeight,
+                                weightKg: _defaultWeight,
+                                angle: 0,
+                                outfit: _outfit,
+                                showBody: false,
+                                widthFactor: photos.fitWidth,
+                                fillHeight: true,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (!_isAdjusting)
+                  Positioned(
+                    right: AppSizes.m,
+                    top: AppSizes.m,
+                    child: Material(
+                      color: AppColors.surface,
+                      shape: const StadiumBorder(),
+                      child: InkWell(
+                        customBorder: const StadiumBorder(),
+                        onTap: () => setState(() => _isAdjusting = true),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSizes.m,
+                            vertical: AppSizes.s,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.tune, size: 16),
+                              SizedBox(width: AppSizes.xs),
+                              Text('Подогнать', style: AppTextStyles.bodySecondary),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Панель подгонки: размер и ширина одежды, положение — жестом на фото.
+  Widget _buildAdjustPanel(FittingPhotos photos) {
+    final FittingState fitting = context.read<FittingState>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.screenPadding,
+        AppSizes.m,
+        AppSizes.screenPadding,
+        AppSizes.s,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Совместите контур с собой: двигайте его пальцем, '
+            'а размер и ширину настройте ползунками.',
+            style: AppTextStyles.bodySecondary,
+          ),
+          _FitSlider(
+            label: 'Размер',
+            value: photos.fitScale,
+            min: FittingPhotos.minScale,
+            max: FittingPhotos.maxScale,
+            onChanged: (value) => fitting.updateFit(scale: value),
+          ),
+          _FitSlider(
+            label: 'Ширина',
+            value: photos.fitWidth,
+            min: FittingPhotos.minWidth,
+            max: FittingPhotos.maxWidth,
+            onChanged: (value) => fitting.updateFit(width: value),
+          ),
+          CustomButton(text: 'Готово', onPressed: _finishAdjusting),
+        ],
+      ),
+    );
+  }
+
   /// Сцена с манекеном: поворот — горизонтальным жестом.
-  Widget _buildStage(UserSizes? sizes) {
+  Widget _buildStage(UserSizes? sizes, FittingPhotos? photos) {
     final int height = sizes?.height ?? _defaultHeight;
     final int weight = sizes?.weight ?? _defaultWeight;
     return GestureDetector(
@@ -180,11 +412,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
           0,
         ),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.surface, AppColors.accentSoft],
-          ),
+          color: AppColors.accentSoft,
           borderRadius: BorderRadius.circular(AppSizes.radiusL),
         ),
         child: Stack(
@@ -192,13 +420,34 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
             Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.all(AppSizes.m),
-                child: CustomPaint(
-                  painter: AvatarPainter(
-                    heightCm: height,
-                    weightKg: weight,
-                    angle: _angle,
-                    outfit: _outfit,
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final AvatarPainter painter = AvatarPainter(
+                      heightCm: height,
+                      weightKg: weight,
+                      angle: _angle,
+                      outfit: _outfit,
+                    );
+                    final String? facePath = photos?.facePath;
+                    return Stack(
+                      children: [
+                        Positioned.fill(child: CustomPaint(painter: painter)),
+                        // Фото лица — на голове манекена.
+                        if (facePath != null)
+                          Positioned.fromRect(
+                            rect: painter.headRect(constraints.biggest),
+                            child: ClipOval(
+                              child: Image.file(
+                                File(facePath),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const SizedBox.shrink(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -211,11 +460,6 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                     ? 'Стандартная фигура'
                     : '$height см · $weight кг',
               ),
-            ),
-            const Positioned(
-              right: AppSizes.m,
-              top: AppSizes.m,
-              child: _Tag(icon: Icons.science_outlined, text: 'Бета'),
             ),
             const Positioned(
               left: 0,
@@ -449,6 +693,44 @@ class _Swatch extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FitSlider extends StatelessWidget {
+  const _FitSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 64,
+          child: Text(label, style: AppTextStyles.bodySecondary),
+        ),
+        Expanded(
+          child: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            activeColor: AppColors.accent,
+            label: label,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 }

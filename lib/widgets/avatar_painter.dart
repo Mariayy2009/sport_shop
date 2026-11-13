@@ -8,7 +8,7 @@ import '../models/outfit.dart';
 ///
 /// Пропорции строятся по росту и весу пользователя, вещи рисуются слоями
 /// поверх фигуры в выбранных цветах. Поворот ([angle], радианы) — это
-/// сжатие по горизонтали с боковой тенью: псевдо-3D без тяжёлого движка.
+/// сжатие по горизонтали с тенью на дальней половине: псевдо-3D без тяжёлого движка.
 /// Все координаты — в долях высоты фигуры: (0, 0) — макушка по центру.
 class AvatarPainter extends CustomPainter {
   AvatarPainter({
@@ -16,12 +16,24 @@ class AvatarPainter extends CustomPainter {
     required this.weightKg,
     required this.angle,
     required this.outfit,
+    this.showBody = true,
+    this.widthFactor,
+    this.fillHeight = false,
   });
 
   final int heightCm;
   final int weightKg;
   final double angle;
   final Map<WearSlot, WornItem> outfit;
+
+  /// false — рисуется только одежда (поверх фото пользователя).
+  final bool showBody;
+
+  /// Ширина фигуры вручную; null — считается по росту и весу.
+  final double? widthFactor;
+
+  /// Фигура занимает всю высоту области (её размер задаёт родитель).
+  final bool fillHeight;
 
   static const Color _body = Color(0xFFD5DBE6);
   static const Color _bodyShade = Color(0xFFC2CAD8);
@@ -38,6 +50,7 @@ class AvatarPainter extends CustomPainter {
 
   /// Коэффициент ширины: 1.0 при ИМТ 21, шире при большем весе.
   double get _wf {
+    if (widthFactor != null) return widthFactor!;
     final double meters = heightCm / 100;
     final double bmi = weightKg / (meters * meters);
     return (1 + (bmi - 21) * 0.028).clamp(0.82, 1.4);
@@ -50,47 +63,61 @@ class AvatarPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Рост 150–200 см занимает 80–100 % высоты области.
-    final double scale = (0.8 + (heightCm - 150) / 50 * 0.2).clamp(0.72, 1.0);
-    final double figure = size.height * 0.96 * scale;
-    final double top = size.height * 0.98 - figure;
+    final (double figure, double top) = _layout(size);
 
-    // Тень на полу.
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width / 2, top + figure * 0.985),
-        width: figure * 0.34,
-        height: figure * 0.03,
-      ),
-      Paint()..color = const Color(0x1F101828),
-    );
+    if (showBody) {
+      // Тень на полу.
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(size.width / 2, top + figure * 0.985),
+          width: figure * 0.34,
+          height: figure * 0.03,
+        ),
+        Paint()..color = const Color(0x1F101828),
+      );
+    }
 
     final Rect bounds = Offset.zero & size;
     canvas.saveLayer(bounds, Paint());
     canvas.translate(size.width / 2, top);
     canvas.scale(figure * (0.5 + 0.5 * math.cos(angle).abs()), figure);
 
-    _paintBody(canvas);
+    if (showBody) _paintBody(canvas);
     _paintOutfit(canvas);
 
-    // Объём: полупрозрачная тень с той стороны, куда повёрнута фигура.
+    // Объём: ровная полупрозрачная тень на дальней половине фигуры.
     final double side = math.sin(angle);
-    final Rect shadeRect = const Rect.fromLTRB(-0.5, 0, 0.5, 1);
-    canvas.drawRect(
-      shadeRect,
-      Paint()
-        ..blendMode = BlendMode.srcATop
-        ..shader = LinearGradient(
-          begin: Alignment(side >= 0 ? -1 : 1, 0),
-          end: Alignment(side >= 0 ? 1 : -1, 0),
-          colors: [
-            const Color(0x00000000),
-            Color.fromRGBO(16, 24, 40, 0.10 + 0.22 * side.abs()),
-          ],
-          stops: const [0.45, 0.62],
-        ).createShader(shadeRect),
-    );
+    if (showBody && side.abs() > 0.05) {
+      canvas.drawRect(
+        side > 0
+            ? const Rect.fromLTRB(0.012, 0, 0.5, 1)
+            : const Rect.fromLTRB(-0.5, 0, -0.012, 1),
+        Paint()
+          ..blendMode = BlendMode.srcATop
+          ..color = Color.fromRGBO(16, 24, 40, 0.06 + 0.16 * side.abs()),
+      );
+    }
     canvas.restore();
+  }
+
+  /// Высота фигуры в пикселях и отступ её макушки от верха области.
+  (double, double) _layout(Size size) {
+    if (fillHeight) return (size.height, 0);
+    // Рост 150–200 см занимает 80–100 % высоты области.
+    final double scale = (0.8 + (heightCm - 150) / 50 * 0.2).clamp(0.72, 1.0);
+    final double figure = size.height * 0.96 * scale;
+    return (figure, size.height * 0.98 - figure);
+  }
+
+  /// Прямоугольник головы манекена — туда ставится фото лица.
+  Rect headRect(Size size) {
+    final (double figure, double top) = _layout(size);
+    final double squeeze = 0.5 + 0.5 * math.cos(angle).abs();
+    return Rect.fromCenter(
+      center: Offset(size.width / 2, top + figure * 0.062),
+      width: figure * 0.092 * squeeze,
+      height: figure * 0.115,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -216,6 +243,8 @@ class AvatarPainter extends CustomPainter {
   }
 
   void _neckline(Canvas canvas, double halfWidth) {
+    // На фото вырез не закрашиваем: под одеждой видна шея человека.
+    if (!showBody) return;
     canvas.drawOval(
       Rect.fromCenter(
         center: const Offset(0, _yShoulder - 0.002),
@@ -349,5 +378,7 @@ class AvatarPainter extends CustomPainter {
       oldDelegate.heightCm != heightCm ||
       oldDelegate.weightKg != weightKg ||
       oldDelegate.angle != angle ||
+      oldDelegate.showBody != showBody ||
+      oldDelegate.widthFactor != widthFactor ||
       oldDelegate.outfit != outfit;
 }

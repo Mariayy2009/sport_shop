@@ -6,6 +6,7 @@ import 'auth_state.dart';
 import 'cart_state.dart';
 import 'compare_state.dart';
 import 'favorites_state.dart';
+import 'fitting_state.dart';
 import 'order_state.dart';
 import 'product_state.dart';
 import 'profile_state.dart';
@@ -25,6 +26,7 @@ class AppStates {
     required this.favorites,
     required this.compare,
     required this.assistant,
+    required this.fitting,
   });
 
   factory AppStates.create(AppDependencies deps) {
@@ -32,12 +34,13 @@ class AppStates {
       auth: AuthState(deps.authService),
       products: ProductState(deps.productRepository),
       cart: CartState(deps.cartRepository),
-      profile: ProfileState(deps.userRepository),
+      profile: ProfileState(deps.userRepository, deps.mediaStorage),
       orders: OrderState(deps.orderRepository),
       recommendation: RecommendationState(deps.recommendationService),
       favorites: FavoritesState(deps.favoritesRepository),
       compare: CompareState(),
       assistant: AssistantState(deps.assistantService),
+      fitting: FittingState(deps.fittingRepository, deps.mediaStorage),
     );
     states.auth.addListener(states._onAuthChanged);
     return states;
@@ -52,6 +55,7 @@ class AppStates {
   final FavoritesState favorites;
   final CompareState compare;
   final AssistantState assistant;
+  final FittingState fitting;
 
   /// Загрузка при старте: сессия «Запомнить меня» и каталог.
   Future<void> init() async {
@@ -66,5 +70,6 @@ class AppStates {
     unawaited(orders.setUser(userId));
     unawaited(favorites.setUser(userId));
     assistant.setUser(userId);
+    unawaited(fitting.setUser(userId));
   }
 }

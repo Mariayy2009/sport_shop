@@ -23,6 +23,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/product_feedback_section.dart';
 import '../../widgets/product_image.dart';
 import '../../widgets/rating_badge.dart';
 import '../../widgets/size_chart_sheet.dart';
@@ -46,6 +47,9 @@ class _ProductScreenState extends State<ProductScreen> {
   bool _sizeError = false;
   bool _sizeInitialized = false;
   bool _isAdding = false;
+
+  /// Товар, перечитанный после нового отзыва (изменился рейтинг).
+  Product? _refreshed;
 
   static const SizeAdvisor _sizeAdvisor = SizeAdvisor();
 
@@ -77,6 +81,12 @@ class _ProductScreenState extends State<ProductScreen> {
     if (mounted) setState(() => _isAdding = false);
   }
 
+  Future<void> _refreshProduct() async {
+    final Product? product =
+        await context.read<ProductRepository>().getProductById(widget.productId);
+    if (mounted && product != null) setState(() => _refreshed = product);
+  }
+
   void _showCertificate() {
     AppMessages.showInfoDialog(
       context,
@@ -92,7 +102,7 @@ class _ProductScreenState extends State<ProductScreen> {
     return FutureBuilder<Product?>(
       future: _future,
       builder: (context, snapshot) {
-        final Product? product = snapshot.data;
+        final Product? product = _refreshed ?? snapshot.data;
         if (snapshot.connectionState != ConnectionState.done) {
           return const AppScaffold(
             title: 'Товар',
@@ -161,6 +171,12 @@ class _ProductScreenState extends State<ProductScreen> {
               ),
             ),
             RatingBadge(rating: product.rating),
+            if (product.reviewsCount > 0)
+              Text(
+                '  ·  ${product.reviewsCount} '
+                '${Formatters.plural(product.reviewsCount, 'отзыв', 'отзыва', 'отзывов')}',
+                style: AppTextStyles.caption,
+              ),
           ],
         ),
         const SizedBox(height: AppSizes.xs),
@@ -279,6 +295,10 @@ class _ProductScreenState extends State<ProductScreen> {
               ),
             ],
           ),
+        ),
+        ProductFeedbackSection(
+          product: product,
+          onRatingChanged: _refreshProduct,
         ),
         WhatElseSection(
           title: 'С этим товаром покупают',

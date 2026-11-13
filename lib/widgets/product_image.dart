@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_colors.dart';
@@ -46,6 +48,14 @@ class ProductImage extends StatelessWidget {
         errorBuilder: (context, error, stackTrace) => _placeholder(),
       );
     }
+    // Фото, добавленное администратором, лежит файлом в папке приложения.
+    if (!url.startsWith('assets/')) {
+      return Image.file(
+        File(url),
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => _placeholder(),
+      );
+    }
     return Image.asset(
       url,
       fit: fit,
@@ -59,13 +69,7 @@ class ProductImage extends StatelessWidget {
       builder: (context, constraints) {
         final double side = constraints.biggest.shortestSide;
         return DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.imagePlaceholder, AppColors.accentSoft],
-            ),
-          ),
+          decoration: const BoxDecoration(color: AppColors.accentSoft),
           child: Center(
             child: Icon(
               _iconFor(imageUrl) ?? placeholderIcon,

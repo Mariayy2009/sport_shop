@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../models/order.dart';
+import '../../models/product.dart';
+import '../../screens/admin/admin_product_screen.dart';
+import '../../screens/admin/admin_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/registration_screen.dart';
 import '../../screens/cart/checkout_screen.dart';
@@ -10,6 +13,7 @@ import '../../screens/catalog/product_screen.dart';
 import '../../screens/common/not_found_screen.dart';
 import '../../screens/compare/compare_screen.dart';
 import '../../screens/favorites/favorites_screen.dart';
+import '../../screens/fitting/fitting_photos_screen.dart';
 import '../../screens/fitting/fitting_room_screen.dart';
 import '../../screens/kits/kits_screen.dart';
 import '../../screens/orders/order_details_screen.dart';
@@ -50,6 +54,10 @@ class AppRouter {
       AppRoutes.favorites => const FavoritesScreen(),
       AppRoutes.fittingRoom =>
         FittingRoomScreen(initialProductId: args is int ? args : null),
+      AppRoutes.fittingPhotos => const FittingPhotosScreen(),
+      AppRoutes.admin => const AdminScreen(),
+      AppRoutes.adminProduct =>
+        AdminProductScreen(product: args is Product ? args : null),
       _ => const NotFoundScreen(),
     };
 

@@ -8,8 +8,11 @@ import '../../data/datasources/local/session_local_datasource.dart';
 import '../../data/datasources/local/user_local_datasource.dart';
 import '../../data/repositories/cart_repository.dart';
 import '../../data/repositories/favorites_repository.dart';
+import '../../data/repositories/feedback_repository.dart';
+import '../../data/repositories/fitting_repository.dart';
 import '../../data/repositories/local_cart_repository.dart';
 import '../../data/repositories/local_favorites_repository.dart';
+import '../../data/repositories/local_feedback_repository.dart';
 import '../../data/repositories/local_order_repository.dart';
 import '../../data/repositories/local_product_repository.dart';
 import '../../data/repositories/local_recommendation_repository.dart';
@@ -24,6 +27,7 @@ import '../../services/assistant/claude_assistant_engine.dart';
 import '../../services/assistant/local_assistant_engine.dart';
 import '../../services/auth_service.dart';
 import '../../services/kit_service.dart';
+import '../../services/media_storage.dart';
 import '../../services/recommendation_service.dart';
 
 /// Сборка всех зависимостей приложения в одном месте.
@@ -40,6 +44,9 @@ class AppDependencies {
     required this.cartRepository,
     required this.recommendationRepository,
     required this.favoritesRepository,
+    required this.feedbackRepository,
+    required this.fittingRepository,
+    required this.mediaStorage,
     required this.authService,
     required this.recommendationService,
     required this.kitService,
@@ -50,6 +57,7 @@ class AppDependencies {
     AppDatabase database, {
     SessionStorage? sessionStorage,
     AssistantAiConfig aiConfig = const AssistantAiConfig(),
+    MediaStorage? mediaStorage,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
@@ -76,6 +84,9 @@ class AppDependencies {
       recommendationRepository: recommendationRepository,
       favoritesRepository:
           LocalFavoritesRepository(FavoritesLocalDataSource(database)),
+      feedbackRepository: LocalFeedbackRepository(database),
+      fittingRepository: LocalFittingRepository(database),
+      mediaStorage: mediaStorage ?? DeviceMediaStorage(),
       authService: AuthService(
         userRepository: userRepository,
         sessionStorage: sessionStorage ?? SharedPreferencesSessionStorage(),
@@ -94,6 +105,9 @@ class AppDependencies {
   final CartRepository cartRepository;
   final RecommendationRepository recommendationRepository;
   final FavoritesRepository favoritesRepository;
+  final FeedbackRepository feedbackRepository;
+  final FittingRepository fittingRepository;
+  final MediaStorage mediaStorage;
   final AuthService authService;
   final RecommendationService recommendationService;
   final KitService kitService;

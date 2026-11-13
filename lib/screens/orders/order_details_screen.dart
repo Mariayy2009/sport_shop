@@ -9,11 +9,14 @@ import '../../core/routes/main_tab.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_messages.dart';
 import '../../core/utils/formatters.dart';
+import '../../data/repositories/feedback_repository.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../models/enums.dart';
 import '../../models/order.dart';
 import '../../models/order_item.dart';
 import '../../models/product.dart';
+import '../../models/review.dart';
+import '../../state/auth_state.dart';
 import '../../state/cart_state.dart';
 import '../../state/order_state.dart';
 import '../../widgets/app_card.dart';
@@ -21,10 +24,12 @@ import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/product_image.dart';
+import '../../widgets/review_sheet.dart';
+import '../../widgets/star_rating.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/summary_row.dart';
 
-/// Подробности заказа. Экрана нет в Figma — добавлен по сценарию 5.
+/// Подробности заказа: статус, товары (с отзывами), доставка, итог.
 class OrderDetailsScreen extends StatefulWidget {
   const OrderDetailsScreen({super.key, required this.orderId});
 
@@ -38,10 +43,32 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   late final Future<Order?> _future;
   bool _isRepeating = false;
 
+  /// Отзывы пользователя: id товара → отзыв.
+  Map<int, Review> _myReviews = const {};
+
   @override
   void initState() {
     super.initState();
     _future = context.read<OrderState>().getOrder(widget.orderId);
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    final int? userId = context.read<AuthState>().currentUser?.id;
+    if (userId == null) return;
+    final Map<int, Review> reviews =
+        await context.read<FeedbackRepository>().getReviewsByUser(userId);
+    if (mounted) setState(() => _myReviews = reviews);
+  }
+
+  Future<void> _review(OrderItem item) async {
+    final bool changed = await ReviewSheet.show(
+      context,
+      productId: item.productId,
+      productName: item.productName ?? 'Товар',
+      existing: _myReviews[item.productId],
+    );
+    if (changed) await _loadReviews();
   }
 
   /// «Повторить заказ»: кладёт те же товары в корзину.
@@ -167,7 +194,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     const Text('Товары', style: AppTextStyles.sectionTitle),
                     const SizedBox(height: AppSizes.s),
                     for (final OrderItem item in order.items)
-                      _OrderItemRow(item: item),
+                      _OrderItemRow(
+                        item: item,
+                        review: _myReviews[item.productId],
+                        // Оценить можно только полученный товар.
+                        onReview: order.status == OrderStatus.delivered &&
+                                order.userId ==
+                                    context.read<AuthState>().currentUser?.id
+                            ? () => _review(item)
+                            : null,
+                      ),
+                    if (order.status != OrderStatus.delivered)
+                      const Padding(
+                        padding: EdgeInsets.only(top: AppSizes.xs),
+                        child: Text(
+                          'Отзыв можно будет оставить после получения заказа',
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -218,9 +262,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 }
 
 class _OrderItemRow extends StatelessWidget {
-  const _OrderItemRow({required this.item});
+  const _OrderItemRow({required this.item, this.review, this.onReview});
 
   final OrderItem item;
+  final Review? review;
+
+  /// null — оценить пока нельзя.
+  final VoidCallback? onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -248,6 +296,27 @@ class _OrderItemRow extends StatelessWidget {
                     '${item.quantity} × ${Formatters.price(item.price)}',
                     style: AppTextStyles.caption,
                   ),
+                  if (onReview != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSizes.xs),
+                      child: InkWell(
+                        onTap: onReview,
+                        child: review == null
+                            ? Text(
+                                'Оценить товар',
+                                style: AppTextStyles.link
+                                    .copyWith(color: AppColors.accent),
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  StarRating(rating: review!.rating, size: 14),
+                                  const SizedBox(width: AppSizes.xs),
+                                  const Text('Ваш отзыв', style: AppTextStyles.caption),
+                                ],
+                              ),
+                      ),
+                    ),
                 ],
               ),
             ),

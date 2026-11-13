@@ -13,6 +13,7 @@ class User {
     this.firstName,
     this.lastName,
     this.phone,
+    this.avatarPath,
     required this.createdAt,
   });
 
@@ -24,6 +25,9 @@ class User {
   final String? firstName;
   final String? lastName;
   final String? phone;
+
+  /// Путь к файлу аватара в папке приложения (null — аватара нет).
+  final String? avatarPath;
   final DateTime createdAt;
 
   bool get isAdmin => role == UserRole.admin;
@@ -55,6 +59,7 @@ class User {
       firstName: map['first_name'] as String?,
       lastName: map['last_name'] as String?,
       phone: map['phone'] as String?,
+      avatarPath: map['avatar_path'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
@@ -68,6 +73,7 @@ class User {
       'first_name': firstName,
       'last_name': lastName,
       'phone': phone,
+      'avatar_path': avatarPath,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -87,6 +93,8 @@ class User {
     String? firstName,
     String? lastName,
     String? phone,
+    String? avatarPath,
+    bool clearAvatar = false,
     DateTime? createdAt,
   }) {
     return User(
@@ -97,6 +105,7 @@ class User {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       phone: phone ?? this.phone,
+      avatarPath: clearAvatar ? null : (avatarPath ?? this.avatarPath),
       createdAt: createdAt ?? this.createdAt,
     );
   }

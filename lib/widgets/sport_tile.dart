@@ -41,22 +41,11 @@ class SportTile extends StatelessWidget {
               right: 0,
               bottom: 0,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSizes.s,
-                  AppSizes.l,
-                  AppSizes.s,
-                  AppSizes.s,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.m,
+                  vertical: AppSizes.s,
                 ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.black.withValues(alpha: 0),
-                      AppColors.black.withValues(alpha: 0.7),
-                    ],
-                  ),
-                ),
+                color: AppColors.black.withValues(alpha: 0.6),
                 child: Text(
                   sportName,
                   style: AppTextStyles.body.copyWith(

@@ -3,12 +3,14 @@ import 'package:flutter/foundation.dart';
 import '../data/repositories/user_repository.dart';
 import '../models/user.dart';
 import '../models/user_sizes.dart';
+import '../services/media_storage.dart';
 
 /// Параметры пользователя (рост, вес, размеры, стаж, вид спорта).
 class ProfileState extends ChangeNotifier {
-  ProfileState(this._repository);
+  ProfileState(this._repository, this._storage);
 
   final UserRepository _repository;
+  final MediaStorage _storage;
 
   int? _userId;
   UserSizes? _sizes;
@@ -65,5 +67,26 @@ class ProfileState extends ChangeNotifier {
     await _repository.saveSizes(sizes);
     _sizes = await _repository.getSizes(sizes.userId);
     notifyListeners();
+  }
+
+  /// Новый аватар из камеры или галереи. null — пользователь отменил выбор.
+  Future<User?> pickAvatar(User user, PhotoSource source) async {
+    final String? path = await _storage.pickAndSave(
+      userId: user.id!,
+      kind: PhotoKind.avatar,
+      source: source,
+    );
+    if (path == null) return null;
+    final User updated =
+        await _repository.update(user.copyWith(avatarPath: path));
+    await _storage.delete(user.avatarPath);
+    return updated;
+  }
+
+  Future<User> removeAvatar(User user) async {
+    final User updated =
+        await _repository.update(user.copyWith(clearAvatar: true));
+    await _storage.delete(user.avatarPath);
+    return updated;
   }
 }

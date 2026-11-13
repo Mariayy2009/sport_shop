@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../services/media_storage.dart';
+import '../../widgets/photo_action_sheet.dart';
+import '../../widgets/user_avatar.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/constants/app_strings.dart';
@@ -14,7 +17,7 @@ import '../../state/auth_state.dart';
 import '../../state/profile_state.dart';
 import '../../widgets/app_card.dart';
 
-/// Профиль (фрейм Figma «профиль»): аватар, имя, телефон,
+/// Профиль: аватар (можно сменить), имя, телефон,
 /// параметры из user_sizes и меню действий.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, required this.onOpenAi});
@@ -35,6 +38,34 @@ class ProfileScreen extends StatelessWidget {
     AppMessages.showInfo(context, AppStrings.logoutDone);
   }
 
+  /// Аватар: новое фото из камеры или галереи либо удаление.
+  Future<void> _changeAvatar(BuildContext context, User user) async {
+    final ProfileState profile = context.read<ProfileState>();
+    final AuthState auth = context.read<AuthState>();
+    final PhotoAction? action = await PhotoActionSheet.show(
+      context,
+      title: 'Фото профиля',
+      canDelete: user.avatarPath != null,
+    );
+    if (action == null) return;
+    try {
+      final User? updated = switch (action) {
+        PhotoAction.camera => await profile.pickAvatar(user, PhotoSource.camera),
+        PhotoAction.gallery => await profile.pickAvatar(user, PhotoSource.gallery),
+        PhotoAction.delete => await profile.removeAvatar(user),
+      };
+      if (updated != null) auth.updateCurrentUser(updated);
+    } on Exception catch (error) {
+      debugPrint('Не удалось изменить аватар: $error');
+      if (context.mounted) {
+        AppMessages.showError(
+          context,
+          'Не удалось получить фото. Проверьте доступ к камере и галерее',
+        );
+      }
+    }
+  }
+
   void _openEdit(BuildContext context) =>
       Navigator.of(context).pushNamed(AppRoutes.editProfile);
 
@@ -53,18 +84,40 @@ class ProfileScreen extends StatelessWidget {
         children: [
           const SizedBox(height: AppSizes.s),
           Center(
-            child: Container(
-              width: 112,
-              height: 112,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.accent, width: 3),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                user.greetingName.characters.first.toUpperCase(),
-                style: AppTextStyles.screenTitle.copyWith(fontSize: 44),
+            child: Semantics(
+              button: true,
+              label: 'Изменить аватар',
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => _changeAvatar(context, user),
+                child: Stack(
+                  children: [
+                    UserAvatar(
+                      name: user.greetingName,
+                      imagePath: user.avatarPath,
+                      size: 112,
+                      borderWidth: 3,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: AppColors.black,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.background, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.photo_camera_outlined,
+                          color: AppColors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -137,13 +190,7 @@ class ProfileScreen extends StatelessWidget {
             _MenuItem(
               icon: Icons.admin_panel_settings_outlined,
               title: 'Панель администратора',
-              onTap: () => AppMessages.showInfoDialog(
-                context,
-                title: 'Панель администратора',
-                message: 'Управление товарами, категориями, видами спорта, '
-                    'правилами рекомендаций и заказами будет доступно '
-                    'в следующей версии приложения.',
-              ),
+              onTap: () => Navigator.of(context).pushNamed(AppRoutes.admin),
             ),
           _MenuItem(
             icon: Icons.logout,

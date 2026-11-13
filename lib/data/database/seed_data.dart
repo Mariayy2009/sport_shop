@@ -563,6 +563,43 @@ class SeedData {
       deliveryMethod: DeliveryMethod.courier,
       items: const [('running_shoes', 1), ('running_tshirt', 2)],
     );
+
+    // Отзывы Ивана на полученные товары и вопросы покупателей.
+    for (final (productKey, rating, text) in const [
+      ('running_shoes', 5, 'Бегаю три раза в неделю — амортизация отличная, '
+          'размер совпал с таблицей.'),
+      ('running_tshirt', 4, 'Лёгкая и быстро сохнет. Снял бы балл за то, '
+          'что немного свободна в плечах — берите на размер меньше.'),
+    ]) {
+      await db.insert(DatabaseSchema.reviews, {
+        'user_id': ivanId,
+        'product_id': _id(productIds, productKey),
+        'rating': rating,
+        'text': text,
+        'created_at': DateTime(2026, 4, 20).toIso8601String(),
+      });
+      await db.update(
+        DatabaseSchema.products,
+        {'rating': rating.toDouble(), 'reviews_count': 1},
+        where: 'id = ?',
+        whereArgs: [_id(productIds, productKey)],
+      );
+    }
+    await db.insert(DatabaseSchema.questions, {
+      'product_id': _id(productIds, 'volleyball_shoes'),
+      'user_id': ivanId,
+      'text': 'Подойдут ли эти кроссовки для игры на улице?',
+      'created_at': DateTime(2026, 5, 2).toIso8601String(),
+      'answer': 'Подошва рассчитана на зал: на асфальте она быстро сотрётся. '
+          'Для улицы лучше взять модель с более жёсткой резиной.',
+      'answered_at': DateTime(2026, 5, 3).toIso8601String(),
+    });
+    await db.insert(DatabaseSchema.questions, {
+      'product_id': _id(productIds, 'running_shoes'),
+      'user_id': mariaId,
+      'text': 'Маломерят ли эти кроссовки? Обычно ношу 38.',
+      'created_at': DateTime(2026, 5, 18).toIso8601String(),
+    });
   }
 
   /// Заказ + его позиции. Итог = товары + доставка.

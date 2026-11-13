@@ -13,6 +13,7 @@ class Product {
     this.brand,
     this.material,
     this.rating,
+    this.reviewsCount = 0,
     this.categoryName,
     this.sportName,
   });
@@ -40,6 +41,9 @@ class Product {
 
   /// Средняя оценка покупателей от 0 до 5.
   final double? rating;
+
+  /// Сколько отзывов оставили покупатели.
+  final int reviewsCount;
 
   // Заполняются через JOIN, в таблицу products не сохраняются.
   final String? categoryName;
@@ -88,6 +92,7 @@ class Product {
       brand: map['brand'] as String?,
       material: map['material'] as String?,
       rating: (map['rating'] as num?)?.toDouble(),
+      reviewsCount: (map['reviews_count'] as int?) ?? 0,
       categoryName: map['category_name'] as String?,
       sportName: map['sport_name'] as String?,
     );
@@ -143,6 +148,7 @@ class Product {
       brand: brand ?? this.brand,
       material: material ?? this.material,
       rating: rating ?? this.rating,
+      reviewsCount: reviewsCount,
       categoryName: categoryName ?? this.categoryName,
       sportName: sportName ?? this.sportName,
     );
