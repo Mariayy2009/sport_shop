@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_colors.dart';
@@ -8,11 +9,20 @@ import '../core/theme/app_text_styles.dart';
 enum PhotoAction { camera, gallery, delete }
 
 /// Нижнее меню: «Сделать фото / Выбрать из галереи / Удалить».
+/// На компьютере вместо камеры и галереи — выбор файла.
 class PhotoActionSheet extends StatelessWidget {
   const PhotoActionSheet({super.key, required this.title, required this.canDelete});
 
   final String title;
   final bool canDelete;
+
+  /// Съёмка с камеры работает только на телефоне: на Windows, Linux
+  /// и macOS плагин выбора фото камеру не поддерживает, поэтому там
+  /// пункт «Сделать фото» не показывается.
+  static bool get cameraAvailable =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   static Future<PhotoAction?> show(
     BuildContext context, {
@@ -40,14 +50,15 @@ class PhotoActionSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(AppSizes.l, 0, AppSizes.l, AppSizes.s),
             child: Text(title, style: AppTextStyles.sectionTitle),
           ),
-          ListTile(
-            leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('Сделать фото'),
-            onTap: () => Navigator.of(context).pop(PhotoAction.camera),
-          ),
+          if (cameraAvailable)
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Сделать фото'),
+              onTap: () => Navigator.of(context).pop(PhotoAction.camera),
+            ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Выбрать из галереи'),
+            title: Text(cameraAvailable ? 'Выбрать из галереи' : 'Выбрать файл'),
             onTap: () => Navigator.of(context).pop(PhotoAction.gallery),
           ),
           if (canDelete)
