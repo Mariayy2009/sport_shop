@@ -54,6 +54,11 @@ class ConfigurableAssistantEngine implements AssistantEngine {
 
   Future<void> setGeminiKey(String? key) => _keyStore.saveGeminiKey(key?.trim());
 
+  /// Проверяет ключ запросом к Google. null — ключ рабочий,
+  /// иначе текст ошибки.
+  Future<String?> checkGeminiKey(String key) =>
+      GeminiAssistantEngine.checkKey(key.trim(), client: _client);
+
   @override
   Future<AssistantReply> reply(
     AssistantContext context,

@@ -38,6 +38,10 @@ class AiSettingsSheet extends StatefulWidget {
 class _AiSettingsSheetState extends State<AiSettingsSheet> {
   final TextEditingController _key = TextEditingController();
   bool _showError = false;
+  bool _isChecking = false;
+
+  /// Что ответил Google при проверке ключа.
+  String? _checkError;
 
   @override
   void dispose() {
@@ -53,9 +57,25 @@ class _AiSettingsSheetState extends State<AiSettingsSheet> {
       return;
     }
     final NavigatorState navigator = Navigator.of(context);
-    await context.read<ConfigurableAssistantEngine>().setGeminiKey(key);
+    final ConfigurableAssistantEngine engine =
+        context.read<ConfigurableAssistantEngine>();
+    // Сразу проверяем ключ: так ошибка видна здесь, а не в чате.
+    setState(() {
+      _isChecking = true;
+      _checkError = null;
+    });
+    final String? error = await engine.checkGeminiKey(key);
     if (!mounted) return;
-    AppMessages.showSuccess(context, 'Gemini подключён');
+    if (error != null) {
+      setState(() {
+        _isChecking = false;
+        _checkError = error;
+      });
+      return;
+    }
+    await engine.setGeminiKey(key);
+    if (!mounted) return;
+    AppMessages.showSuccess(context, 'Ключ проверен — Gemini подключён');
     navigator.pop(true);
   }
 
@@ -147,7 +167,15 @@ class _AiSettingsSheetState extends State<AiSettingsSheet> {
               style: AppTextStyles.caption,
             ),
             const SizedBox(height: AppSizes.m),
-            CustomButton(text: 'Сохранить ключ', onPressed: _save),
+            if (_checkError != null) ...[
+              Text(_checkError!, style: AppTextStyles.fieldError),
+              const SizedBox(height: AppSizes.s),
+            ],
+            CustomButton(
+              text: 'Проверить и сохранить',
+              isLoading: _isChecking,
+              onPressed: _save,
+            ),
             if (hasGemini)
               Center(
                 child: TextButton(

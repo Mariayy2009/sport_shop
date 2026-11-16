@@ -73,6 +73,73 @@ class GeminiAssistantEngine implements AssistantEngine {
     'required': ['message', 'picks', 'is_kit', 'suggestions'],
   };
 
+  /// Запасная модель: если основная перегружена (503), исчерпала лимит
+  /// (429) или недоступна для ключа (404), отвечает облегчённая.
+  /// Оба названия — псевдонимы Google, они сами указывают на свежие версии.
+  static const List<String> _fallbackModels = ['gemini-flash-lite-latest'];
+
+  static const Set<int> _tryNextModelOn = {404, 429, 500, 503};
+
+  /// Проверка ключа перед сохранением: запрос списка моделей.
+  /// null — ключ рабочий, иначе текст ошибки для пользователя.
+  static Future<String?> checkKey(String apiKey, {http.Client? client}) async {
+    try {
+      final http.Response response = await (client ?? http.Client())
+          .get(
+            Uri.parse('$_baseUrl?pageSize=1'),
+            headers: {'x-goog-api-key': apiKey},
+          )
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) return null;
+      return _describeError(response);
+    } on Exception catch (error) {
+      debugPrint('Проверка ключа Gemini: $error');
+      return 'Нет связи с Google. Проверьте интернет: в некоторых сетях '
+          'и регионах сервис Gemini недоступен без VPN.';
+    }
+  }
+
+  /// Понятное описание ошибки API: причина + текст от Google.
+  static String _describeError(http.Response response) {
+    String detail = '';
+    try {
+      final Object? body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is Map<String, Object?> && body['error'] is Map<String, Object?>) {
+        detail = ((body['error']! as Map<String, Object?>)['message'] as String?) ?? '';
+      }
+    } on FormatException {
+      // Тело ответа — не JSON; хватит кода ошибки.
+    }
+    final String reason = switch (response.statusCode) {
+      400 || 401 || 403 => 'Ключ Gemini не принят',
+      404 => 'Модель Gemini недоступна для этого ключа',
+      503 => 'Gemini сейчас перегружен, попробуй через минуту',
+      429 => 'Бесплатный лимит запросов к Gemini на сейчас исчерпан',
+      _ => 'Gemini вернул ошибку ${response.statusCode}',
+    };
+    final String shortDetail =
+        detail.length > 160 ? '${detail.substring(0, 160)}…' : detail;
+    return shortDetail.isEmpty ? '$reason.' : '$reason: $shortDetail';
+  }
+
+  Future<http.Response> _send(
+    String model,
+    AssistantContext context,
+    List<ChatMessage> history, {
+    required bool withSchema,
+  }) {
+    return _client
+        .post(
+          Uri.parse('$_baseUrl/$model:generateContent'),
+          headers: {
+            'content-type': 'application/json',
+            'x-goog-api-key': _apiKey,
+          },
+          body: jsonEncode(_buildRequest(context, history, withSchema: withSchema)),
+        )
+        .timeout(_timeout);
+  }
+
   @override
   Future<AssistantReply> reply(
     AssistantContext context,
@@ -81,39 +148,41 @@ class GeminiAssistantEngine implements AssistantEngine {
     AssistantReply? reply;
     String? problem;
     try {
-      final http.Response response = await _client
-          .post(
-            Uri.parse('$_baseUrl/$_model:generateContent'),
-            headers: {
-              'content-type': 'application/json',
-              'x-goog-api-key': _apiKey,
-            },
-            body: jsonEncode(_buildRequest(context, history)),
-          )
-          .timeout(_timeout);
+      http.Response response =
+          await _send(_model, context, history, withSchema: true);
+      // Основная модель перегружена или недоступна — пробуем запасную.
+      for (final String model in _fallbackModels) {
+        if (!_tryNextModelOn.contains(response.statusCode)) break;
+        response = await _send(model, context, history, withSchema: true);
+      }
+      // Схему ответа сервер не принял — просим JSON без неё:
+      // формат описан в самой инструкции.
+      if (response.statusCode == 400 &&
+          utf8.decode(response.bodyBytes).toLowerCase().contains('schema')) {
+        response = await _send(_model, context, history, withSchema: false);
+      }
 
       if (response.statusCode == 200) {
         reply = _parse(
           jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, Object?>,
           context,
         );
+        if (reply == null) problem = 'Gemini прислал пустой ответ.';
       } else {
         debugPrint('Gemini API: HTTP ${response.statusCode} ${response.body}');
-        problem = switch (response.statusCode) {
-          400 || 401 || 403 =>
-            'Ключ Gemini не принят — проверь его в настройках помощника.',
-          429 => 'Бесплатный лимит запросов к Gemini на сейчас исчерпан.',
-          _ => null,
-        };
+        problem = _describeError(response);
       }
+    } on FormatException catch (error) {
+      debugPrint('Gemini API: ответ не разобран: $error');
+      problem = 'Gemini прислал ответ в неожиданном формате.';
     } on Exception catch (error) {
-      // Нет сети, таймаут, неожиданный формат — ответит локальный движок.
+      // Нет сети или таймаут — ответит локальный движок.
       debugPrint('Gemini API недоступен: $error');
+      problem = 'Нет связи с Gemini (интернет или блокировка сервиса).';
     }
     if (reply != null) return reply;
 
     final AssistantReply local = await _fallback.reply(context, history);
-    if (problem == null) return local;
     // Пользователь должен понимать, почему ответ стал проще.
     return AssistantReply(
       text: '$problem Пока отвечаю без нейросети.\n\n${local.text}',
@@ -125,8 +194,9 @@ class GeminiAssistantEngine implements AssistantEngine {
 
   Map<String, Object?> _buildRequest(
     AssistantContext context,
-    List<ChatMessage> history,
-  ) {
+    List<ChatMessage> history, {
+    required bool withSchema,
+  }) {
     final List<ChatMessage> tail =
         history.length > ClaudeAssistantEngine.historyLimit
             ? history.sublist(history.length - ClaudeAssistantEngine.historyLimit)
@@ -153,14 +223,17 @@ class GeminiAssistantEngine implements AssistantEngine {
             'text': '${ClaudeAssistantEngine.instructions}\n\n'
                 'Каталог магазина (JSON):\n'
                 '${jsonEncode(ClaudeAssistantEngine.catalogJson(context))}\n\n'
-                '${ClaudeAssistantEngine.profileText(context)}',
+                '${ClaudeAssistantEngine.profileText(context)}\n\n'
+                'Ответ — один JSON-объект с полями: message (строка), '
+                'picks (массив объектов {product_id: число, reason: строка}), '
+                'is_kit (true/false), suggestions (массив строк).',
           },
         ],
       },
       'contents': contents,
       'generationConfig': {
         'responseMimeType': 'application/json',
-        'responseSchema': _replySchema,
+        if (withSchema) 'responseSchema': _replySchema,
       },
     };
   }

@@ -536,13 +536,20 @@ void main() {
       expect(jsonEncode(sent['systemInstruction']), contains('Кроссовки для бега'));
     });
 
-    test('неверный ключ и лимит: отвечает локальный движок с пояснением', () async {
+    test('ошибки API: локальный ответ с причиной и текстом от Google', () async {
       final AssistantContext ctx = await context();
-      for (final (int status, String hint) in const [(400, 'Ключ'), (429, 'лимит')]) {
+      for (final (int status, String hint) in const [
+        (400, 'Ключ Gemini не принят: API key not valid'),
+        (429, 'лимит'),
+        (500, 'ошибку 500'),
+      ]) {
         final GeminiAssistantEngine engine = GeminiAssistantEngine(
           apiKey: 'bad',
           fallback: local(),
-          client: MockClient((request) async => http.Response('{}', status)),
+          client: MockClient((request) async => http.Response(
+                jsonEncode({'error': {'message': 'API key not valid'}}),
+                status,
+              )),
         );
         final AssistantReply reply =
             await engine.reply(ctx, [ChatMessage.user('Собери комплект для бега')]);
@@ -551,16 +558,100 @@ void main() {
       }
     });
 
-    test('без сети — обычный локальный ответ', () async {
+    test('перегруженная модель: отвечает запасная', () async {
+      final List<String> asked = [];
       final GeminiAssistantEngine engine = GeminiAssistantEngine(
         apiKey: 'key',
         fallback: local(),
-        client: MockClient((request) async => throw Exception('нет сети')),
+        client: MockClient((request) async {
+          asked.add(request.url.pathSegments.last);
+          if (asked.length == 1) return http.Response('{}', 503);
+          return http.Response.bytes(
+            utf8.encode(jsonEncode({
+              'candidates': [
+                {
+                  'content': {
+                    'parts': [
+                      {
+                        'text': jsonEncode({
+                          'message': 'Готово',
+                          'picks': <Object>[],
+                          'is_kit': false,
+                          'suggestions': <String>[],
+                        }),
+                      },
+                    ],
+                  },
+                },
+              ],
+            })),
+            200,
+          );
+        }),
       );
-      final AssistantReply reply = await engine
-          .reply(await context(), [ChatMessage.user('Собери комплект для бега')]);
-      expect(reply.isKit, isTrue);
-      expect(reply.text, isNot(contains('Gemini')));
+      final AssistantReply reply =
+          await engine.reply(await context(), [ChatMessage.user('Привет')]);
+      expect(reply.text, 'Готово');
+      expect(asked, [
+        'gemini-flash-latest:generateContent',
+        'gemini-flash-lite-latest:generateContent',
+      ]);
+    });
+
+    test('схема не принята: повтор без схемы', () async {
+      int calls = 0;
+      final GeminiAssistantEngine engine = GeminiAssistantEngine(
+        apiKey: 'key',
+        fallback: local(),
+        client: MockClient((request) async {
+          calls++;
+          final Map<String, Object?> config = (jsonDecode(request.body)
+              as Map<String, Object?>)['generationConfig']! as Map<String, Object?>;
+          if (config.containsKey('responseSchema')) {
+            return http.Response(
+              jsonEncode({'error': {'message': 'Invalid response_schema'}}),
+              400,
+            );
+          }
+          return http.Response.bytes(
+            utf8.encode(jsonEncode({
+              'candidates': [
+                {
+                  'content': {
+                    'parts': [
+                      {'text': '{"message":"Без схемы","picks":[],"is_kit":false,"suggestions":[]}'},
+                    ],
+                  },
+                },
+              ],
+            })),
+            200,
+          );
+        }),
+      );
+      final AssistantReply reply =
+          await engine.reply(await context(), [ChatMessage.user('Привет')]);
+      expect(reply.text, 'Без схемы');
+      expect(calls, 2);
+    });
+
+    test('проверка ключа перед сохранением', () async {
+      expect(
+        await GeminiAssistantEngine.checkKey('ok',
+            client: MockClient((request) async => http.Response('{}', 200))),
+        isNull,
+      );
+      expect(
+        await GeminiAssistantEngine.checkKey('bad',
+            client: MockClient((request) async => http.Response(
+                jsonEncode({'error': {'message': 'API key not valid'}}), 400))),
+        contains('не принят'),
+      );
+      expect(
+        await GeminiAssistantEngine.checkKey('x',
+            client: MockClient((request) async => throw Exception('нет сети'))),
+        contains('Нет связи'),
+      );
     });
 
     test('движок выбирается по сохранённому ключу', () async {
