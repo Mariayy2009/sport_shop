@@ -94,6 +94,10 @@ class HomeScreen extends StatelessWidget {
             sportName: sizes?.sportName,
           ),
           const SizedBox(height: AppSizes.l),
+          _HallOfFameBanner(
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.hallOfFame),
+          ),
+          const SizedBox(height: AppSizes.l),
           SectionHeader(
             title: 'Виды спорта',
             actionText: 'Все товары',
@@ -185,6 +189,58 @@ class _AiBanner extends StatelessWidget {
                 ),
               ),
               const Icon(Icons.arrow_forward, color: AppColors.white),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Вход в «Зал славы» — экипировку спортсменов с историей.
+class _HallOfFameBanner extends StatelessWidget {
+  const _HallOfFameBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final BorderRadius radius = BorderRadius.circular(AppSizes.radiusL);
+    return Material(
+      color: AppColors.surface,
+      borderRadius: radius,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.l),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: AppColors.star,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.emoji_events, color: AppColors.white),
+              ),
+              const SizedBox(width: AppSizes.m),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Зал славы', style: AppTextStyles.sectionTitle),
+                    SizedBox(height: AppSizes.xxs),
+                    Text(
+                      'Экипировка, в которой побеждали: посмотри '
+                      'и примерь похожее',
+                      style: AppTextStyles.bodySecondary,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward),
             ],
           ),
         ),

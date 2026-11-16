@@ -10,11 +10,13 @@ import 'core/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'data/database/app_database.dart';
 import 'data/database/database_helper.dart';
+import 'data/repositories/exhibit_repository.dart';
 import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/product_repository.dart';
 import 'data/repositories/user_repository.dart';
 import 'services/assistant/configurable_assistant_engine.dart';
+import 'services/cutout_service.dart';
 import 'services/kit_service.dart';
 import 'services/media_storage.dart';
 import 'services/recommendation_service.dart';
@@ -75,6 +77,10 @@ class SportShopApp extends StatelessWidget {
           value: dependencies.assistantEngine,
         ),
         Provider<MediaStorage>.value(value: dependencies.mediaStorage),
+        Provider<CutoutService>.value(value: dependencies.cutoutService),
+        Provider<ExhibitRepository>.value(
+          value: dependencies.exhibitRepository,
+        ),
         Provider<FeedbackRepository>.value(
           value: dependencies.feedbackRepository,
         ),

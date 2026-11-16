@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/routes/main_tab.dart';
+import '../../core/utils/app_messages.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/product_actions.dart';
@@ -15,6 +17,7 @@ import '../../models/fitting_photos.dart';
 import '../../models/outfit.dart';
 import '../../models/product.dart';
 import '../../models/user_sizes.dart';
+import '../../services/cutout_service.dart';
 import '../../services/size_advisor.dart';
 import '../../state/fitting_state.dart';
 import '../../state/profile_state.dart';
@@ -59,6 +62,15 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
   /// Идёт подгонка одежды под фото.
   bool _isAdjusting = false;
 
+  /// Вырезанные фото надетых вещей (если фото товара годится для примерки).
+  Map<WearSlot, ui.Image> _garmentPhotos = const {};
+
+  /// Соотношение сторон фото в полный рост: одежда привязана к самому
+  /// фото, а не к рамке вокруг него.
+  double? _bodyAspect;
+  String? _bodyAspectPath;
+  bool _isAutoFitting = false;
+
   @override
   void initState() {
     super.initState();
@@ -81,7 +93,60 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
         };
       }
     }
+    if (mounted) _loadGarmentPhotos();
     return wearable;
+  }
+
+  /// Для надетых вещей с фото «для примерки» вырезает фон и надевает
+  /// само фото; остальные вещи рисуются.
+  Future<void> _loadGarmentPhotos() async {
+    final CutoutService cutouts = context.read<CutoutService>();
+    final Map<WearSlot, ui.Image> photos = {};
+    for (final MapEntry<WearSlot, WornItem> entry in _outfit.entries) {
+      final Product product = entry.value.product;
+      final String? url = product.imageUrl;
+      final bool isClothing =
+          entry.key == WearSlot.upper || entry.key == WearSlot.lower;
+      if (!product.tryOnPhoto || url == null || !isClothing) continue;
+      final ui.Image? image = await cutouts.cutout(url);
+      if (image != null) photos[entry.key] = image;
+    }
+    if (mounted) setState(() => _garmentPhotos = photos);
+  }
+
+  /// Узнаёт соотношение сторон фото в полный рост.
+  void _resolveBodyAspect(String path) {
+    if (path == _bodyAspectPath) return;
+    _bodyAspectPath = path;
+    _bodyAspect = null;
+    final ImageStream stream =
+        FileImage(File(path)).resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        stream.removeListener(listener);
+        if (mounted && path == _bodyAspectPath) {
+          setState(() => _bodyAspect = info.image.width / info.image.height);
+        }
+      },
+      onError: (error, stackTrace) => stream.removeListener(listener),
+    );
+    stream.addListener(listener);
+  }
+
+  Future<void> _autoFit() async {
+    setState(() => _isAutoFitting = true);
+    final bool found = await context.read<FittingState>().autoFit();
+    if (!mounted) return;
+    setState(() => _isAutoFitting = false);
+    if (found) {
+      AppMessages.showSuccess(context, 'Одежда подогнана по фото');
+    } else {
+      AppMessages.showWarning(
+        context,
+        'Не удалось найти фигуру на фото — подгоните вручную',
+      );
+    }
   }
 
   void _toggle(Product product) {
@@ -103,6 +168,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
       }
     }
     setState(() => _outfit = next);
+    _loadGarmentPhotos();
   }
 
   void _recolor(Color color) {
@@ -231,6 +297,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
   /// Фото пользователя с одеждой поверх. Все размеры — в долях высоты
   /// сцены, поэтому подгонка не «съезжает» при изменении её размера.
   Widget _buildPhotoStage(FittingPhotos photos) {
+    _resolveBodyAspect(photos.bodyPath!);
     final FittingState fitting = context.read<FittingState>();
     return Container(
       width: double.infinity,
@@ -247,7 +314,13 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double stageHeight = constraints.maxHeight;
+          // Прямоугольник, который фото занимает в рамке (BoxFit.contain).
+          final Size stage = constraints.biggest;
+          final double aspect = _bodyAspect ?? stage.width / stage.height;
+          final Size shown = aspect > stage.width / stage.height
+              ? Size(stage.width, stage.width / aspect)
+              : Size(stage.height * aspect, stage.height);
+          final double stageHeight = shown.height;
           final double figureHeight = stageHeight * 0.9 * photos.fitScale;
           final double figureWidth = figureHeight * 0.7;
           return GestureDetector(
@@ -276,7 +349,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                   left: constraints.maxWidth / 2 +
                       photos.fitDx * stageHeight -
                       figureWidth / 2,
-                  top: stageHeight / 2 +
+                  top: stage.height / 2 +
                       photos.fitDy * stageHeight -
                       figureHeight / 2,
                   width: figureWidth,
@@ -310,6 +383,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                                 weightKg: _defaultWeight,
                                 angle: 0,
                                 outfit: _outfit,
+                                garmentPhotos: _garmentPhotos,
                                 showBody: false,
                                 widthFactor: photos.fitWidth,
                                 fillHeight: true,
@@ -374,6 +448,18 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
             'а размер и ширину настройте ползунками.',
             style: AppTextStyles.bodySecondary,
           ),
+          if (fitting.canAutoFit)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _isAutoFitting ? null : _autoFit,
+                icon: const Icon(Icons.auto_fix_high, size: 18, color: AppColors.accent),
+                label: Text(
+                  _isAutoFitting ? 'Ищу фигуру на фото…' : 'Подогнать автоматически',
+                  style: const TextStyle(color: AppColors.accent),
+                ),
+              ),
+            ),
           _FitSlider(
             label: 'Размер',
             value: photos.fitScale,
@@ -427,6 +513,7 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
                       weightKg: weight,
                       angle: _angle,
                       outfit: _outfit,
+                      garmentPhotos: _garmentPhotos,
                     );
                     final String? facePath = photos?.facePath;
                     return Stack(
@@ -541,10 +628,12 @@ class _FittingRoomScreenState extends State<FittingRoomScreen> {
           ),
           SizedBox(
             height: 48,
-            child: worn == null
-                ? const Center(
+            child: worn == null || _garmentPhotos.containsKey(_slot)
+                ? Center(
                     child: Text(
-                      'Выберите вещь, чтобы примерить и поменять цвет',
+                      worn == null
+                          ? 'Выберите вещь, чтобы примерить и поменять цвет'
+                          : 'Надето фото товара — цвет как в каталоге',
                       style: AppTextStyles.caption,
                     ),
                   )

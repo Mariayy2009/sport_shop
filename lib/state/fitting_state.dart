@@ -3,13 +3,20 @@ import 'package:flutter/foundation.dart';
 import '../data/repositories/fitting_repository.dart';
 import '../models/fitting_photos.dart';
 import '../services/media_storage.dart';
+import '../services/pose_fitter.dart';
 
 /// Фото пользователя для примерки и подгонка одежды под фото.
 class FittingState extends ChangeNotifier {
-  FittingState(this._repository, this._storage);
+  FittingState(this._repository, this._storage, [this._poseFitter]);
 
   final FittingRepository _repository;
   final MediaStorage _storage;
+
+  /// Определение позы на фото; null — подгонка только вручную.
+  final PoseFitter? _poseFitter;
+
+  /// Можно ли подогнать одежду под фото автоматически.
+  bool get canAutoFit => _poseFitter?.isSupported ?? false;
 
   int? _userId;
   FittingPhotos? _photos;
@@ -43,6 +50,23 @@ class FittingState extends ChangeNotifier {
     await _save(kind == PhotoKind.face
         ? current.copyWith(facePath: path)
         : current.copyWith(bodyPath: path, fitScale: 1, fitWidth: 1, fitDx: 0, fitDy: 0));
+    // Новое фото в полный рост: сразу пробуем поставить одежду по позе.
+    if (kind == PhotoKind.body) await autoFit();
+    return true;
+  }
+
+  /// Автоподгонка: находит на фото плечи, бёдра и стопы и ставит
+  /// одежду по ним. Возвращает false, если человека найти не удалось —
+  /// тогда остаётся ручная подгонка.
+  Future<bool> autoFit() async {
+    final FittingPhotos? current = _photos;
+    final String? path = current?.bodyPath;
+    if (current == null || path == null || !canAutoFit) return false;
+    final BodyFit? fit = await _poseFitter!.detect(path);
+    // Пока искали позу, фото могли заменить или удалить.
+    if (fit == null || _photos?.bodyPath != path) return false;
+    updateFit(scale: fit.scale, width: fit.width, dx: fit.dx, dy: fit.dy);
+    await persistFit();
     return true;
   }
 

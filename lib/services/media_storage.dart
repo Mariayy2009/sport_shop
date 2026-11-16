@@ -15,7 +15,7 @@ enum PhotoSource {
 }
 
 /// Назначение фотографии — попадает в имя файла.
-enum PhotoKind { avatar, face, body, product }
+enum PhotoKind { avatar, face, body, product, exhibit }
 
 /// Хранилище фотографий пользователя: аватар и фото для примерки.
 ///

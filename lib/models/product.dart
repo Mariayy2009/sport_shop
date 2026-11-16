@@ -14,6 +14,7 @@ class Product {
     this.material,
     this.rating,
     this.reviewsCount = 0,
+    this.tryOnPhoto = false,
     this.categoryName,
     this.sportName,
   });
@@ -44,6 +45,11 @@ class Product {
 
   /// Сколько отзывов оставили покупатели.
   final int reviewsCount;
+
+  /// Фото товара годится для примерки: вещь снята спереди на светлом
+  /// однотонном фоне. Тогда в примерочной надевается само фото,
+  /// а не нарисованная одежда. Отмечает администратор.
+  final bool tryOnPhoto;
 
   // Заполняются через JOIN, в таблицу products не сохраняются.
   final String? categoryName;
@@ -93,6 +99,7 @@ class Product {
       material: map['material'] as String?,
       rating: (map['rating'] as num?)?.toDouble(),
       reviewsCount: (map['reviews_count'] as int?) ?? 0,
+      tryOnPhoto: map['try_on_photo'] == 1,
       categoryName: map['category_name'] as String?,
       sportName: map['sport_name'] as String?,
     );
@@ -112,6 +119,7 @@ class Product {
       'brand': brand,
       'material': material,
       'rating': rating,
+      'try_on_photo': tryOnPhoto ? 1 : 0,
     };
   }
 
@@ -132,6 +140,7 @@ class Product {
     String? brand,
     String? material,
     double? rating,
+    bool? tryOnPhoto,
     String? categoryName,
     String? sportName,
   }) {
@@ -149,6 +158,7 @@ class Product {
       material: material ?? this.material,
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount,
+      tryOnPhoto: tryOnPhoto ?? this.tryOnPhoto,
       categoryName: categoryName ?? this.categoryName,
       sportName: sportName ?? this.sportName,
     );

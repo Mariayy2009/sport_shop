@@ -40,7 +40,11 @@ class AppStates {
       favorites: FavoritesState(deps.favoritesRepository),
       compare: CompareState(),
       assistant: AssistantState(deps.assistantService),
-      fitting: FittingState(deps.fittingRepository, deps.mediaStorage),
+      fitting: FittingState(
+        deps.fittingRepository,
+        deps.mediaStorage,
+        deps.poseFitter,
+      ),
     );
     states.auth.addListener(states._onAuthChanged);
     return states;

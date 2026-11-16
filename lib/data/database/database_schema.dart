@@ -19,7 +19,8 @@ class DatabaseSchema {
   /// v4: users.avatar_path, products.reviews_count, таблицы reviews (отзывы),
   ///     questions (вопросы о товаре), fitting_photos (фото для примерки).
   /// v5: картинки товаров в формате JPG (пересоздание демо-данных).
-  static const int version = 5;
+  /// v6: таблица exhibits («Зал славы»), products.try_on_photo.
+  static const int version = 6;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -36,6 +37,7 @@ class DatabaseSchema {
   static const String reviews = 'reviews';
   static const String questions = 'questions';
   static const String fittingPhotos = 'fitting_photos';
+  static const String exhibits = 'exhibits';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
   static const List<String> tablesInCreateOrder = [
@@ -53,6 +55,7 @@ class DatabaseSchema {
     reviews,
     questions,
     fittingPhotos,
+    exhibits,
   ];
 
   static List<String> get tablesInDropOrder =>
@@ -120,6 +123,7 @@ class DatabaseSchema {
       material TEXT,
       rating REAL CHECK (rating IS NULL OR rating BETWEEN 0 AND 5),
       reviews_count INTEGER NOT NULL DEFAULT 0,
+      try_on_photo INTEGER NOT NULL DEFAULT 0 CHECK (try_on_photo IN (0, 1)),
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -233,6 +237,21 @@ class DatabaseSchema {
       fit_dy REAL NOT NULL DEFAULT 0,
       consent_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
+    )
+    ''',
+    '''
+    CREATE TABLE $exhibits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      athlete TEXT NOT NULL,
+      sport_id INTEGER,
+      year TEXT,
+      story TEXT,
+      image_url TEXT,
+      source TEXT NOT NULL DEFAULT 'knus'
+        CHECK (source IN ('knus', 'kazakhstan')),
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE SET NULL
     )
     ''',
     // Индексы для частых выборок: каталог, подбор, история заказов

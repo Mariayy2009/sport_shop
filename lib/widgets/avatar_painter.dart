@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -20,6 +21,7 @@ class AvatarPainter extends CustomPainter {
     this.showBody = true,
     this.widthFactor,
     this.fillHeight = false,
+    this.garmentPhotos = const {},
   });
 
   final int heightCm;
@@ -35,6 +37,10 @@ class AvatarPainter extends CustomPainter {
 
   /// Фигура занимает всю высоту области (её размер задаёт родитель).
   final bool fillHeight;
+
+  /// Вырезанные фото вещей: если для слота есть фото, на фигуру
+  /// надевается оно, а не нарисованная одежда.
+  final Map<WearSlot, ui.Image> garmentPhotos;
 
   static const Color _body = Color(0xFFD5DBE6);
   static const Color _bodyShade = Color(0xFFC2CAD8);
@@ -155,7 +161,15 @@ class AvatarPainter extends CustomPainter {
         _fill(canvas, _leg(side, 0.74, _yAnkle + 0.01, pad: 0.004), _paint(extra!.color));
       }
     }
-    if (upper?.kind == WearKind.kimono) {
+    final ui.Image? lowerPhoto = garmentPhotos[WearSlot.lower];
+    if (lowerPhoto != null && lower != null) {
+      final bool isShorts = lower.kind == WearKind.shorts;
+      _photo(
+        canvas,
+        lowerPhoto,
+        Rect.fromLTRB(-_hipHw - 0.035, _yWaist + 0.025, _hipHw + 0.035, isShorts ? 0.615 : 0.94),
+      );
+    } else if (upper?.kind == WearKind.kimono) {
       _pants(canvas, upper!.color, 0.9, pad: 0.016);
     } else if (upper?.kind == WearKind.set) {
       _pants(canvas, upper!.color, 0.6, pad: 0.012);
@@ -193,7 +207,19 @@ class AvatarPainter extends CustomPainter {
         }
       }
     }
-    if (upper != null) _upper(canvas, upper);
+    final ui.Image? upperPhoto = garmentPhotos[WearSlot.upper];
+    if (upper != null && upperPhoto != null) {
+      // Фото вещи с рукавами шире торса: рамка — от локтя до локтя.
+      final double halfWidth = _shoulderHw + 0.075;
+      final double bottom = switch (upper.kind) {
+        WearKind.kimono => 0.58,
+        WearKind.swimsuit => _yCrotch + 0.01,
+        _ => 0.475,
+      };
+      _photo(canvas, upperPhoto, Rect.fromLTRB(-halfWidth, 0.135, halfWidth, bottom));
+    } else if (upper != null) {
+      _upper(canvas, upper);
+    }
   }
 
   void _upper(Canvas canvas, WornItem item) {
@@ -269,6 +295,18 @@ class AvatarPainter extends CustomPainter {
             WearKind.socks:
         break;
     }
+  }
+
+  /// Вырезанное фото вещи, растянутое на свою часть фигуры.
+  void _photo(Canvas canvas, ui.Image image, Rect target) {
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      target,
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..isAntiAlias = true,
+    );
   }
 
   /// Шорты или штаны: пояс + две штанины до уровня [yBottom].
@@ -559,6 +597,7 @@ class AvatarPainter extends CustomPainter {
       oldDelegate.weightKg != weightKg ||
       oldDelegate.angle != angle ||
       oldDelegate.showBody != showBody ||
+      oldDelegate.garmentPhotos != garmentPhotos ||
       oldDelegate.widthFactor != widthFactor ||
       oldDelegate.outfit != outfit;
 }

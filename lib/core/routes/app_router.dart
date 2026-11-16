@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../models/order.dart';
+import '../../models/exhibit.dart';
 import '../../models/product.dart';
+import '../../screens/admin/admin_exhibit_screen.dart';
 import '../../screens/admin/admin_product_screen.dart';
 import '../../screens/admin/admin_screen.dart';
 import '../../screens/auth/login_screen.dart';
@@ -12,6 +14,8 @@ import '../../screens/catalog/filter_screen.dart';
 import '../../screens/catalog/product_screen.dart';
 import '../../screens/common/not_found_screen.dart';
 import '../../screens/compare/compare_screen.dart';
+import '../../screens/exhibits/exhibit_screen.dart';
+import '../../screens/exhibits/hall_of_fame_screen.dart';
 import '../../screens/favorites/favorites_screen.dart';
 import '../../screens/fitting/fitting_photos_screen.dart';
 import '../../screens/fitting/fitting_room_screen.dart';
@@ -55,6 +59,10 @@ class AppRouter {
       AppRoutes.fittingRoom =>
         FittingRoomScreen(initialProductId: args is int ? args : null),
       AppRoutes.fittingPhotos => const FittingPhotosScreen(),
+      AppRoutes.hallOfFame => const HallOfFameScreen(),
+      AppRoutes.exhibit when args is int => ExhibitScreen(exhibitId: args),
+      AppRoutes.adminExhibit =>
+        AdminExhibitScreen(exhibit: args is Exhibit ? args : null),
       AppRoutes.admin => const AdminScreen(),
       AppRoutes.adminProduct =>
         AdminProductScreen(product: args is Product ? args : null),

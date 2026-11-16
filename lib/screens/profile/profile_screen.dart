@@ -177,6 +177,11 @@ class ProfileScreen extends StatelessWidget {
                 .pushNamed(AppRoutes.kits, arguments: sizes?.sportId),
           ),
           _MenuItem(
+            icon: Icons.emoji_events_outlined,
+            title: 'Зал славы',
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.hallOfFame),
+          ),
+          _MenuItem(
             icon: Icons.checkroom,
             title: 'Примерочная',
             onTap: () => Navigator.of(context).pushNamed(AppRoutes.fittingRoom),

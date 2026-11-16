@@ -14,7 +14,7 @@ class FittingPhotos {
     required this.consentAt,
   });
 
-  static const double minScale = 0.5;
+  static const double minScale = 0.3;
   static const double maxScale = 1.3;
   static const double minWidth = 0.7;
   static const double maxWidth = 1.5;
@@ -27,13 +27,13 @@ class FittingPhotos {
   /// Фото в полный рост — на него накладывается одежда.
   final String? bodyPath;
 
-  /// Высота фигуры относительно высоты кадра.
+  /// Высота фигуры относительно высоты фото (1 — 90 % высоты).
   final double fitScale;
 
   /// Ширина одежды относительно стандартной фигуры.
   final double fitWidth;
 
-  /// Сдвиг одежды от центра кадра в долях его ширины и высоты.
+  /// Сдвиг одежды от центра фото в долях его высоты.
   final double fitDx;
   final double fitDy;
 

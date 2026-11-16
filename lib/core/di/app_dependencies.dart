@@ -7,6 +7,7 @@ import '../../data/datasources/local/recommendation_local_datasource.dart';
 import '../../data/datasources/local/session_local_datasource.dart';
 import '../../data/datasources/local/user_local_datasource.dart';
 import '../../data/repositories/cart_repository.dart';
+import '../../data/repositories/exhibit_repository.dart';
 import '../../data/repositories/favorites_repository.dart';
 import '../../data/repositories/feedback_repository.dart';
 import '../../data/repositories/fitting_repository.dart';
@@ -27,8 +28,10 @@ import '../../services/assistant/claude_assistant_engine.dart';
 import '../../services/assistant/configurable_assistant_engine.dart';
 import '../../services/assistant/local_assistant_engine.dart';
 import '../../services/auth_service.dart';
+import '../../services/cutout_service.dart';
 import '../../services/kit_service.dart';
 import '../../services/media_storage.dart';
+import '../../services/pose_fitter.dart';
 import '../../services/recommendation_service.dart';
 
 /// Сборка всех зависимостей приложения в одном месте.
@@ -46,8 +49,11 @@ class AppDependencies {
     required this.recommendationRepository,
     required this.favoritesRepository,
     required this.feedbackRepository,
+    required this.exhibitRepository,
     required this.fittingRepository,
     required this.mediaStorage,
+    required this.poseFitter,
+    required this.cutoutService,
     required this.authService,
     required this.recommendationService,
     required this.kitService,
@@ -61,6 +67,7 @@ class AppDependencies {
     AssistantAiConfig aiConfig = const AssistantAiConfig(),
     MediaStorage? mediaStorage,
     AiKeyStore? aiKeyStore,
+    PoseFitter? poseFitter,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
@@ -89,8 +96,11 @@ class AppDependencies {
       favoritesRepository:
           LocalFavoritesRepository(FavoritesLocalDataSource(database)),
       feedbackRepository: LocalFeedbackRepository(database),
+      exhibitRepository: LocalExhibitRepository(database),
       fittingRepository: LocalFittingRepository(database),
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
+      poseFitter: poseFitter ?? MlKitPoseFitter(),
+      cutoutService: CutoutService(),
       authService: AuthService(
         userRepository: userRepository,
         sessionStorage: sessionStorage ?? SharedPreferencesSessionStorage(),
@@ -111,8 +121,11 @@ class AppDependencies {
   final RecommendationRepository recommendationRepository;
   final FavoritesRepository favoritesRepository;
   final FeedbackRepository feedbackRepository;
+  final ExhibitRepository exhibitRepository;
   final FittingRepository fittingRepository;
   final MediaStorage mediaStorage;
+  final PoseFitter poseFitter;
+  final CutoutService cutoutService;
   final AuthService authService;
   final RecommendationService recommendationService;
   final KitService kitService;

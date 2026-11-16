@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -14,6 +16,7 @@ import 'package:sport_shop/services/assistant/gemini_assistant_engine.dart';
 import 'package:sport_shop/services/assistant/local_assistant_engine.dart';
 import 'package:sport_shop/models/chat_message.dart';
 import 'package:sport_shop/models/enums.dart';
+import 'package:sport_shop/models/exhibit.dart';
 import 'package:sport_shop/models/fitting_photos.dart';
 import 'package:sport_shop/models/outfit.dart';
 import 'package:sport_shop/models/product.dart';
@@ -24,7 +27,9 @@ import 'package:sport_shop/models/sport.dart';
 import 'package:sport_shop/models/sport_kit.dart';
 import 'package:sport_shop/models/user.dart';
 import 'package:sport_shop/models/user_sizes.dart';
+import 'package:sport_shop/services/cutout_service.dart';
 import 'package:sport_shop/services/media_storage.dart';
+import 'package:sport_shop/services/pose_fitter.dart';
 import 'package:sport_shop/services/size_advisor.dart';
 import 'package:sport_shop/state/compare_state.dart';
 import 'package:sport_shop/state/favorites_state.dart';
@@ -570,6 +575,167 @@ void main() {
       expect(await engine.currentProvider(), AiProvider.local);
     });
   });
+
+  group('Примерка: фото вещи и автоподгонка', () {
+    /// Картинка w×h: светлый фон и цветной прямоугольник-«вещь».
+    Uint8List picture(int w, int h, {required List<int> background, Rect? item}) {
+      final Uint8List rgba = Uint8List(w * h * 4);
+      for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+          final bool inside = item != null && item.contains(Offset(x + 0.5, y + 0.5));
+          final List<int> color = inside ? const [200, 30, 40] : background;
+          final int i = (y * w + x) * 4;
+          rgba[i] = color[0];
+          rgba[i + 1] = color[1];
+          rgba[i + 2] = color[2];
+          rgba[i + 3] = 255;
+        }
+      }
+      return rgba;
+    }
+
+    test('белый фон удаляется, картинка обрезается по вещи', () {
+      final CutoutPixels cut = CutoutService.removeBackground(
+        picture(60, 80, background: const [250, 250, 250], item: const Rect.fromLTRB(20, 10, 50, 70)),
+        60,
+        80,
+      )!;
+      expect((cut.width, cut.height), (30, 60));
+      // Центр вещи непрозрачный, цвет сохранён.
+      final int center = (30 * cut.width + 15) * 4;
+      expect(cut.rgba[center + 3], 255);
+      expect(cut.rgba[center], 200);
+    });
+
+    test('белая деталь внутри вещи не вырезается', () {
+      final Uint8List rgba = picture(60, 80,
+          background: const [250, 250, 250], item: const Rect.fromLTRB(10, 10, 50, 70));
+      // Белый «логотип» в середине красной вещи.
+      for (int y = 35; y < 45; y++) {
+        for (int x = 25; x < 35; x++) {
+          rgba.setRange((y * 60 + x) * 4, (y * 60 + x) * 4 + 3, const [250, 250, 250]);
+        }
+      }
+      final CutoutPixels cut = CutoutService.removeBackground(rgba, 60, 80)!;
+      final int logo = ((40 - 10) * cut.width + (30 - 10)) * 4;
+      expect(cut.rgba[logo + 3], 255);
+    });
+
+    test('пёстрый или тёмный фон не подходит', () {
+      expect(
+        CutoutService.removeBackground(
+          picture(40, 40, background: const [40, 60, 30], item: const Rect.fromLTRB(10, 10, 30, 30)),
+          40,
+          40,
+        ),
+        isNull,
+      );
+      // Пустая картинка: вещи нет.
+      expect(
+        CutoutService.removeBackground(picture(40, 40, background: const [255, 255, 255]), 40, 40),
+        isNull,
+      );
+    });
+
+    test('подгонка по точкам тела', () {
+      // Фото 1000×2000, человек по центру: плечи на 400, стопы на 1800.
+      final BodyFit fit = BodyFit.fromLandmarks(
+        imageWidth: 1000,
+        imageHeight: 2000,
+        leftShoulder: const Offset(620, 400),
+        rightShoulder: const Offset(380, 400),
+        leftHip: const Offset(580, 1000),
+        rightHip: const Offset(420, 1000),
+        leftAnkle: const Offset(570, 1800),
+        rightAnkle: const Offset(430, 1800),
+      )!;
+      // Высота фигуры: 1400 / 0.775 ≈ 1806 px.
+      expect(fit.scale, closeTo(1806 / 1800, 0.01));
+      expect(fit.dx, closeTo(0, 0.001));
+      // Центр фигуры чуть выше центра кадра.
+      expect(fit.dy, closeTo((400 - 0.155 * 1806 + 903 - 1000) / 2000, 0.01));
+      expect(fit.width, closeTo(240 / 1806 / 0.224 * 1.25, 0.01));
+
+      // Человек слишком мелкий в кадре — подгонять не по чему.
+      expect(
+        BodyFit.fromLandmarks(
+          imageWidth: 1000,
+          imageHeight: 2000,
+          leftShoulder: const Offset(520, 900),
+          rightShoulder: const Offset(480, 900),
+          leftHip: const Offset(515, 1000),
+          rightHip: const Offset(485, 1000),
+          leftAnkle: const Offset(512, 1150),
+          rightAnkle: const Offset(488, 1150),
+        ),
+        isNull,
+      );
+    });
+
+    test('новое фото в полный рост подгоняется автоматически', () async {
+      final (User user, _) = await maria();
+      final FittingState fitting = FittingState(
+        deps.fittingRepository,
+        FakeMediaStorage(),
+        FakePoseFitter(const BodyFit(scale: 0.8, width: 1.1, dx: 0.05, dy: -0.02)),
+      );
+      await fitting.setUser(user.id);
+      await fitting.pick(PhotoKind.body, PhotoSource.gallery);
+      expect(fitting.photos!.fitScale, 0.8);
+      expect((await deps.fittingRepository.get(user.id!))!.fitDx, 0.05);
+
+      // Фигура не найдена — остаются значения по умолчанию.
+      final FittingState manual = FittingState(
+        deps.fittingRepository,
+        FakeMediaStorage(),
+        FakePoseFitter(null),
+      );
+      await manual.setUser(user.id);
+      await manual.pick(PhotoKind.body, PhotoSource.gallery);
+      expect(manual.photos!.fitScale, 1);
+      expect(await manual.autoFit(), isFalse);
+    });
+  });
+
+  group('Зал славы', () {
+    test('экспонаты: создание, изменение, источник, удаление', () async {
+      final Sport volleyball = await sport('Волейбол');
+      expect(await deps.exhibitRepository.getAll(), isEmpty);
+
+      await deps.exhibitRepository.save(Exhibit(
+        title: 'Игровая майка',
+        athlete: 'Тестовый Спортсмен',
+        sportId: volleyball.id,
+        year: '2020',
+        story: 'Проверочная запись',
+        createdAt: DateTime(2026, 6, 1),
+      ));
+      Exhibit saved = (await deps.exhibitRepository.getAll()).single;
+      expect(saved.source, ExhibitSource.knus);
+      expect(saved.sportName, 'Волейбол');
+
+      await deps.exhibitRepository.save(Exhibit(
+        id: saved.id,
+        title: saved.title,
+        athlete: saved.athlete,
+        source: ExhibitSource.kazakhstan,
+        createdAt: saved.createdAt,
+      ));
+      saved = (await deps.exhibitRepository.getById(saved.id!))!;
+      expect(saved.source, ExhibitSource.kazakhstan);
+      expect(saved.sportName, isNull);
+
+      await deps.exhibitRepository.delete(saved.id!);
+      expect(await deps.exhibitRepository.getById(saved.id!), isNull);
+    });
+  });
+
+  test('товар помнит отметку «фото для примерки»', () async {
+    final Product shirt = await product('Беговая футболка');
+    expect(shirt.tryOnPhoto, isFalse);
+    await deps.productRepository.updateProduct(shirt.copyWith(tryOnPhoto: true));
+    expect((await product('Беговая футболка')).tryOnPhoto, isTrue);
+  });
 }
 
 /// Хранилище фото без камеры и диска: выдаёт пути по порядку.
@@ -592,4 +758,17 @@ class FakeMediaStorage implements MediaStorage {
   Future<void> delete(String? path) async {
     if (path != null) deleted.add(path);
   }
+}
+
+/// Определение позы без ML Kit: возвращает заранее заданный результат.
+class FakePoseFitter implements PoseFitter {
+  FakePoseFitter(this.result);
+
+  final BodyFit? result;
+
+  @override
+  bool get isSupported => true;
+
+  @override
+  Future<BodyFit?> detect(String imagePath) async => result;
 }
