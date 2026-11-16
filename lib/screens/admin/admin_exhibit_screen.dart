@@ -38,6 +38,8 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
       TextEditingController(text: widget.exhibit?.title ?? '');
   late final TextEditingController _athlete =
       TextEditingController(text: widget.exhibit?.athlete ?? '');
+  late final TextEditingController _sportLabel =
+      TextEditingController(text: widget.exhibit?.sportLabel ?? '');
   late final TextEditingController _year =
       TextEditingController(text: widget.exhibit?.year ?? '');
   late final TextEditingController _story =
@@ -53,6 +55,7 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
   void dispose() {
     _title.dispose();
     _athlete.dispose();
+    _sportLabel.dispose();
     _year.dispose();
     _story.dispose();
     super.dispose();
@@ -104,6 +107,7 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
       title: _title.text.trim(),
       athlete: _athlete.text.trim(),
       sportId: _sportId,
+      sportLabel: _nullIfEmpty(_sportLabel),
       year: _nullIfEmpty(_year),
       story: _nullIfEmpty(_story),
       imageUrl: _imageUrl,
@@ -232,17 +236,25 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
             const SizedBox(height: AppSizes.m),
             AppTextField(
               label: 'Чья вещь',
-              hint: 'Имя и фамилия спортсмена',
+              hint: 'Спортсмен, сборная или федерация',
               controller: _athlete,
               maxLength: 60,
               textCapitalization: TextCapitalization.words,
               validator: (value) =>
-                  (value?.trim().length ?? 0) < 3 ? 'Укажите спортсмена' : null,
+                  (value?.trim().length ?? 0) < 3 ? 'Укажите, чья это вещь' : null,
+            ),
+            const SizedBox(height: AppSizes.m),
+            AppTextField(
+              label: 'Вид спорта',
+              hint: 'Как на табличке: дзюдо, биатлон, гольф',
+              controller: _sportLabel,
+              maxLength: 40,
+              textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: AppSizes.m),
             AppDropdownField<int>(
-              label: 'Вид спорта',
-              hint: 'По нему подбираются похожие товары',
+              label: 'Похожие товары — из раздела каталога',
+              hint: 'Не выбрано: похожих товаров не будет',
               value: _sportId,
               items: [
                 for (final Sport sport in sports)
@@ -262,7 +274,7 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
               label: 'История экспоната',
               hint: 'Достижение, соревнование, факты с таблички',
               controller: _story,
-              maxLength: 600,
+              maxLength: 1500,
               textCapitalization: TextCapitalization.sentences,
             ),
           ],

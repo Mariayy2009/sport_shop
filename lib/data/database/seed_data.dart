@@ -4,6 +4,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/password_hasher.dart';
 import '../../models/enums.dart';
 import 'database_schema.dart';
+import 'seed_exhibits.dart';
 
 /// Демонстрационные данные, которые записываются в SQLite
 /// при первом запуске приложения.
@@ -445,6 +446,35 @@ class SeedData {
     }
 
     await _insertUsersAndOrders(db, sportIds, productIds);
+    await _insertExhibits(db, sportIds);
+  }
+
+  /// Экспонаты «Зала славы» (экспозиция КНУС).
+  static Future<void> _insertExhibits(
+    DatabaseExecutor db,
+    Map<String, int> sportIds,
+  ) async {
+    final Map<String, String> sportKeys = {
+      for (final (key, name, _) in _sports) name: key,
+    };
+    final DateTime added = DateTime(2026, 11, 16);
+    for (int i = 0; i < SeedExhibits.items.length; i++) {
+      final (image, title, owner, year, sportLabel, catalogSport, story) =
+          SeedExhibits.items[i];
+      await db.insert(DatabaseSchema.exhibits, {
+        'title': title,
+        'athlete': owner,
+        'sport_id':
+            catalogSport == null ? null : _id(sportIds, sportKeys[catalogSport]!),
+        'sport_label': sportLabel,
+        'year': year,
+        'story': story,
+        'image_url': '${SeedExhibits.imagesFolder}/$image.jpg',
+        'source': 'knus',
+        // Порядок в списке — как в каталоге экспозиции: №1 первым.
+        'created_at': added.subtract(Duration(minutes: i)).toIso8601String(),
+      });
+    }
   }
 
   static Future<void> _insertUsersAndOrders(

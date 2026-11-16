@@ -700,7 +700,16 @@ void main() {
   group('Зал славы', () {
     test('экспонаты: создание, изменение, источник, удаление', () async {
       final Sport volleyball = await sport('Волейбол');
-      expect(await deps.exhibitRepository.getAll(), isEmpty);
+      // В демо-данных — 23 экспоната экспозиции КНУС, №1 первым.
+      final List<Exhibit> seeded = await deps.exhibitRepository.getAll();
+      expect(seeded.length, 23);
+      expect(seeded.first.sportTitle, 'Лыжные гонки');
+      expect(seeded.every((item) => item.source == ExhibitSource.knus), isTrue);
+      expect(seeded.every((item) => item.imageUrl != null && item.story != null), isTrue);
+      final Exhibit karate =
+          seeded.firstWhere((item) => item.athlete == 'Софья Берульцева');
+      expect(karate.sportName, 'Карате');
+      expect(karate.sportTitle, 'Каратэ (WKF)');
 
       await deps.exhibitRepository.save(Exhibit(
         title: 'Игровая майка',
@@ -708,9 +717,9 @@ void main() {
         sportId: volleyball.id,
         year: '2020',
         story: 'Проверочная запись',
-        createdAt: DateTime(2026, 6, 1),
+        createdAt: DateTime(2027, 1, 1),
       ));
-      Exhibit saved = (await deps.exhibitRepository.getAll()).single;
+      Exhibit saved = (await deps.exhibitRepository.getAll()).first;
       expect(saved.source, ExhibitSource.knus);
       expect(saved.sportName, 'Волейбол');
 

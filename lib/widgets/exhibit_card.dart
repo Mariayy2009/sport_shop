@@ -88,7 +88,7 @@ class ExhibitCard extends StatelessWidget {
                     style: AppTextStyles.bodySecondary,
                   ),
                   Text(
-                    [exhibit.sportName, exhibit.year].whereType<String>().join(' · '),
+                    [exhibit.sportTitle, exhibit.year].whereType<String>().join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption,

@@ -20,7 +20,8 @@ class DatabaseSchema {
   ///     questions (вопросы о товаре), fitting_photos (фото для примерки).
   /// v5: картинки товаров в формате JPG (пересоздание демо-данных).
   /// v6: таблица exhibits («Зал славы»), products.try_on_photo.
-  static const int version = 6;
+  /// v7: exhibits.sport_label и экспонаты КНУС в демо-данных.
+  static const int version = 7;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -245,6 +246,7 @@ class DatabaseSchema {
       title TEXT NOT NULL,
       athlete TEXT NOT NULL,
       sport_id INTEGER,
+      sport_label TEXT,
       year TEXT,
       story TEXT,
       image_url TEXT,

@@ -134,8 +134,8 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
           body: ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
             children: [
-              SizedBox(
-                height: 300,
+              AspectRatio(
+                aspectRatio: 0.85,
                 child: ProductImage(
                   imageUrl: exhibit.imageUrl,
                   width: double.infinity,
@@ -150,7 +150,7 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
                   const SizedBox(width: AppSizes.s),
                   Expanded(
                     child: Text(
-                      [exhibit.sportName, exhibit.year]
+                      [exhibit.sportTitle, exhibit.year]
                           .whereType<String>()
                           .join(' · '),
                       style: AppTextStyles.bodySecondary,
@@ -175,6 +175,14 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
               ],
               const SizedBox(height: AppSizes.s),
               Text(exhibit.source.fullLabel, style: AppTextStyles.caption),
+              if (similar.isEmpty) ...[
+                const SizedBox(height: AppSizes.l),
+                const Text(
+                  'Экипировки для этого вида спорта в каталоге пока нет — '
+                  'загляни в другие экспонаты.',
+                  style: AppTextStyles.bodySecondary,
+                ),
+              ],
               if (similar.isNotEmpty) ...[
                 const SizedBox(height: AppSizes.l),
                 SectionHeader(

@@ -27,6 +27,7 @@ class Exhibit {
     required this.title,
     required this.athlete,
     this.sportId,
+    this.sportLabel,
     this.year,
     this.story,
     this.imageUrl,
@@ -40,9 +41,14 @@ class Exhibit {
   /// Что это за вещь: «Игровая майка», «Мяч финала».
   final String title;
 
-  /// Чья вещь.
+  /// Чья вещь: спортсмен, сборная или федерация.
   final String athlete;
+  /// Вид спорта каталога — по нему подбираются похожие товары
+  /// (null — в каталоге такого вида спорта нет).
   final int? sportId;
+
+  /// Вид спорта экспоната как на табличке: «Лыжные гонки», «Дзюдо».
+  final String? sportLabel;
 
   /// Год или период: «2012», «2016–2020».
   final String? year;
@@ -53,8 +59,14 @@ class Exhibit {
   final ExhibitSource source;
   final DateTime createdAt;
 
-  /// Название вида спорта — заполняется через JOIN.
+  /// Название вида спорта каталога — заполняется через JOIN.
   final String? sportName;
+
+  /// Вид спорта для показа: подпись экспоната, а без неё — из каталога.
+  String? get sportTitle {
+    final String label = sportLabel?.trim() ?? '';
+    return label.isEmpty ? sportName : label;
+  }
 
   factory Exhibit.fromMap(Map<String, Object?> map) {
     return Exhibit(
@@ -62,6 +74,7 @@ class Exhibit {
       title: map['title'] as String,
       athlete: map['athlete'] as String,
       sportId: map['sport_id'] as int?,
+      sportLabel: map['sport_label'] as String?,
       year: map['year'] as String?,
       story: map['story'] as String?,
       imageUrl: map['image_url'] as String?,
@@ -77,6 +90,7 @@ class Exhibit {
       'title': title,
       'athlete': athlete,
       'sport_id': sportId,
+      'sport_label': sportLabel,
       'year': year,
       'story': story,
       'image_url': imageUrl,
