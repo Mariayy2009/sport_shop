@@ -7,7 +7,8 @@ import '../models/outfit.dart';
 /// Манекен для виртуальной примерки.
 ///
 /// Пропорции строятся по росту и весу пользователя, вещи рисуются слоями
-/// поверх фигуры в выбранных цветах. Поворот ([angle], радианы) — это
+/// поверх фигуры в выбранных цветах — с объёмом: тени по краям, блик,
+/// складки и швы, чтобы ткань не выглядела плоской заливкой. Поворот ([angle], радианы) — это
 /// сжатие по горизонтали с тенью на дальней половине: псевдо-3D без тяжёлого движка.
 /// Все координаты — в долях высоты фигуры: (0, 0) — макушка по центру.
 class AvatarPainter extends CustomPainter {
@@ -85,16 +86,17 @@ class AvatarPainter extends CustomPainter {
     if (showBody) _paintBody(canvas);
     _paintOutfit(canvas);
 
-    // Объём: ровная полупрозрачная тень на дальней половине фигуры.
+    // При повороте дальняя сторона фигуры уходит в тень.
     final double side = math.sin(angle);
     if (showBody && side.abs() > 0.05) {
       canvas.drawRect(
         side > 0
-            ? const Rect.fromLTRB(0.012, 0, 0.5, 1)
-            : const Rect.fromLTRB(-0.5, 0, -0.012, 1),
+            ? const Rect.fromLTRB(0.02, 0, 0.6, 1)
+            : const Rect.fromLTRB(-0.6, 0, -0.02, 1),
         Paint()
           ..blendMode = BlendMode.srcATop
-          ..color = Color.fromRGBO(16, 24, 40, 0.06 + 0.16 * side.abs()),
+          ..color = Color.fromRGBO(8, 12, 24, 0.22 * side.abs())
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.03),
       );
     }
     canvas.restore();
@@ -166,7 +168,14 @@ class AvatarPainter extends CustomPainter {
       for (final int side in const [-1, 1]) {
         final RRect shoe = _foot(side, 0.008);
         canvas.drawRRect(shoe, _paint(feet.color));
+        _volume(canvas, Path()..addRRect(shoe), feet.color);
         canvas.drawRRect(shoe, _stroke);
+        // Шнуровка.
+        for (int lace = 0; lace < 3; lace++) {
+          final double y = shoe.top + 0.008 + lace * 0.009;
+          _seam(canvas, Offset(shoe.center.dx - 0.012, y),
+              Offset(shoe.center.dx + 0.012, y), feet.color, width: 0.003);
+        }
         // Подошва.
         canvas.drawRect(
           Rect.fromLTRB(shoe.left, shoe.bottom - 0.008, shoe.right, shoe.bottom),
@@ -177,6 +186,11 @@ class AvatarPainter extends CustomPainter {
     if (extra?.kind == WearKind.knee) {
       for (final int side in const [-1, 1]) {
         _fill(canvas, _leg(side, 0.662, 0.738, pad: 0.007), _paint(extra!.color));
+        final (double center, double hw) = _legAt(0.7);
+        for (final double y in const [0.682, 0.7, 0.718]) {
+          _seam(canvas, Offset(side * (center - hw), y),
+              Offset(side * (center + hw), y), extra.color, width: 0.003);
+        }
       }
     }
     if (upper != null) _upper(canvas, upper);
@@ -196,23 +210,47 @@ class AvatarPainter extends CustomPainter {
         }
         _fill(canvas, _torso(_yShoulder - 0.004, 0.455, pad: 0.007, flatHem: true), paint);
         _neckline(canvas, 0.03);
+        _torsoFolds(canvas, item.color, hem: 0.455);
+        for (final int side in const [-1, 1]) {
+          // Кант рукава.
+          _seam(
+            canvas,
+            Offset(side * (_shoulderHw - 0.012), 0.283),
+            Offset(side * (_shoulderHw + 0.052), 0.277),
+            item.color,
+          );
+        }
       case WearKind.set:
         // Игровая майка без рукавов с полосой на груди.
         _fill(canvas, _torso(_yShoulder - 0.004, 0.455, pad: 0.007, flatHem: true), paint);
         _neckline(canvas, 0.036);
+        _torsoFolds(canvas, item.color, hem: 0.455);
         canvas.drawLine(
           Offset(-_chestHw * 0.9, 0.262),
           Offset(_chestHw * 0.9, 0.262),
           accent,
         );
+        // Боковые вставки формы.
+        for (final int side in const [-1, 1]) {
+          _seam(
+            canvas,
+            Offset(side * (_chestHw - 0.012), 0.2),
+            Offset(side * (_hipHw - 0.008), 0.45),
+            item.color,
+            width: 0.007,
+          );
+        }
       case WearKind.swimsuit:
         _fill(canvas, _torso(0.185, _yCrotch + 0.004, pad: 0.003), paint);
         _neckline(canvas, 0.04);
+        _fold(canvas, Offset(-_waistHw * 0.9, _yWaist), Offset(0, _yWaist + 0.012),
+            Offset(_waistHw * 0.9, _yWaist), item.color);
       case WearKind.kimono:
         for (final int side in const [-1, 1]) {
           _fill(canvas, _arm(side, 0.16, 0.44, pad: 0.014), paint);
         }
         _fill(canvas, _torso(_yShoulder - 0.004, 0.56, pad: 0.014, flatHem: true), paint);
+        _torsoFolds(canvas, item.color, hem: 0.56);
         // Запах куртки и пояс.
         final Paint lapel = Paint()
           ..color = _outline
@@ -240,6 +278,71 @@ class AvatarPainter extends CustomPainter {
       _fill(canvas, _leg(side, _yHip - 0.01, yBottom, pad: pad, flat: true), paint);
     }
     _fill(canvas, _torso(_yWaist + 0.03, _yCrotch + 0.008, pad: pad * 0.6), paint);
+
+    // Пояс, средний шов и складки у бёдер.
+    _seam(canvas, Offset(-_waistHw - pad, _yWaist + 0.048),
+        Offset(_waistHw + pad, _yWaist + 0.048), color);
+    _fold(canvas, Offset(0, _yWaist + 0.06), Offset(0.004, _yCrotch - 0.02),
+        Offset(0, _yCrotch + 0.006), color);
+    for (final int side in const [-1, 1]) {
+      _fold(
+        canvas,
+        Offset(side * 0.012, _yCrotch - 0.004),
+        Offset(side * _hipHw * 0.5, _yCrotch + 0.012),
+        Offset(side * _hipHw * 0.92, _yHip + 0.012),
+        color,
+      );
+      if (yBottom > _yKnee + 0.05) {
+        // Длинные штаны: заломы на колене и у щиколотки.
+        final (double kneeCenter, double kneeHw) = _legAt(_yKnee);
+        _fold(
+          canvas,
+          Offset(side * (kneeCenter - kneeHw * 0.8), _yKnee - 0.012),
+          Offset(side * kneeCenter, _yKnee + 0.004),
+          Offset(side * (kneeCenter + kneeHw * 0.8), _yKnee - 0.014),
+          color,
+        );
+        final (double ankleCenter, double ankleHw) = _legAt(yBottom - 0.03);
+        _fold(
+          canvas,
+          Offset(side * (ankleCenter - ankleHw), yBottom - 0.034),
+          Offset(side * ankleCenter, yBottom - 0.022),
+          Offset(side * (ankleCenter + ankleHw), yBottom - 0.036),
+          color,
+        );
+      } else {
+        // Шорты: подгиб штанины.
+        final (double hemCenter, double hemHw) = _legAt(yBottom);
+        _seam(
+          canvas,
+          Offset(side * (hemCenter - hemHw - pad), yBottom - 0.012),
+          Offset(side * (hemCenter + hemHw + pad), yBottom - 0.012),
+          color,
+        );
+      }
+    }
+  }
+
+  /// Складки на торсе: от подмышек к талии и подгиб снизу.
+  void _torsoFolds(Canvas canvas, Color color, {required double hem}) {
+    for (final int side in const [-1, 1]) {
+      _fold(
+        canvas,
+        Offset(side * (_chestHw - 0.004), _yChest - 0.03),
+        Offset(side * _chestHw * 0.45, _yChest + 0.03),
+        Offset(side * _waistHw * 0.35, _yWaist + 0.01),
+        color,
+      );
+      _fold(
+        canvas,
+        Offset(side * (_waistHw + 0.004), _yWaist - 0.01),
+        Offset(side * _waistHw * 0.5, _yWaist + 0.03),
+        Offset(side * _waistHw * 0.15, _yWaist + 0.055),
+        color,
+      );
+    }
+    _seam(canvas, Offset(-_torsoHw(hem) - 0.006, hem - 0.012),
+        Offset(_torsoHw(hem) + 0.006, hem - 0.012), color);
   }
 
   void _neckline(Canvas canvas, double halfWidth) {
@@ -357,7 +460,84 @@ class AvatarPainter extends CustomPainter {
 
   void _fill(Canvas canvas, Path path, Paint paint) {
     canvas.drawPath(path, paint);
+    _volume(canvas, path, paint.color);
     if (paint.color != _body) canvas.drawPath(path, _stroke);
+  }
+
+  /// Объём: деталь выглядит как цилиндр, а не плоская заливка —
+  /// мягкая тень по краям и блик со стороны света (слева сверху).
+  void _volume(Canvas canvas, Path path, Color base) {
+    final Rect box = path.getBounds();
+    final bool dark = base.computeLuminance() < 0.18;
+    canvas.save();
+    canvas.clipPath(path);
+    // Тень по контуру: у тёмной ткани слабее, иначе она «проваливается».
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.min(box.width, box.height) * 0.42
+        ..color = Color.fromRGBO(8, 12, 24, dark ? 0.30 : 0.20)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, box.width * 0.11),
+    );
+    // Правая сторона дальше от света — дополнительная тень.
+    canvas.drawRect(
+      Rect.fromLTRB(box.left + box.width * 0.72, box.top, box.right + box.width * 0.2, box.bottom),
+      Paint()
+        ..color = Color.fromRGBO(8, 12, 24, dark ? 0.22 : 0.13)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, box.width * 0.14),
+    );
+    // Блик.
+    canvas.drawOval(
+      Rect.fromLTWH(
+        box.left + box.width * 0.18,
+        box.top + box.height * 0.06,
+        box.width * 0.26,
+        box.height * 0.8,
+      ),
+      Paint()
+        ..color = Color.fromRGBO(255, 255, 255, dark ? 0.16 : 0.22)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, box.width * 0.12),
+    );
+    canvas.restore();
+  }
+
+  /// Складка ткани: тёмная линия и светлая кромка рядом с ней.
+  void _fold(Canvas canvas, Offset from, Offset control, Offset to, Color base) {
+    final Path line = Path()
+      ..moveTo(from.dx, from.dy)
+      ..quadraticBezierTo(control.dx, control.dy, to.dx, to.dy);
+    final bool dark = base.computeLuminance() < 0.18;
+    canvas.drawPath(
+      line.shift(const Offset(0.003, 0.002)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 0.006
+        ..color = Color.fromRGBO(255, 255, 255, dark ? 0.12 : 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.003),
+    );
+    canvas.drawPath(
+      line,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 0.005
+        ..color = Color.fromRGBO(8, 12, 24, dark ? 0.55 : 0.26)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.002),
+    );
+  }
+
+  /// Шов или кант: тонкая чёткая линия.
+  void _seam(Canvas canvas, Offset from, Offset to, Color base, {double width = 0.004}) {
+    canvas.drawLine(
+      from,
+      to,
+      Paint()
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round
+        ..color = _contrast(base).withValues(alpha: 0.35),
+    );
   }
 
   static final Paint _stroke = Paint()

@@ -13,8 +13,8 @@ class SportVisual {
   final String assetKey;
   final String genitive;
 
-  /// Картинка плитки: assets/images/sports/<ключ>.png
-  String get imagePath => 'assets/images/sports/$assetKey.png';
+  /// Картинка плитки: assets/images/sports/<ключ>.jpg
+  String get imagePath => 'assets/images/sports/$assetKey.jpg';
 }
 
 class SportVisuals {

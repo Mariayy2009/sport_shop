@@ -419,7 +419,7 @@ class SeedData {
         'sport_id': _id(sportIds, sport),
         'size': size,
         'stock': stock,
-        'image_url': '$_imagesFolder/$key.png',
+        'image_url': '$_imagesFolder/$key.jpg',
         'brand': details?.$1,
         'material': details?.$2,
         'rating': details?.$3,

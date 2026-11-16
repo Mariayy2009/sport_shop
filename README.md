@@ -27,6 +27,7 @@
 
 <p>
   <img src="docs/screenshots/home.png" width="180" alt="Главная">
+  <img src="docs/screenshots/catalog.png" width="180" alt="Каталог">
   <img src="docs/screenshots/reviews.png" width="180" alt="Отзывы и вопросы">
   <img src="docs/screenshots/fitting_adjust.png" width="180" alt="Примерка на фото (на снимке — тестовая картинка)">
   <img src="docs/screenshots/admin_orders.png" width="180" alt="Панель администратора">
@@ -39,7 +40,8 @@
 папке приложения на устройстве (`MediaStorage`), никуда не отправляются
 и удаляются по одному или все сразу на экране «Мои фото для примерки».
 
-Фото товаров: файлы в `assets/images/products/` (см.
+Фото товаров: файлы JPG в `assets/images/products/` (источники — в
+[docs/image_credits.md](docs/image_credits.md), имена файлов — в
 [docs/product_images.md](docs/product_images.md)) либо фото, которое
 администратор прикрепил к товару из галереи.
 

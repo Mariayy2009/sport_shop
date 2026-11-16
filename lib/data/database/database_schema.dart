@@ -18,7 +18,8 @@ class DatabaseSchema {
   ///     таблица favorites (избранное).
   /// v4: users.avatar_path, products.reviews_count, таблицы reviews (отзывы),
   ///     questions (вопросы о товаре), fitting_photos (фото для примерки).
-  static const int version = 4;
+  /// v5: картинки товаров в формате JPG (пересоздание демо-данных).
+  static const int version = 5;
 
   // Имена таблиц
   static const String sports = 'sports';
