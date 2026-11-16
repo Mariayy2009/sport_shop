@@ -66,9 +66,9 @@ class ClaudeAssistantEngine implements AssistantEngine {
   static const Duration _timeout = Duration(seconds: 60);
 
   /// В запрос уходит только хвост диалога — этого достаточно для контекста.
-  static const int _historyLimit = 20;
+  static const int historyLimit = 20;
 
-  static const String _instructions = '''
+  static const String instructions = '''
 Ты — персональный помощник интернет-магазина спортивных товаров SPORT (Казахстан, цены в тенге ₸). Ты общаешься с покупателем в мобильном приложении и помогаешь ему принять решение о покупке: собрать комплект экипировки под вид спорта и уровень, выбрать товар под бюджет, сравнить варианты, определиться с размером.
 
 Что важно покупателю:
@@ -161,16 +161,16 @@ class ClaudeAssistantEngine implements AssistantEngine {
       'system': [
         {
           'type': 'text',
-          'text': '$_instructions\n\nКаталог магазина (JSON):\n'
-              '${jsonEncode(_catalogJson(context))}',
+          'text': '$instructions\n\nКаталог магазина (JSON):\n'
+              '${jsonEncode(catalogJson(context))}',
         },
-        {'type': 'text', 'text': _profileText(context)},
+        {'type': 'text', 'text': profileText(context)},
       ],
       'messages': _messages(history),
     };
   }
 
-  static List<Map<String, Object?>> _catalogJson(AssistantContext context) => [
+  static List<Map<String, Object?>> catalogJson(AssistantContext context) => [
         for (final Product product in context.catalog)
           {
             'id': product.id,
@@ -187,7 +187,7 @@ class ClaudeAssistantEngine implements AssistantEngine {
           },
       ];
 
-  static String _profileText(AssistantContext context) {
+  static String profileText(AssistantContext context) {
     final UserSizes? sizes = context.sizes;
     final Sport? sport = context.sportById(sizes?.sportId);
     if (context.user == null) {
@@ -208,8 +208,8 @@ class ClaudeAssistantEngine implements AssistantEngine {
 
   /// Диалог в формате API: начинается с сообщения пользователя.
   static List<Map<String, Object?>> _messages(List<ChatMessage> history) {
-    final List<ChatMessage> tail = history.length > _historyLimit
-        ? history.sublist(history.length - _historyLimit)
+    final List<ChatMessage> tail = history.length > historyLimit
+        ? history.sublist(history.length - historyLimit)
         : history;
     final List<Map<String, Object?>> messages = [];
     for (final ChatMessage message in tail) {
@@ -247,6 +247,16 @@ class ClaudeAssistantEngine implements AssistantEngine {
     final Map<String, Object?> data =
         jsonDecode(json.toString()) as Map<String, Object?>;
 
+    return replyFromData(data, context, _sizeAdvisor);
+  }
+
+  /// Ответ модели (message / picks / is_kit / suggestions) → ответ помощника.
+  /// Общий для всех языковых моделей. null — ответ пуст.
+  static AssistantReply? replyFromData(
+    Map<String, Object?> data,
+    AssistantContext context,
+    SizeAdvisor sizeAdvisor,
+  ) {
     final List<ProductPick> picks = [];
     final Set<int> seen = {};
     for (final Object? item in (data['picks'] as List<Object?>? ?? const [])) {
@@ -258,7 +268,7 @@ class ClaudeAssistantEngine implements AssistantEngine {
       picks.add(ProductPick(
         product: product,
         reason: (item['reason'] as String?) ?? '',
-        size: _sizeAdvisor.pickSize(product, context.sizes),
+        size: sizeAdvisor.pickSize(product, context.sizes),
       ));
     }
 

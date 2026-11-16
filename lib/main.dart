@@ -14,6 +14,7 @@ import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/product_repository.dart';
 import 'data/repositories/user_repository.dart';
+import 'services/assistant/configurable_assistant_engine.dart';
 import 'services/kit_service.dart';
 import 'services/media_storage.dart';
 import 'services/recommendation_service.dart';
@@ -70,6 +71,9 @@ class SportShopApp extends StatelessWidget {
           value: dependencies.recommendationService,
         ),
         Provider<KitService>.value(value: dependencies.kitService),
+        Provider<ConfigurableAssistantEngine>.value(
+          value: dependencies.assistantEngine,
+        ),
         Provider<MediaStorage>.value(value: dependencies.mediaStorage),
         Provider<FeedbackRepository>.value(
           value: dependencies.feedbackRepository,

@@ -10,6 +10,7 @@ import '../../core/utils/cart_actions.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/product_actions.dart';
 import '../../models/chat_message.dart';
+import '../../services/assistant/configurable_assistant_engine.dart';
 import '../../models/user.dart';
 import '../../models/user_sizes.dart';
 import '../../state/assistant_state.dart';
@@ -17,6 +18,7 @@ import '../../state/auth_state.dart';
 import '../../state/cart_state.dart';
 import '../../state/profile_state.dart';
 import '../../state/recommendation_state.dart';
+import '../../widgets/ai_settings_sheet.dart';
 import '../../widgets/product_image.dart';
 
 /// ИИ-помощник: чат, в котором можно собрать комплект, подобрать размер,
@@ -33,6 +35,24 @@ class _AssistantScreenState extends State<AssistantScreen> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
   int _shownMessages = 0;
+  AiProvider _provider = AiProvider.local;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProvider();
+  }
+
+  Future<void> _loadProvider() async {
+    final AiProvider provider =
+        await context.read<ConfigurableAssistantEngine>().currentProvider();
+    if (mounted) setState(() => _provider = provider);
+  }
+
+  Future<void> _openAiSettings() async {
+    final bool changed = await AiSettingsSheet.show(context, _provider);
+    if (changed) await _loadProvider();
+  }
 
   @override
   void dispose() {
@@ -89,6 +109,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
       children: [
         _AssistantBar(
           canClear: messages.isNotEmpty,
+          provider: _provider,
+          onAiSettings: _openAiSettings,
           onQuiz: _openQuiz,
           onClear: state.clear,
         ),
@@ -127,11 +149,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
 class _AssistantBar extends StatelessWidget {
   const _AssistantBar({
     required this.canClear,
+    required this.provider,
+    required this.onAiSettings,
     required this.onQuiz,
     required this.onClear,
   });
 
   final bool canClear;
+  final AiProvider provider;
+  final VoidCallback onAiSettings;
   final VoidCallback onQuiz;
   final VoidCallback onClear;
 
@@ -153,12 +179,30 @@ class _AssistantBar extends StatelessWidget {
               child: const Icon(Icons.auto_awesome, color: AppColors.white, size: 18),
             ),
             const SizedBox(width: AppSizes.m),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ИИ-помощник', style: AppTextStyles.sectionTitle),
-                  Text('Подбор по каталогу магазина', style: AppTextStyles.caption),
+                  const Text('ИИ-помощник', style: AppTextStyles.sectionTitle),
+                  // Какая модель отвечает; нажатие открывает настройки.
+                  InkWell(
+                    onTap: onAiSettings,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          provider == AiProvider.local
+                              ? 'Без нейросети · подключить'
+                              : 'Отвечает ${provider.label}',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 14, color: AppColors.accent),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

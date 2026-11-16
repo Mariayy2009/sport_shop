@@ -3,6 +3,7 @@ import 'package:sport_shop/core/di/app_dependencies.dart';
 import 'package:sport_shop/core/errors/app_exception.dart';
 import 'package:sport_shop/data/database/app_database.dart';
 import 'package:sport_shop/data/datasources/local/session_local_datasource.dart';
+import 'package:sport_shop/services/assistant/ai_key_store.dart';
 import 'package:sport_shop/models/cart_item.dart';
 import 'package:sport_shop/models/enums.dart';
 import 'package:sport_shop/models/order.dart';
@@ -32,6 +33,7 @@ void main() {
     deps = AppDependencies.local(
       database,
       sessionStorage: InMemorySessionStorage(),
+      aiKeyStore: InMemoryAiKeyStore(),
     );
     await database.database;
   });

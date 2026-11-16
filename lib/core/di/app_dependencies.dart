@@ -21,9 +21,10 @@ import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/recommendation_repository.dart';
 import '../../data/repositories/user_repository.dart';
-import '../../services/assistant/assistant_engine.dart';
+import '../../services/assistant/ai_key_store.dart';
 import '../../services/assistant/assistant_service.dart';
 import '../../services/assistant/claude_assistant_engine.dart';
+import '../../services/assistant/configurable_assistant_engine.dart';
 import '../../services/assistant/local_assistant_engine.dart';
 import '../../services/auth_service.dart';
 import '../../services/kit_service.dart';
@@ -51,6 +52,7 @@ class AppDependencies {
     required this.recommendationService,
     required this.kitService,
     required this.assistantService,
+    required this.assistantEngine,
   });
 
   factory AppDependencies.local(
@@ -58,6 +60,7 @@ class AppDependencies {
     SessionStorage? sessionStorage,
     AssistantAiConfig aiConfig = const AssistantAiConfig(),
     MediaStorage? mediaStorage,
+    AiKeyStore? aiKeyStore,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
@@ -67,14 +70,15 @@ class AppDependencies {
     final ProductRepository productRepository =
         LocalProductRepository(ProductLocalDataSource(database));
 
-    // Помощник: локальные правила работают всегда; если при сборке задан
-    // ключ или адрес сервера, отвечает языковая модель, а локальный
-    // движок остаётся запасным на случай отсутствия сети.
-    final AssistantEngine localEngine =
-        LocalAssistantEngine(recommendationRepository);
-    final AssistantEngine assistantEngine = aiConfig.isEnabled
-        ? ClaudeAssistantEngine(config: aiConfig, fallback: localEngine)
-        : localEngine;
+    // Помощник: локальные правила работают всегда; если пользователь
+    // ввёл ключ Gemini (или ключ задан при сборке), отвечает языковая
+    // модель, а локальный движок остаётся запасным.
+    final ConfigurableAssistantEngine assistantEngine =
+        ConfigurableAssistantEngine(
+      local: LocalAssistantEngine(recommendationRepository),
+      keyStore: aiKeyStore ?? SharedPreferencesAiKeyStore(),
+      claudeConfig: aiConfig,
+    );
 
     return AppDependencies._(
       userRepository: userRepository,
@@ -96,6 +100,7 @@ class AppDependencies {
       ),
       kitService: KitService(recommendationRepository),
       assistantService: AssistantService(assistantEngine, productRepository),
+      assistantEngine: assistantEngine,
     );
   }
 
@@ -112,4 +117,7 @@ class AppDependencies {
   final RecommendationService recommendationService;
   final KitService kitService;
   final AssistantService assistantService;
+
+  /// Настройки ИИ: какая модель отвечает, ключ Gemini.
+  final ConfigurableAssistantEngine assistantEngine;
 }

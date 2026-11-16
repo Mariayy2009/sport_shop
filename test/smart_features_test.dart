@@ -1,8 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sport_shop/core/di/app_dependencies.dart';
 import 'package:sport_shop/core/errors/app_exception.dart';
 import 'package:sport_shop/data/database/app_database.dart';
 import 'package:sport_shop/data/datasources/local/session_local_datasource.dart';
+import 'package:sport_shop/services/assistant/ai_key_store.dart';
+import 'package:sport_shop/services/assistant/assistant_engine.dart';
+import 'package:sport_shop/services/assistant/configurable_assistant_engine.dart';
+import 'package:sport_shop/services/assistant/gemini_assistant_engine.dart';
+import 'package:sport_shop/services/assistant/local_assistant_engine.dart';
 import 'package:sport_shop/models/chat_message.dart';
 import 'package:sport_shop/models/enums.dart';
 import 'package:sport_shop/models/fitting_photos.dart';
@@ -39,6 +48,7 @@ void main() {
     deps = AppDependencies.local(
       database,
       sessionStorage: InMemorySessionStorage(),
+      aiKeyStore: InMemoryAiKeyStore(),
     );
     await database.database;
   });
@@ -457,6 +467,107 @@ void main() {
       expect(await deps.feedbackRepository.hasPurchased(user.id!, uniform.id!), isFalse);
       await deps.orderRepository.updateStatus(1019, OrderStatus.delivered);
       expect(await deps.feedbackRepository.hasPurchased(user.id!, uniform.id!), isTrue);
+    });
+  });
+
+  group('ИИ-помощник: Gemini', () {
+    Future<AssistantContext> context() async => AssistantContext(
+          catalog: await deps.productRepository.getProducts(),
+          sports: await deps.productRepository.getSports(),
+        );
+
+    AssistantEngine local() => LocalAssistantEngine(deps.recommendationRepository);
+
+    test('ответ модели превращается в карточки; чужие id отбрасываются', () async {
+      final AssistantContext ctx = await context();
+      final Product shoes = ctx.catalog.firstWhere((p) => p.name == 'Кроссовки для бега');
+      late Map<String, Object?> sent;
+      late Map<String, String> headers;
+      final GeminiAssistantEngine engine = GeminiAssistantEngine(
+        apiKey: 'test-key',
+        fallback: local(),
+        client: MockClient((request) async {
+          sent = jsonDecode(request.body) as Map<String, Object?>;
+          headers = request.headers;
+          return http.Response.bytes(
+            utf8.encode(jsonEncode({
+              'candidates': [
+                {
+                  'finishReason': 'STOP',
+                  'content': {
+                    'parts': [
+                      {
+                        'text': jsonEncode({
+                          'message': 'Бери эти кроссовки.',
+                          'picks': [
+                            {'product_id': shoes.id, 'reason': 'Хорошая амортизация'},
+                            {'product_id': 999999, 'reason': 'Такого товара нет'},
+                          ],
+                          'is_kit': false,
+                          'suggestions': ['А подешевле?'],
+                        }),
+                      },
+                    ],
+                  },
+                },
+              ],
+            })),
+            200,
+          );
+        }),
+      );
+
+      final AssistantReply reply = await engine.reply(ctx, [
+        ChatMessage(role: ChatRole.assistant, text: 'Привет!'),
+        ChatMessage.user('Какие кроссовки взять для бега?'),
+      ]);
+      expect(reply.text, 'Бери эти кроссовки.');
+      expect(reply.picks.single.product.id, shoes.id);
+      expect(reply.suggestions, ['А подешевле?']);
+      expect(headers['x-goog-api-key'], 'test-key');
+      // Диалог для модели начинается с пользователя, каталог — в инструкции.
+      final List<Object?> contents = sent['contents']! as List<Object?>;
+      expect((contents.single! as Map)['role'], 'user');
+      expect(jsonEncode(sent['systemInstruction']), contains('Кроссовки для бега'));
+    });
+
+    test('неверный ключ и лимит: отвечает локальный движок с пояснением', () async {
+      final AssistantContext ctx = await context();
+      for (final (int status, String hint) in const [(400, 'Ключ'), (429, 'лимит')]) {
+        final GeminiAssistantEngine engine = GeminiAssistantEngine(
+          apiKey: 'bad',
+          fallback: local(),
+          client: MockClient((request) async => http.Response('{}', status)),
+        );
+        final AssistantReply reply =
+            await engine.reply(ctx, [ChatMessage.user('Собери комплект для бега')]);
+        expect(reply.text, contains(hint));
+        expect(reply.picks, isNotEmpty);
+      }
+    });
+
+    test('без сети — обычный локальный ответ', () async {
+      final GeminiAssistantEngine engine = GeminiAssistantEngine(
+        apiKey: 'key',
+        fallback: local(),
+        client: MockClient((request) async => throw Exception('нет сети')),
+      );
+      final AssistantReply reply = await engine
+          .reply(await context(), [ChatMessage.user('Собери комплект для бега')]);
+      expect(reply.isKit, isTrue);
+      expect(reply.text, isNot(contains('Gemini')));
+    });
+
+    test('движок выбирается по сохранённому ключу', () async {
+      final InMemoryAiKeyStore store = InMemoryAiKeyStore();
+      final ConfigurableAssistantEngine engine =
+          ConfigurableAssistantEngine(local: local(), keyStore: store);
+      expect(await engine.currentProvider(), AiProvider.local);
+      await engine.setGeminiKey('  AIza-test-key  ');
+      expect(await store.readGeminiKey(), 'AIza-test-key');
+      expect(await engine.currentProvider(), AiProvider.gemini);
+      await engine.setGeminiKey(null);
+      expect(await engine.currentProvider(), AiProvider.local);
     });
   });
 }
