@@ -32,8 +32,11 @@ log = logging.getLogger("tryon.server")
 
 PORT = int(os.environ.get("TRYON_PORT", "8000"))
 # Шагов генерации: меньше — быстрее, больше — аккуратнее детали.
-DEFAULT_STEPS = int(os.environ.get("TRYON_STEPS", "20"))
-MIN_STEPS, MAX_STEPS = 8, 50
+# На процессоре один шаг занимает около минуты, а уже 6 шагов дают
+# хорошее качество (проверено на футболке, майке и шортах), поэтому
+# по умолчанию 6. Авторы модели советуют 20–30 — это для видеокарты.
+DEFAULT_STEPS = int(os.environ.get("TRYON_STEPS", "6"))
+MIN_STEPS, MAX_STEPS = 4, 50
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 MIN_SIDE = 256
 MAX_SIDE = 1536
@@ -56,6 +59,7 @@ class Job:
     result: Optional[bytes] = None
     cancelled: bool = False
     started_at: Optional[float] = None
+    step_times: list = field(default_factory=list)
     finished_at: Optional[float] = None
     created_at: float = field(default_factory=time.time)
 
@@ -91,6 +95,7 @@ def worker() -> None:
 
         def on_step(step: int, total: int, job: Job = job) -> None:
             job.step, job.stage = step, "Генерация"
+            job.step_times.append(time.time())
 
         try:
             if not engine.ready:
@@ -204,11 +209,16 @@ def find(job_id: str) -> Job:
 def job_status(job_id: str) -> dict:
     job = find(job_id)
     eta = None
-    if job.state == "running" and job.step > 0 and job.started_at:
-        per_step = (time.time() - job.started_at) / job.step
-        eta = per_step * (job.steps - job.step)
+    remaining = job.steps - job.step
+    if job.state == "running" and len(job.step_times) >= 2:
+        # Скорость по уже сделанным шагам; минус время с последнего шага.
+        times = job.step_times
+        per_step = (times[-1] - times[0]) / (len(times) - 1)
+        eta = max(per_step * remaining - (time.time() - times[-1]), 0)
     elif job.state in ("queued", "running") and engine.seconds_per_step:
-        eta = engine.seconds_per_step * job.steps
+        # Прогноз по прошлым примеркам на этом компьютере.
+        spent = time.time() - job.started_at if job.started_at else 0
+        eta = max(engine.seconds_per_step * job.steps - spent, 0)
     return {
         "state": job.state,
         "stage": job.stage if engine.ready else "Загрузка модели",

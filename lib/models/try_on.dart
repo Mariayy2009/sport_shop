@@ -117,6 +117,7 @@ class TryOnServerStatus {
     this.modelReady = false,
     this.device,
     this.secondsPerStep,
+    this.defaultSteps,
     this.message,
   });
 
@@ -132,6 +133,14 @@ class TryOnServerStatus {
   /// Измеренное время одного шага генерации — для оценки ожидания.
   final double? secondsPerStep;
 
+  /// Сколько шагов генерации делает сервер по умолчанию.
+  final int? defaultSteps;
+
+  /// Ожидаемое время примерки в секундах (если сервер уже что-то считал).
+  double? get expectedSeconds => secondsPerStep == null || defaultSteps == null
+      ? null
+      : secondsPerStep! * defaultSteps!;
+
   /// Пояснение, если что-то не так.
   final String? message;
 
@@ -141,6 +150,7 @@ class TryOnServerStatus {
       modelReady: json['model_ready'] == true,
       device: json['device'] as String?,
       secondsPerStep: (json['seconds_per_step'] as num?)?.toDouble(),
+      defaultSteps: (json['default_steps'] as num?)?.toInt(),
       message: json['message'] as String?,
     );
   }

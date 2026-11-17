@@ -90,8 +90,8 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 title: 'Примерить по фотографии',
                 description: 'Нейросеть наденет эту вещь на вашу фотографию: '
                     'сохранит лицо, позу и детали одежды.',
-                details: 'Генерация идёт на вашем ноутбуке и занимает '
-                    'несколько минут',
+                details: 'Нейросеть работает на вашем ноутбуке: '
+                    '5–10 минут на одно фото',
                 enabled: support.photo,
                 onTap: () => _open(AppRoutes.photoTryOn, product),
               ),

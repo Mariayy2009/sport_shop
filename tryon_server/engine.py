@@ -77,6 +77,7 @@ class TryOnEngine:
         seed: int,
         on_step: Callable[[int, int], None],
         is_cancelled: Callable[[], bool],
+        segmentation_free: Optional[bool] = None,
     ) -> Image.Image:
         """Одна примерка. on_step(шаг, всего) вызывается после каждого шага."""
         if not self.ready:
@@ -104,6 +105,10 @@ class TryOnEngine:
                     garment_photo_type=garment_type,
                     num_timesteps=steps,
                     seed=seed,
+                    segmentation_free=(
+                        use_segmentation_free(category)
+                        if segmentation_free is None else segmentation_free
+                    ),
                 )
             finally:
                 pipeline_module.tqdm = original
@@ -115,6 +120,13 @@ class TryOnEngine:
             )
             log.info("Примерка готова: %d шагов за %.0f с", steps, elapsed)
             return result.images[0]
+
+
+def use_segmentation_free(category: str) -> bool:
+    """Режим без маски лучше сохраняет фигуру, но не умеет убирать
+    исходную одежду, если новая короче (брюки → шорты). Для низа и
+    комплектов исходную одежду сначала закрашиваем маской."""
+    return category == "tops"
 
 
 def default_weights_dir() -> str:

@@ -184,9 +184,11 @@ class _SetupView extends StatelessWidget {
         product != null;
     final TryOnServerStatus? server = controller.server;
     // Прогноз по времени последней генерации на этом ноутбуке.
-    final String estimate = server?.secondsPerStep == null
-        ? 'Первая примерка покажет, сколько это занимает на вашем ноутбуке'
-        : 'Обычно около ${_minutes(server!.secondsPerStep! * 20)}';
+    final double? expected = server?.expectedSeconds;
+    final String estimate = expected == null
+        ? 'На процессоре это занимает 5–10 минут; первая примерка '
+            'покажет точное время на вашем ноутбуке'
+        : 'На этом ноутбуке примерка занимает около ${_minutes(expected)}';
 
     return ListView(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
