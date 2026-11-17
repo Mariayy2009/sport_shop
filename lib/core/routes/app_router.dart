@@ -17,9 +17,10 @@ import '../../screens/compare/compare_screen.dart';
 import '../../screens/exhibits/exhibit_screen.dart';
 import '../../screens/exhibits/hall_of_fame_screen.dart';
 import '../../screens/favorites/favorites_screen.dart';
-import '../../screens/fitting/fitting_photos_screen.dart';
-import '../../screens/fitting/fitting_room_screen.dart';
 import '../../screens/kits/kits_screen.dart';
+import '../../screens/try_on/live_try_on_screen.dart';
+import '../../screens/try_on/photo_try_on_screen.dart';
+import '../../screens/try_on/try_on_screen.dart';
 import '../../screens/orders/order_details_screen.dart';
 import '../../screens/orders/order_history_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
@@ -56,9 +57,11 @@ class AppRouter {
       AppRoutes.kits => KitsScreen(initialSportId: args is int ? args : null),
       AppRoutes.compare => const CompareScreen(),
       AppRoutes.favorites => const FavoritesScreen(),
-      AppRoutes.fittingRoom =>
-        FittingRoomScreen(initialProductId: args is int ? args : null),
-      AppRoutes.fittingPhotos => const FittingPhotosScreen(),
+      AppRoutes.tryOn => TryOnScreen(productId: args is int ? args : null),
+      AppRoutes.photoTryOn =>
+        PhotoTryOnScreen(productId: args is int ? args : null),
+      AppRoutes.liveTryOn =>
+        LiveTryOnScreen(productId: args is int ? args : null),
       AppRoutes.hallOfFame => const HallOfFameScreen(),
       AppRoutes.exhibit when args is int => ExhibitScreen(exhibitId: args),
       AppRoutes.adminExhibit =>

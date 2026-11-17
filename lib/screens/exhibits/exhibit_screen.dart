@@ -10,9 +10,9 @@ import '../../core/utils/cart_actions.dart';
 import '../../data/repositories/exhibit_repository.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../models/exhibit.dart';
-import '../../models/outfit.dart';
 import '../../models/product.dart';
 import '../../models/product_filter.dart';
+import '../../models/try_on.dart';
 import '../../state/auth_state.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
@@ -55,7 +55,7 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
     final List<Product> similar = await products.getProducts(
       ProductFilter(sportId: exhibit!.sportId, onlyAvailable: true),
     );
-    int rank(Product product) => Outfit.kindOf(product) == null ? 1 : 0;
+    int rank(Product product) => TryOnSupport.of(product).any ? 0 : 1;
     similar.sort((a, b) {
       final int byWearable = rank(a).compareTo(rank(b));
       return byWearable != 0
@@ -108,7 +108,7 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
         final List<Product> similar = snapshot.data!.similar;
         Product? wearable;
         for (final Product product in similar) {
-          if (Outfit.kindOf(product) != null) {
+          if (TryOnSupport.of(product).any) {
             wearable = product;
             break;
           }
@@ -129,7 +129,7 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
               : CustomButton(
                   text: 'Примерить похожее',
                   onPressed: () => Navigator.of(context)
-                      .pushNamed(AppRoutes.fittingRoom, arguments: wearable!.id),
+                      .pushNamed(AppRoutes.tryOn, arguments: wearable!.id),
                 ),
           body: ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),

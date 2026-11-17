@@ -1,0 +1,16 @@
+# Сервер примерки Sport Shop. PyTorch ставится отдельно (см. setup_windows.bat),
+# пакет модели fashn-vton — без зависимостей, чтобы не тянуть onnxruntime-gpu.
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+pillow>=9.0
+numpy>=1.21
+opencv-python>=4.5
+safetensors>=0.3
+huggingface_hub>=0.20
+tqdm>=4.65
+einops>=0.6
+matplotlib>=3.5
+onnxruntime>=1.14
+fashn-human-parser>=0.1.1
+psutil>=5.9

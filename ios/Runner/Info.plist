@@ -70,5 +70,13 @@
 	<string>Камера нужна, чтобы сделать фото профиля и фото для примерки одежды.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Доступ к фото нужен, чтобы выбрать аватар и фото для примерки одежды.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Сервер примерки на ноутбуке в домашней сети работает по HTTP. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Сеть нужна, чтобы отправить фото на сервер примерки на вашем компьютере.</string>
 </dict>
 </plist>

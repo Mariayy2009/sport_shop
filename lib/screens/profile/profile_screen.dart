@@ -184,7 +184,7 @@ class ProfileScreen extends StatelessWidget {
           _MenuItem(
             icon: Icons.checkroom,
             title: 'Примерочная',
-            onTap: () => Navigator.of(context).pushNamed(AppRoutes.fittingRoom),
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.tryOn),
           ),
           _MenuItem(
             icon: Icons.edit_outlined,

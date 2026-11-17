@@ -10,7 +10,6 @@ import '../../data/repositories/cart_repository.dart';
 import '../../data/repositories/exhibit_repository.dart';
 import '../../data/repositories/favorites_repository.dart';
 import '../../data/repositories/feedback_repository.dart';
-import '../../data/repositories/fitting_repository.dart';
 import '../../data/repositories/local_cart_repository.dart';
 import '../../data/repositories/local_favorites_repository.dart';
 import '../../data/repositories/local_feedback_repository.dart';
@@ -20,6 +19,7 @@ import '../../data/repositories/local_recommendation_repository.dart';
 import '../../data/repositories/local_user_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../data/repositories/try_on_repository.dart';
 import '../../data/repositories/recommendation_repository.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../services/assistant/ai_key_store.dart';
@@ -28,10 +28,9 @@ import '../../services/assistant/claude_assistant_engine.dart';
 import '../../services/assistant/configurable_assistant_engine.dart';
 import '../../services/assistant/local_assistant_engine.dart';
 import '../../services/auth_service.dart';
-import '../../services/cutout_service.dart';
 import '../../services/kit_service.dart';
 import '../../services/media_storage.dart';
-import '../../services/pose_fitter.dart';
+import '../../services/try_on/photo_try_on_service.dart';
 import '../../services/recommendation_service.dart';
 
 /// Сборка всех зависимостей приложения в одном месте.
@@ -50,10 +49,9 @@ class AppDependencies {
     required this.favoritesRepository,
     required this.feedbackRepository,
     required this.exhibitRepository,
-    required this.fittingRepository,
+    required this.tryOnRepository,
     required this.mediaStorage,
-    required this.poseFitter,
-    required this.cutoutService,
+    required this.photoTryOnService,
     required this.authService,
     required this.recommendationService,
     required this.kitService,
@@ -67,7 +65,8 @@ class AppDependencies {
     AssistantAiConfig aiConfig = const AssistantAiConfig(),
     MediaStorage? mediaStorage,
     AiKeyStore? aiKeyStore,
-    PoseFitter? poseFitter,
+    TryOnRepository? tryOnRepository,
+    PhotoTryOnService? photoTryOnService,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
@@ -97,10 +96,9 @@ class AppDependencies {
           LocalFavoritesRepository(FavoritesLocalDataSource(database)),
       feedbackRepository: LocalFeedbackRepository(database),
       exhibitRepository: LocalExhibitRepository(database),
-      fittingRepository: LocalFittingRepository(database),
+      tryOnRepository: tryOnRepository ?? LocalTryOnRepository(),
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
-      poseFitter: poseFitter ?? MlKitPoseFitter(),
-      cutoutService: CutoutService(),
+      photoTryOnService: photoTryOnService ?? PhotoTryOnService(),
       authService: AuthService(
         userRepository: userRepository,
         sessionStorage: sessionStorage ?? SharedPreferencesSessionStorage(),
@@ -122,10 +120,9 @@ class AppDependencies {
   final FavoritesRepository favoritesRepository;
   final FeedbackRepository feedbackRepository;
   final ExhibitRepository exhibitRepository;
-  final FittingRepository fittingRepository;
+  final TryOnRepository tryOnRepository;
   final MediaStorage mediaStorage;
-  final PoseFitter poseFitter;
-  final CutoutService cutoutService;
+  final PhotoTryOnService photoTryOnService;
   final AuthService authService;
   final RecommendationService recommendationService;
   final KitService kitService;

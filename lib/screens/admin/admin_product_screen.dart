@@ -19,7 +19,6 @@ import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/custom_button.dart';
-import '../../widgets/labeled_checkbox.dart';
 import '../../widgets/photo_action_sheet.dart';
 import '../../widgets/product_image.dart';
 
@@ -47,7 +46,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   int? _sportId;
   int? _categoryId;
   String? _imageUrl;
-  bool _tryOnPhoto = false;
   bool _isSaving = false;
 
   bool get _isNew => widget.product == null;
@@ -68,7 +66,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     _sportId = product?.sportId;
     _categoryId = product?.categoryId;
     _imageUrl = product?.imageUrl;
-    _tryOnPhoto = product?.tryOnPhoto ?? false;
   }
 
   @override
@@ -152,8 +149,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       material: _nullIfEmpty(_material),
       rating: widget.product?.rating,
       reviewsCount: widget.product?.reviewsCount ?? 0,
-      // Без фото примерять нечего.
-      tryOnPhoto: _tryOnPhoto && _imageUrl != null,
     );
     try {
       if (_isNew) {
@@ -251,13 +246,6 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: AppSizes.s),
-            LabeledCheckbox(
-              value: _tryOnPhoto,
-              label: 'Надевать это фото в примерочной — для одежды, '
-                  'снятой спереди на белом или светлом фоне',
-              onChanged: (value) => setState(() => _tryOnPhoto = value),
             ),
             const SizedBox(height: AppSizes.l),
             AppTextField(

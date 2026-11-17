@@ -21,7 +21,9 @@ class DatabaseSchema {
   /// v5: картинки товаров в формате JPG (пересоздание демо-данных).
   /// v6: таблица exhibits («Зал славы»), products.try_on_photo.
   /// v7: exhibits.sport_label и экспонаты КНУС в демо-данных.
-  static const int version = 7;
+  /// v8: убраны таблица fitting_photos и products.try_on_photo —
+  ///     старая 2D-примерка заменена AI-примеркой и живой 3D-примеркой.
+  static const int version = 8;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -37,7 +39,6 @@ class DatabaseSchema {
   static const String favorites = 'favorites';
   static const String reviews = 'reviews';
   static const String questions = 'questions';
-  static const String fittingPhotos = 'fitting_photos';
   static const String exhibits = 'exhibits';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
@@ -55,12 +56,14 @@ class DatabaseSchema {
     favorites,
     reviews,
     questions,
-    fittingPhotos,
     exhibits,
   ];
 
+  /// Таблицы прежних версий: удаляются при обновлении схемы.
+  static const List<String> _removedTables = ['fitting_photos'];
+
   static List<String> get tablesInDropOrder =>
-      tablesInCreateOrder.reversed.toList();
+      [..._removedTables, ...tablesInCreateOrder.reversed];
 
   static final String _clothingSizesSql =
       UserSizes.clothingSizes.map((size) => "'$size'").join(', ');
@@ -124,7 +127,6 @@ class DatabaseSchema {
       material TEXT,
       rating REAL CHECK (rating IS NULL OR rating BETWEEN 0 AND 5),
       reviews_count INTEGER NOT NULL DEFAULT 0,
-      try_on_photo INTEGER NOT NULL DEFAULT 0 CHECK (try_on_photo IN (0, 1)),
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -225,19 +227,6 @@ class DatabaseSchema {
       answered_at TEXT,
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE,
       FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE CASCADE
-    )
-    ''',
-    '''
-    CREATE TABLE $fittingPhotos (
-      user_id INTEGER PRIMARY KEY,
-      face_path TEXT,
-      body_path TEXT,
-      fit_scale REAL NOT NULL DEFAULT 1,
-      fit_width REAL NOT NULL DEFAULT 1,
-      fit_dx REAL NOT NULL DEFAULT 0,
-      fit_dy REAL NOT NULL DEFAULT 0,
-      consent_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
     )
     ''',
     '''

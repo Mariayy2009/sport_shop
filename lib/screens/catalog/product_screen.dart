@@ -11,8 +11,8 @@ import '../../core/utils/cart_actions.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/product_actions.dart';
 import '../../data/repositories/product_repository.dart';
-import '../../models/outfit.dart';
 import '../../models/product.dart';
+import '../../models/try_on.dart';
 import '../../models/user_sizes.dart';
 import '../../services/size_advisor.dart';
 import '../../state/cart_state.dart';
@@ -143,7 +143,7 @@ class _ProductScreenState extends State<ProductScreen> {
     final UserSizes? sizes = context.watch<ProfileState>().sizes;
     final Set<int> cartIds = context.watch<CartState>().productIds;
     final SizeAdvice? advice = _sizeAdvisor.advise(product, sizes);
-    final bool canTryOn = Outfit.kindOf(product) != null;
+    final TryOnSupport tryOn = TryOnSupport.of(product);
 
     return ListView(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -237,15 +237,21 @@ class _ProductScreenState extends State<ProductScreen> {
                     }),
           ),
         ],
-        if (canTryOn) ...[
-          const SizedBox(height: AppSizes.m),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.of(context)
-                .pushNamed(AppRoutes.fittingRoom, arguments: product.id),
-            icon: const Icon(Icons.checkroom, size: 18),
-            label: const Text('Примерить на манекене'),
-          ),
-        ],
+        const SizedBox(height: AppSizes.m),
+        OutlinedButton.icon(
+          // Для обуви, инвентаря и аксессуаров кнопка объясняет,
+          // почему примерка недоступна.
+          onPressed: tryOn.any
+              ? () => Navigator.of(context)
+                  .pushNamed(AppRoutes.tryOn, arguments: product.id)
+              : () => AppMessages.showInfoDialog(
+                    context,
+                    title: 'Примерка недоступна',
+                    message: tryOn.reason ?? 'Этот товар нельзя примерить',
+                  ),
+          icon: const Icon(Icons.checkroom, size: 18),
+          label: Text(tryOn.any ? 'Примерить' : 'Примерка недоступна'),
+        ),
         const SizedBox(height: AppSizes.l),
         AppCard(
           child: Column(

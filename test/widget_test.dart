@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sport_shop/core/di/app_dependencies.dart';
 import 'package:sport_shop/data/database/app_database.dart';
 import 'package:sport_shop/data/datasources/local/session_local_datasource.dart';
+import 'package:sport_shop/data/repositories/try_on_repository.dart';
 import 'package:sport_shop/services/assistant/ai_key_store.dart';
 import 'package:sport_shop/main.dart';
 import 'package:sport_shop/state/app_states.dart';
@@ -14,6 +15,7 @@ void main() {
       AppDatabase.withPath(inMemoryDatabasePath),
       sessionStorage: InMemorySessionStorage(),
       aiKeyStore: InMemoryAiKeyStore(),
+      tryOnRepository: InMemoryTryOnRepository(),
     );
 
     await tester.pumpWidget(SportShopApp(

@@ -78,7 +78,7 @@ class HomeScreen extends StatelessWidget {
               _QuickAction(
                 icon: Icons.checkroom,
                 label: 'Примерка',
-                onTap: () => Navigator.of(context).pushNamed(AppRoutes.fittingRoom),
+                onTap: () => Navigator.of(context).pushNamed(AppRoutes.tryOn),
               ),
               const SizedBox(width: AppSizes.s),
               _QuickAction(

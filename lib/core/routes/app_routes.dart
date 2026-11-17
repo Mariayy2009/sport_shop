@@ -31,7 +31,9 @@ class AppRoutes {
   static const String adminExhibit = '/admin/exhibit'; // аргумент: экспонат (null — новый)
   static const String admin = '/admin';
   static const String adminProduct = '/admin/product'; // аргумент: товар (null — новый)
-  static const String fittingPhotos = '/fitting-room/photos';
   static const String favorites = '/favorites';
-  static const String fittingRoom = '/fitting-room'; // аргумент: id товара (необязателен)
+  /// Примерочная: выбор «по фотографии» или «живая». Аргумент: id товара.
+  static const String tryOn = '/try-on';
+  static const String photoTryOn = '/try-on/photo'; // аргумент: id товара
+  static const String liveTryOn = '/try-on/live'; // аргумент: id товара
 }
