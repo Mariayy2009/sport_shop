@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/media_storage.dart';
+import '../../state/data_source_state.dart';
 import '../../widgets/photo_action_sheet.dart';
+import '../../widgets/shop_server_sheet.dart';
 import '../../widgets/user_avatar.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
@@ -190,6 +192,13 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.edit_outlined,
             title: 'Редактировать профиль',
             onTap: () => _openEdit(context),
+          ),
+          _MenuItem(
+            icon: Icons.storage_outlined,
+            title: context.watch<DataSourceState>().usesServer
+                ? 'Данные: сервер PostgreSQL'
+                : 'Данные: на телефоне',
+            onTap: () => ShopServerSheet.show(context),
           ),
           if (authState.isAdmin)
             _MenuItem(

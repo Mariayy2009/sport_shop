@@ -23,6 +23,7 @@ import 'state/app_states.dart';
 import 'state/assistant_state.dart';
 import 'state/auth_state.dart';
 import 'state/cart_state.dart';
+import 'state/data_source_state.dart';
 import 'state/compare_state.dart';
 import 'state/favorites_state.dart';
 import 'state/try_on_controller.dart';
@@ -95,6 +96,7 @@ class SportShopApp extends StatelessWidget {
         ChangeNotifierProvider<CompareState>.value(value: states.compare),
         ChangeNotifierProvider<AssistantState>.value(value: states.assistant),
         ChangeNotifierProvider<TryOnController>.value(value: states.tryOn),
+        ChangeNotifierProvider<DataSourceState>.value(value: states.dataSource),
       ],
       child: MaterialApp(
         title: AppStrings.appName,

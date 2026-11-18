@@ -18,7 +18,8 @@ import '../../data/repositories/local_product_repository.dart';
 import '../../data/repositories/local_recommendation_repository.dart';
 import '../../data/repositories/local_user_repository.dart';
 import '../../data/repositories/order_repository.dart';
-import '../../data/repositories/product_repository.dart';
+import '../../data/datasources/local/shop_server_storage.dart';
+import '../../data/repositories/switchable_product_repository.dart';
 import '../../data/repositories/try_on_repository.dart';
 import '../../data/repositories/recommendation_repository.dart';
 import '../../data/repositories/user_repository.dart';
@@ -43,6 +44,7 @@ class AppDependencies {
   const AppDependencies._({
     required this.userRepository,
     required this.productRepository,
+    required this.shopServerStorage,
     required this.orderRepository,
     required this.cartRepository,
     required this.recommendationRepository,
@@ -67,14 +69,18 @@ class AppDependencies {
     AiKeyStore? aiKeyStore,
     TryOnRepository? tryOnRepository,
     PhotoTryOnService? photoTryOnService,
+    ShopServerStorage? shopServerStorage,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
     final RecommendationRepository recommendationRepository =
         LocalRecommendationRepository(RecommendationLocalDataSource(database));
 
-    final ProductRepository productRepository =
-        LocalProductRepository(ProductLocalDataSource(database));
+    // Каталог: SQLite на телефоне или сервер магазина (PostgreSQL).
+    final SwitchableProductRepository productRepository =
+        SwitchableProductRepository(
+      LocalProductRepository(ProductLocalDataSource(database)),
+    );
 
     // Помощник: локальные правила работают всегда; если пользователь
     // ввёл ключ Gemini (или ключ задан при сборке), отвечает языковая
@@ -89,6 +95,8 @@ class AppDependencies {
     return AppDependencies._(
       userRepository: userRepository,
       productRepository: productRepository,
+      shopServerStorage:
+          shopServerStorage ?? SharedPreferencesShopServerStorage(),
       orderRepository: LocalOrderRepository(OrderLocalDataSource(database)),
       cartRepository: LocalCartRepository(CartLocalDataSource(database)),
       recommendationRepository: recommendationRepository,
@@ -113,7 +121,10 @@ class AppDependencies {
   }
 
   final UserRepository userRepository;
-  final ProductRepository productRepository;
+  final SwitchableProductRepository productRepository;
+
+  /// Адрес сервера магазина, если пользователь его подключил.
+  final ShopServerStorage shopServerStorage;
   final OrderRepository orderRepository;
   final CartRepository cartRepository;
   final RecommendationRepository recommendationRepository;

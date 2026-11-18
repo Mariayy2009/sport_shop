@@ -1,0 +1,10 @@
+# Сервер магазина Sport Shop: FastAPI + PostgreSQL.
+fastapi>=0.110
+uvicorn>=0.29
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+alembic>=1.13
+python-dotenv>=1.0
+# Для проверок (pytest):
+pytest>=8.0
+httpx>=0.27

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/errors/app_exception.dart';
 import '../../core/routes/main_tab.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_messages.dart';
@@ -160,6 +161,10 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       if (!mounted) return;
       AppMessages.showSuccess(context, _isNew ? 'Товар добавлен' : 'Товар сохранён');
       navigator.pop(true);
+    } on AppException catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      AppMessages.showInfoDialog(context, title: 'Не сохранено', message: error.message);
     } on Exception catch (error) {
       debugPrint('Ошибка сохранения товара: $error');
       if (!mounted) return;
@@ -186,6 +191,9 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       if (!mounted) return;
       AppMessages.showSuccess(context, 'Товар удалён');
       navigator.pop(true);
+    } on AppException catch (error) {
+      if (!mounted) return;
+      AppMessages.showInfoDialog(context, title: 'Не удалено', message: error.message);
     } on Exception {
       // Товар есть в заказах: история покупок должна сохраниться.
       if (!mounted) return;

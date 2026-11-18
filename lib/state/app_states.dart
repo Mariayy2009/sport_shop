@@ -3,6 +3,7 @@ import 'dart:async';
 import '../core/di/app_dependencies.dart';
 import 'assistant_state.dart';
 import 'auth_state.dart';
+import 'data_source_state.dart';
 import 'cart_state.dart';
 import 'compare_state.dart';
 import 'favorites_state.dart';
@@ -27,12 +28,14 @@ class AppStates {
     required this.compare,
     required this.assistant,
     required this.tryOn,
+    required this.dataSource,
   });
 
   factory AppStates.create(AppDependencies deps) {
+    final ProductState products = ProductState(deps.productRepository);
     final AppStates states = AppStates._(
       auth: AuthState(deps.authService),
-      products: ProductState(deps.productRepository),
+      products: products,
       cart: CartState(deps.cartRepository),
       profile: ProfileState(deps.userRepository, deps.mediaStorage),
       orders: OrderState(deps.orderRepository),
@@ -44,6 +47,11 @@ class AppStates {
         deps.tryOnRepository,
         deps.photoTryOnService,
         deps.mediaStorage,
+      ),
+      dataSource: DataSourceState(
+        products: deps.productRepository,
+        storage: deps.shopServerStorage,
+        catalog: products,
       ),
     );
     states.auth.addListener(states._onAuthChanged);
@@ -60,10 +68,13 @@ class AppStates {
   final CompareState compare;
   final AssistantState assistant;
   final TryOnController tryOn;
+  final DataSourceState dataSource;
 
   /// Загрузка при старте: сессия «Запомнить меня» и каталог.
   Future<void> init() async {
     await auth.restoreSession();
+    // Сначала выбираем источник каталога (телефон или сервер), потом грузим.
+    await dataSource.restore();
     await products.init();
   }
 
