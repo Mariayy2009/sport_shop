@@ -56,6 +56,9 @@ class TryOnEngine:
                 torch.set_num_threads(best_thread_count(torch))
             started = time.time()
             self.pipeline = TryOnPipeline(weights_dir=self.weights_dir, device=self.device)
+            if self.device == "cpu":
+                saved = save_memory(self.pipeline.tryon_model, torch)
+                log.info("Экономия памяти: веса модели занимают на %.1f ГБ меньше", saved / 1e9)
             log.info("Модель загружена за %.0f с, устройство: %s, потоков: %s",
                      time.time() - started, self.device, torch.get_num_threads())
             self.load_error = None
@@ -102,6 +105,8 @@ class TryOnEngine:
                 on_step(index + 1, total or steps)
 
         with self._lock:  # модель одна — генерации идут строго по очереди
+            self.pipeline.tryon_model.single_pass = (
+                self.device == "cpu" and single_pass_for(category))
             original = pipeline_module.tqdm
             pipeline_module.tqdm = progress
             started = time.time()
@@ -134,6 +139,63 @@ class TryOnEngine:
                 )
             log.info("Примерка готова: %d шагов за %.0f с", steps, elapsed)
             return result.images[0]
+
+
+def save_memory(model, torch) -> int:
+    """Уменьшает память модели почти вдвое, не меняя результат заметно.
+
+    1. Веса в файле модели хранятся в bfloat16 (2 байта на число), а для
+       расчёта на процессоре PyTorch держит их в float32 (4 байта) —
+       3,9 ГБ вместо 1,9. Храним веса больших слоёв в bfloat16 и
+       переводим во float32 только на время расчёта одного слоя.
+    2. Модель на каждом шаге считает два варианта (с вещью и без —
+       classifier-free guidance) одной пачкой. Считаем их по очереди:
+       так же быстро, но промежуточные данные вдвое меньше.
+
+    На ноутбуке с 16 ГБ это важно: когда памяти не хватает, Windows
+    сбрасывает её на диск, и один шаг идёт 5 минут вместо полутора.
+    Возвращает, сколько байт сэкономлено.
+    """
+    import torch.nn.functional as F
+
+    saved = 0
+    for module in model.modules():
+        if isinstance(module, torch.nn.Linear) and module.weight.numel() >= 65536:
+            module.weight.data = module.weight.data.to(torch.bfloat16)
+            saved += module.weight.numel() * 2
+
+            def forward(x, module=module):
+                return F.linear(x, module.weight.to(x.dtype), module.bias)
+
+            module.forward = forward
+
+    def forward_for_cfg(*args, **kwargs):
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        batch = args[0].shape[0]
+        device = args[0].device
+        with_garment = model.forward(
+            *args, **kwargs, mask=torch.ones(batch, dtype=torch.bool, device=device))["x"]
+        if getattr(model, "single_pass", False):
+            # Без второго варианта: шаг вдвое быстрее (см. single_pass_for).
+            return {"v_c": with_garment, "v_u": with_garment}
+        without = model.forward(
+            *args, **kwargs, mask=torch.zeros(batch, dtype=torch.bool, device=device))["x"]
+        return {"v_c": with_garment, "v_u": without}
+
+    model.forward_for_cfg = forward_for_cfg
+    return saved
+
+
+def single_pass_for(category: str) -> bool:
+    """Считать ли шаг одним проходом модели вместо двух.
+
+    Для верха второй проход (усиление вещи, classifier-free guidance)
+    почти не меняет результат, а время шага сокращает вдвое — проверено
+    на майке: цвет, фасон и надпись те же. Для низа без него ноги на фото
+    размываются, поэтому шорты и штаны считаются полностью. Отключить:
+    TRYON_FAST_TOPS=0.
+    """
+    return category == "tops" and os.environ.get("TRYON_FAST_TOPS", "1") != "0"
 
 
 def best_thread_count(torch) -> int:
