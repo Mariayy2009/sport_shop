@@ -7,7 +7,7 @@ if not exist .venv\Scripts\python.exe (
   pause & exit /b 1
 )
 call .venv\Scripts\activate.bat
-rem Шагов генерации: 6 — быстро и уже хорошо, 10–12 — аккуратнее мелкие надписи, но дольше.
-if "%TRYON_STEPS%"=="" set TRYON_STEPS=6
+rem Шагов генерации: 4 — быстрее всего, 6–10 — аккуратнее мелкие надписи, но дольше.
+if "%TRYON_STEPS%"=="" set TRYON_STEPS=4
 python server.py
 pause

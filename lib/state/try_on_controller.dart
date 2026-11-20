@@ -67,7 +67,12 @@ class TryOnController extends ChangeNotifier {
   bool _resultSaved = false;
   int _seed = 42;
   DateTime? _startedAt;
-  bool _cancelRequested = false;
+
+  /// Номер текущей генерации. Отмена, смена вещи или новая генерация
+  /// увеличивают его — прежний опрос сервера видит это и молча
+  /// прекращается, не трогая экран. Иначе два опроса показывали бы
+  /// попеременно «Шаг 1 из 6» и «В очереди».
+  int _generation = 0;
 
   String? get serverUrl => _serverUrl;
   TryOnServerStatus? get server => _server;
@@ -191,7 +196,7 @@ class TryOnController extends ChangeNotifier {
     _result = null;
     _resultSaved = false;
     _job = null;
-    _cancelRequested = false;
+    final int generation = ++_generation;
     _phase = TryOnPhase.uploading;
     _startedAt = DateTime.now();
     notifyListeners();
@@ -203,7 +208,7 @@ class TryOnController extends ChangeNotifier {
         final String? problem = PhotoTryOnService.validateImage(bytes);
         if (problem != null) throw AppException(problem);
       }
-      _jobId = await _service.submit(
+      final String jobId = await _service.submit(
         url,
         person: personBytes,
         garment: garmentBytes,
@@ -211,31 +216,42 @@ class TryOnController extends ChangeNotifier {
         seed: _seed,
         client: _client,
       );
+      if (generation != _generation) {
+        // Пока фото отправлялись, примерку отменили.
+        unawaited(_service.delete(url, jobId));
+        return;
+      }
+      _jobId = jobId;
       _phase = TryOnPhase.generating;
       notifyListeners();
-      await _waitForResult(url, _jobId!);
+      await _waitForResult(url, jobId, generation);
     } on AppException catch (error) {
-      _abandon(url);
-      _fail(error.message);
+      _abandon(url, generation);
+      if (generation == _generation) _fail(error.message);
     } on Exception catch (error) {
       debugPrint('Ошибка примерки: $error');
-      _abandon(url);
-      _fail('Не удалось выполнить примерку. Проверьте связь с сервером');
+      _abandon(url, generation);
+      if (generation == _generation) {
+        _fail('Не удалось выполнить примерку. Проверьте связь с сервером');
+      }
     }
   }
 
   /// Примерка прервалась — просим сервер удалить задание, чтобы оно
   /// не занимало ноутбук и не держало очередь.
-  void _abandon(String url) {
+  void _abandon(String url, int generation) {
     final String? jobId = _jobId;
-    if (jobId != null) unawaited(_service.delete(url, jobId));
+    if (jobId != null && generation == _generation) {
+      unawaited(_service.delete(url, jobId));
+    }
   }
 
   /// Опрашивает сервер, пока изображение не будет готово.
-  Future<void> _waitForResult(String url, String jobId) async {
+  Future<void> _waitForResult(String url, String jobId, int generation) async {
     int networkErrors = 0;
+    bool stale() => generation != _generation;
     while (true) {
-      if (_cancelRequested) return;
+      if (stale()) return;
       if (elapsed > maxWait) {
         await _service.delete(url, jobId);
         throw const AppException(
@@ -243,16 +259,19 @@ class TryOnController extends ChangeNotifier {
         );
       }
       await Future<void>.delayed(pollInterval);
-      if (_cancelRequested) return;
+      if (stale()) return;
       try {
         final TryOnJobStatus status = await _service.status(url, jobId);
+        if (stale()) return;
         networkErrors = 0;
         _job = status;
         if (status.state == TryOnJobState.failed) {
           throw AppException(status.error ?? 'Сервер не смог выполнить примерку');
         }
         if (status.state == TryOnJobState.done) {
-          _result = await _service.result(url, jobId);
+          final Uint8List image = await _service.result(url, jobId);
+          if (stale()) return;
+          _result = image;
           // Результат получен — на сервере он больше не нужен.
           unawaited(_service.delete(url, jobId));
           _jobId = null;
@@ -278,7 +297,6 @@ class TryOnController extends ChangeNotifier {
   /// Отмена генерации: сервер прекращает работу и удаляет фото.
   Future<void> cancel() async {
     if (!isBusy) return;
-    _cancelRequested = true;
     final String? url = _serverUrl;
     final String? jobId = _jobId;
     _reset(keepProduct: true);
@@ -333,6 +351,12 @@ class TryOnController extends ChangeNotifier {
 
   void _reset({required bool keepProduct}) {
     if (!keepProduct) _product = null;
+    // Идущая генерация больше не относится к экрану — и ноутбуку
+    // незачем её досчитывать.
+    _generation++;
+    final String? jobId = _jobId;
+    final String? url = _serverUrl;
+    if (jobId != null && url != null) unawaited(_service.delete(url, jobId));
     _phase = TryOnPhase.idle;
     _job = null;
     _jobId = null;

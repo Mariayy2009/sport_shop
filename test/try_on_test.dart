@@ -425,6 +425,69 @@ void main() {
       expect(repository.personPhotos, isEmpty);
     }, timeout: const Timeout(Duration(seconds: 30)));
 
+    test('отмена и новая примерка: старый опрос не мешает новому', () async {
+      // Задание job1 «застряло» на первом шаге, job2 стоит в очереди и
+      // потом готово. После отмены job1 экран должен показывать только job2.
+      int submits = 0;
+      int job2Polls = 0;
+      final List<String> calls = [];
+      final MockClient server = MockClient((request) async {
+        final String path = request.url.path;
+        calls.add('${request.method} $path');
+        if (path == '/health') {
+          return http.Response(jsonEncode({'model_ready': true}), 200);
+        }
+        if (path == '/tryon') {
+          submits++;
+          return http.Response(jsonEncode({'job_id': 'job$submits'}), 200);
+        }
+        if (request.method == 'DELETE') return http.Response('{}', 200);
+        if (path == '/jobs/job1') {
+          return http.Response(
+              jsonEncode({'state': 'running', 'step': 1, 'total_steps': 6}), 200);
+        }
+        if (path == '/jobs/job2') {
+          job2Polls++;
+          return http.Response(
+            jsonEncode(job2Polls < 3
+                ? {'state': 'queued', 'total_steps': 6}
+                : {'state': 'done', 'step': 6, 'total_steps': 6}),
+            200,
+          );
+        }
+        if (path == '/jobs/job2/result') {
+          return http.Response.bytes(fakeJpeg(8000), 200);
+        }
+        return http.Response('{}', 404);
+      });
+      final TryOnController controller = TryOnController(
+        InMemoryTryOnRepository(), PhotoTryOnService(server), TempMediaStorage(temp),
+      );
+      await controller.setUser(2);
+      controller.selectProduct(await product('Беговая футболка'));
+      await controller.setServerUrl('192.168.1.5');
+      await controller.pickPerson(PhotoSource.gallery);
+
+      final Future<void> first = controller.generate();
+      // Ждём, пока job1 покажет «Шаг 1», и отменяем.
+      while (controller.job?.step != 1) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      await controller.cancel();
+      expect(calls, contains('DELETE /jobs/job1'));
+
+      final List<int> stepsSeen = [];
+      controller.addListener(() {
+        if (controller.job != null) stepsSeen.add(controller.job!.step);
+      });
+      await controller.generate();
+      await first;
+      expect(controller.phase, TryOnPhase.done);
+      expect(controller.error, isNull);
+      // Ни разу не мелькнул «Шаг 1» от отменённого job1.
+      expect(stepsSeen, isNot(contains(1)));
+    }, timeout: const Timeout(Duration(seconds: 40)));
+
     test('без сервера, фото или с обувью — понятная ошибка', () async {
       final TryOnController controller = TryOnController(
         InMemoryTryOnRepository(),

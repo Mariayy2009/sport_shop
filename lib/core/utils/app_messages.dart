@@ -35,6 +35,9 @@ class AppMessages {
     messenger.showSnackBar(
       SnackBar(
         duration: Duration(seconds: type == MessageType.error ? 4 : 3),
+        // С кнопкой («Корзина») Flutter по умолчанию держит уведомление,
+        // пока его не закроют. Нам нужно, чтобы оно исчезало само.
+        persist: false,
         action: actionLabel == null || onAction == null
             ? null
             : SnackBarAction(

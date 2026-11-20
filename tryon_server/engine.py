@@ -49,9 +49,11 @@ class TryOnEngine:
             import torch
             from fashn_vton import TryOnPipeline
 
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
             if self.threads:
                 torch.set_num_threads(self.threads)
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            elif self.device == "cpu":
+                torch.set_num_threads(best_thread_count(torch))
             started = time.time()
             self.pipeline = TryOnPipeline(weights_dir=self.weights_dir, device=self.device)
             log.info("Модель загружена за %.0f с, устройство: %s, потоков: %s",
@@ -132,6 +134,36 @@ class TryOnEngine:
                 )
             log.info("Примерка готова: %d шагов за %.0f с", steps, elapsed)
             return result.images[0]
+
+
+def best_thread_count(torch) -> int:
+    """Сколько потоков процессора давать модели.
+
+    По умолчанию PyTorch берёт все физические ядра. Но у новых Intel
+    (как Core 5 210H) ядра разные: быстрые P и медленные E. Работа
+    делится между потоками поровну, и быстрые ядра ждут медленные —
+    иногда меньше потоков считают быстрее. Поэтому при запуске сервер
+    за несколько секунд меряет умножение матриц (основа модели) с
+    разным числом потоков и берёт самое быстрое.
+    """
+    default = torch.get_num_threads()
+    logical = os.cpu_count() or default
+    candidates = sorted({max(1, default // 2), max(1, default * 3 // 4), default, logical})
+    a = torch.randn(1024, 1024)
+    b = torch.randn(1024, 1024)
+    results = {}
+    for threads in candidates:
+        torch.set_num_threads(threads)
+        torch.mm(a, b)  # разогрев
+        count, started = 0, time.perf_counter()
+        while time.perf_counter() - started < 0.6:
+            torch.mm(a, b)
+            count += 1
+        results[threads] = count / (time.perf_counter() - started)
+    best = max(results, key=results.get)
+    log.info("Потоки процессора: %s — выбрано %d",
+             ", ".join(f"{t}: {r:.0f} оп/с" for t, r in sorted(results.items())), best)
+    return best
 
 
 def use_segmentation_free(category: str) -> bool:
