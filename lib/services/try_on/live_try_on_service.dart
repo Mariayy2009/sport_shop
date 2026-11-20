@@ -7,9 +7,11 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
 
 import '../../core/errors/app_exception.dart';
 import 'body_pose.dart';
+import 'body_shading.dart';
 
 /// Живая примерка: видеопоток камеры и определение позы в каждом кадре.
 ///
@@ -18,10 +20,15 @@ import 'body_pose.dart';
 class LiveTryOnService {
   CameraController? _camera;
   PoseDetector? _detector;
+  SelfieSegmenter? _segmenter;
+  SegmentationMask? _mask;
+  int _frame = 0;
   List<CameraDescription> _cameras = const [];
   CameraDescription? _current;
   final StreamController<BodyPose?> _poses =
       StreamController<BodyPose?>.broadcast();
+  final StreamController<BodyShading> _shading =
+      StreamController<BodyShading>.broadcast();
   bool _busy = false;
   bool _running = false;
   BodyPose? _previous;
@@ -59,6 +66,14 @@ class LiveTryOnService {
 
   /// Поза в каждом обработанном кадре; null — человек не найден.
   Stream<BodyPose?> get poses => _poses.stream;
+
+  /// Свет и силуэт человека в каждом обработанном кадре
+  /// (реалистичный режим живой примерки).
+  Stream<BodyShading> get shading => _shading.stream;
+
+  /// Силуэт тела обновляется через кадр: маска меняется медленнее позы,
+  /// а так обе модели укладываются в частоту камеры.
+  static const int _maskEvery = 2;
 
   /// Размер кадра в вертикальной ориентации экрана.
   Size? get previewSize {
@@ -122,7 +137,11 @@ class LiveTryOnService {
         model: PoseDetectionModel.base,
       ),
     );
+    // Модель силуэта ставится вместе с приложением (около 4 МБ)
+    // и работает на телефоне.
+    _segmenter ??= SelfieSegmenter(enableRawSizeMask: true);
     _previous = null;
+    _mask = null;
     _running = true;
     await controller.startImageStream(_onFrame);
   }
@@ -146,11 +165,39 @@ class LiveTryOnService {
           .smoothedFrom(_previous, _smoothing);
       _previous = pose;
       _poses.add(pose);
+      await _updateShading(image, input);
     } on Exception catch (error) {
       debugPrint('Ошибка определения позы: $error');
     } finally {
       _busy = false;
     }
+  }
+
+  /// Свет и силуэт для реалистичного режима. Ошибка модели силуэта
+  /// не мешает примерке: одежда просто рисуется без обрезки по контуру.
+  Future<void> _updateShading(CameraImage image, InputImage input) async {
+    final SelfieSegmenter? segmenter = _segmenter;
+    if (segmenter != null && (_mask == null || _frame++ % _maskEvery == 0)) {
+      try {
+        _mask = await segmenter.processImage(input) ?? _mask;
+      } on Exception catch (error) {
+        debugPrint('Ошибка определения силуэта: $error');
+      }
+    }
+    if (!_running || _shading.isClosed) return;
+    final SegmentationMask? mask = _mask;
+    _shading.add(BodyShading.fromFrame(
+      luma: image.planes.first.bytes,
+      frameWidth: image.width,
+      frameHeight: image.height,
+      bytesPerRow: image.planes.first.bytesPerRow,
+      rotation: _current?.sensorOrientation ?? 0,
+      mirror: isFrontCamera,
+      bgra: image.format.group == ImageFormatGroup.bgra8888,
+      mask: mask?.confidences,
+      maskWidth: mask?.width ?? 0,
+      maskHeight: mask?.height ?? 0,
+    ));
   }
 
   /// Кадр камеры → формат ML Kit с учётом поворота датчика.
@@ -228,11 +275,15 @@ class LiveTryOnService {
     await _closeCamera();
     await _detector?.close();
     _detector = null;
+    await _segmenter?.close();
+    _segmenter = null;
+    _mask = null;
     _previous = null;
   }
 
   Future<void> dispose() async {
     await stop();
     await _poses.close();
+    await _shading.close();
   }
 }

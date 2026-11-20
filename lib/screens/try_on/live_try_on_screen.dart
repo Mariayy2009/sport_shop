@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import '../../data/repositories/product_repository.dart';
 import '../../models/product.dart';
 import '../../models/try_on.dart';
 import '../../services/try_on/body_pose.dart';
+import '../../services/try_on/body_shading.dart';
 import '../../services/try_on/garment_color.dart';
 import '../../services/try_on/garment_mesh.dart';
 import '../../services/try_on/live_try_on_service.dart';
@@ -41,6 +43,11 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
   final LiveTryOnService _service = LiveTryOnService();
   final PhotoTryOnService _images = PhotoTryOnService();
   StreamSubscription<BodyPose?>? _subscription;
+  StreamSubscription<BodyShading>? _shadingSubscription;
+
+  /// Свет и силуэт из последнего кадра камеры.
+  ui.Image? _shading;
+  bool _shadingBusy = false;
 
   /// Движение условной фигуры в предпросмотре (без камеры).
   late final AnimationController _demo = AnimationController(
@@ -94,6 +101,7 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       _subscription ??= _service.poses.listen((pose) {
         if (mounted) setState(() => _pose = pose);
       });
+      _shadingSubscription ??= _service.shading.listen(_onShading);
     } on AppException catch (error) {
       _error = error.message;
     } on Exception catch (error) {
@@ -101,6 +109,24 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       _error = 'Не удалось запустить камеру';
     }
     if (mounted) setState(() => _isStarting = false);
+  }
+
+  Future<void> _onShading(BodyShading shading) async {
+    if (_shadingBusy) return;
+    _shadingBusy = true;
+    try {
+      final ui.Image image = await shading.toImage();
+      if (!mounted) {
+        image.dispose();
+        return;
+      }
+      final ui.Image? old = _shading;
+      setState(() => _shading = image);
+      // Старую картинку освобождаем после того, как кадр перерисован.
+      WidgetsBinding.instance.addPostFrameCallback((_) => old?.dispose());
+    } finally {
+      _shadingBusy = false;
+    }
   }
 
   /// Смена вещи без остановки камеры: меняются только модель и цвет.
@@ -113,7 +139,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       final GarmentMesh mesh = GarmentMesh.fromGlb(data.buffer.asUint8List());
       Color color = GarmentColor.fallback;
       try {
-        color = await GarmentColor.fromImage(await _images.loadProductImage(product));
+        color = await GarmentColor.forProduct(
+            product.imageUrl, await _images.loadProductImage(product));
       } on AppException {
         // У товара нет фото — оставляем цвет по умолчанию.
       }
@@ -144,6 +171,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
+    _shadingSubscription?.cancel();
+    _shading?.dispose();
     _demo.dispose();
     _service.dispose();
     super.dispose();
@@ -295,6 +324,7 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                 pose: _pose,
                 color: _color,
                 showJoints: _showJoints,
+                shading: _shading,
               ),
             ),
           ],
@@ -335,12 +365,14 @@ class _StagePainter extends CustomPainter {
     required this.pose,
     required this.color,
     required this.showJoints,
+    this.shading,
   });
 
   final GarmentMesh? mesh;
   final BodyPose? pose;
   final Color color;
   final bool showJoints;
+  final ui.Image? shading;
 
   static const List<(BodyJoint, BodyJoint)> _bones = [
     (BodyJoint.leftShoulder, BodyJoint.rightShoulder),
@@ -368,6 +400,7 @@ class _StagePainter extends CustomPainter {
       mesh: mesh,
       frames: BodyRig.frames(pose, size.width, size.height),
       color: color,
+      shading: shading,
     ).paint(canvas, size);
   }
 
@@ -405,6 +438,7 @@ class _StagePainter extends CustomPainter {
       oldDelegate.pose != pose ||
       oldDelegate.mesh != mesh ||
       oldDelegate.color != color ||
+      oldDelegate.shading != shading ||
       oldDelegate.showJoints != showJoints;
 }
 

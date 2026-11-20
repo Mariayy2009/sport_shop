@@ -15,6 +15,7 @@ import 'package:sport_shop/models/try_on.dart';
 import 'package:sport_shop/services/assistant/ai_key_store.dart';
 import 'package:sport_shop/services/media_storage.dart';
 import 'package:sport_shop/services/try_on/body_pose.dart';
+import 'package:sport_shop/services/try_on/body_shading.dart';
 import 'package:sport_shop/services/try_on/garment_color.dart';
 import 'package:sport_shop/services/try_on/garment_mesh.dart';
 import 'package:sport_shop/services/try_on/photo_try_on_service.dart';
@@ -226,15 +227,68 @@ void main() {
     });
   });
 
-  test('цвет вещи по фото: фон не учитывается', () {
-    final Uint8List rgba = Uint8List(100 * 4);
-    for (int i = 0; i < 100; i++) {
-      // 70 пикселей белого фона и 30 красных.
-      rgba.setAll(i * 4, i < 70 ? const [250, 250, 250, 255] : const [200, 20, 30, 255]);
+  test('цвет вещи по фото: тёмный фон не делает вещь коричневой', () {
+    // Жёлтая майка в центре, вокруг чёрный фон (как на фото товара).
+    const int side = 20;
+    final Uint8List rgba = Uint8List(side * side * 4);
+    for (int y = 0; y < side; y++) {
+      for (int x = 0; x < side; x++) {
+        final bool shirt = x > 4 && x < 15 && y > 3 && y < 17;
+        rgba.setAll((y * side + x) * 4,
+            shirt ? const [235, 180, 30, 255] : const [25, 25, 28, 255]);
+      }
     }
-    final color = GarmentColor.dominant(rgba);
-    expect((color.r * 255).round(), 200);
-    expect((color.g * 255).round(), 20);
+    final color = GarmentColor.dominant(rgba, side, side);
+    expect((color.r * 255).round(), 235);
+    expect((color.g * 255).round(), 180);
+  });
+
+  test('цвет вещи по фото: белая вещь на тёмном фоне остаётся белой', () {
+    const int side = 20;
+    final Uint8List rgba = Uint8List(side * side * 4);
+    for (int y = 0; y < side; y++) {
+      for (int x = 0; x < side; x++) {
+        final bool belt = y == 10 && x > 5 && x < 14;
+        final bool kimono = x > 3 && x < 16 && y > 2 && y < 18;
+        rgba.setAll((y * side + x) * 4, belt
+            ? const [230, 110, 20, 255]
+            : kimono ? const [240, 240, 236, 255] : const [40, 40, 45, 255]);
+      }
+    }
+    final color = GarmentColor.dominant(rgba, side, side);
+    expect((color.r * 255).round(), greaterThan(220));
+    expect((color.b * 255).round(), greaterThan(220));
+  });
+
+  test('свет кадра: поворот датчика и зеркало фронтальной камеры', () {
+    // Кадр датчика 40×20 (горизонтальный), поворот 270°, как у фронтальной
+    // камеры Android. Яркое пятно в точке датчика (x=35, y=5).
+    const int w = 40, h = 20;
+    final Uint8List luma = Uint8List(w * h)..fillRange(0, w * h, 60);
+    for (int y = 3; y < 8; y++) {
+      for (int x = 33; x < 38; x++) {
+        luma[y * w + x] = 240;
+      }
+    }
+    // 270°: точка датчика (x, y) → вертикальный кадр (y, W − 1 − x) = (5, 4),
+    // то есть слева сверху; с зеркалом — справа сверху.
+    final BodyShading shading = BodyShading.fromFrame(
+      luma: luma, frameWidth: w, frameHeight: h, bytesPerRow: w,
+      rotation: 270, mirror: true,
+    );
+    int brightest = 0, at = 0;
+    for (int i = 0; i < shading.width * shading.height; i++) {
+      if (shading.rgba[i * 4] > brightest) {
+        brightest = shading.rgba[i * 4];
+        at = i;
+      }
+    }
+    final double fx = (at % shading.width) / shading.width;
+    final double fy = (at ~/ shading.width) / shading.height;
+    expect(fx, greaterThan(0.6));
+    expect(fy, lessThan(0.25));
+    expect(BodyShading.sensorPoint(5, 4, 270, w, h), (35, 5));
+    expect(BodyShading.sensorPoint(5, 4, 90, w, h), (4, 14));
   });
 
   group('Сервис примерки по фото', () {

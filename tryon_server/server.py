@@ -26,6 +26,7 @@ from fastapi.responses import Response
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from engine import CATEGORIES, GARMENT_TYPES, Cancelled, TryOnEngine, default_weights_dir
+import windows_power
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger("tryon.server")
@@ -52,6 +53,7 @@ class Job:
     garment_type: str
     steps: int
     seed: int
+    client: str = ""
     state: str = "queued"  # queued | running | done | failed
     stage: str = "В очереди"
     step: int = 0
@@ -73,6 +75,7 @@ jobs_lock = threading.Lock()
 pending: "queue.Queue[str]" = queue.Queue()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    windows_power.prepare_console()
     threading.Thread(target=worker, daemon=True).start()
     log.info("Сервер примерки запущен. Адрес для приложения: http://%s:%d", local_ip(), PORT)
     log.info("Модель загружается, это занимает около минуты…")
@@ -90,12 +93,21 @@ def worker() -> None:
         with jobs_lock:
             job = jobs.get(job_id)
         if job is None or job.cancelled:
+            with jobs_lock:
+                jobs.pop(job_id, None)
             continue
         job.state, job.stage, job.started_at = "running", "Подготовка фото", time.time()
+        log.info("Примерка %s: начало (%d шагов). Подготовка фото…", job.id[:6], job.steps)
+        # Пока идёт генерация, Windows не должна засыпать: сон ноутбука
+        # останавливает примерку, а телефон теряет связь.
+        windows_power.keep_awake(True)
 
         def on_step(step: int, total: int, job: Job = job) -> None:
+            now = time.time()
+            since = now - (job.step_times[-1] if job.step_times else job.started_at)
             job.step, job.stage = step, "Генерация"
-            job.step_times.append(time.time())
+            job.step_times.append(now)
+            log.info("Примерка %s: шаг %d из %d (%.0f с)", job.id[:6], step, total, since)
 
         try:
             if not engine.ready:
@@ -107,12 +119,15 @@ def worker() -> None:
             buffer = io.BytesIO()
             image.convert("RGB").save(buffer, format="JPEG", quality=92)
             job.result, job.state, job.stage = buffer.getvalue(), "done", "Готово"
+            log.info("Примерка %s: готово за %.0f с", job.id[:6], time.time() - job.started_at)
         except Cancelled:
             job.state, job.error = "failed", "Генерация отменена"
+            log.info("Примерка %s: отменена", job.id[:6])
         except Exception as error:  # noqa: BLE001 — текст ошибки уходит в приложение
             log.exception("Ошибка генерации")
             job.state, job.error = "failed", f"Ошибка генерации: {error}"
         finally:
+            windows_power.keep_awake(False)
             # Исходные фото больше не нужны — не держим их в памяти.
             job.person = job.garment = None
             job.finished_at = time.time()
@@ -176,6 +191,7 @@ async def create_job(
     garment_type: str = Form("flat-lay"),
     steps: Optional[int] = Form(None),
     seed: int = Form(42),
+    client: str = Form(""),
 ) -> dict:
     if category not in CATEGORIES:
         raise HTTPException(400, f"Категория должна быть одной из: {', '.join(CATEGORIES)}")
@@ -191,11 +207,30 @@ async def create_job(
         garment_type=garment_type,
         steps=max(MIN_STEPS, min(MAX_STEPS, steps or DEFAULT_STEPS)),
         seed=seed,
+        client=client[:64],
     )
     with jobs_lock:
+        if job.client:
+            # Телефон начал новую примерку — прежние ему уже не нужны
+            # (связь могла прерваться, а задание осталось в очереди).
+            for old in jobs.values():
+                if old.client == job.client and old.state in ("queued", "running"):
+                    old.cancelled = True
+                    log.info("Примерка %s: заменена новой от того же телефона", old.id[:6])
         jobs[job.id] = job
     pending.put(job.id)
+    log.info("Примерка %s: получена, %s, в очереди перед ней: %d",
+             job.id[:6], category, queue_ahead(job))
     return {"job_id": job.id, "total_steps": job.steps}
+
+
+def queue_ahead(job: Job) -> int:
+    """Сколько заданий выполнится раньше этого."""
+    with jobs_lock:
+        return sum(1 for other in jobs.values()
+                   if other is not job and not other.cancelled
+                   and other.state in ("queued", "running")
+                   and other.created_at <= job.created_at)
 
 
 def find(job_id: str) -> Job:
@@ -219,9 +254,18 @@ def job_status(job_id: str) -> dict:
         # Прогноз по прошлым примеркам на этом компьютере.
         spent = time.time() - job.started_at if job.started_at else 0
         eta = max(engine.seconds_per_step * job.steps - spent, 0)
+    ahead = queue_ahead(job) if job.state == "queued" else 0
+    if ahead and eta is not None:
+        eta += ahead * (engine.seconds_per_step or 0) * job.steps
+    stage = job.stage
+    if not engine.ready:
+        stage = "Загрузка модели"
+    elif ahead:
+        stage = f"В очереди: перед вами {ahead}"
     return {
         "state": job.state,
-        "stage": job.stage if engine.ready else "Загрузка модели",
+        "stage": stage,
+        "queue_ahead": ahead,
         "step": job.step,
         "total_steps": job.steps,
         "eta_seconds": eta,

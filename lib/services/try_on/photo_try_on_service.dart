@@ -115,6 +115,7 @@ class PhotoTryOnService {
     required Uint8List garment,
     required TryOnCategory category,
     int seed = 42,
+    String? client,
   }) async {
     final http.MultipartRequest request =
         http.MultipartRequest('POST', Uri.parse('$baseUrl/tryon'))
@@ -122,6 +123,8 @@ class PhotoTryOnService {
           // Каталожное фото: вещь без человека.
           ..fields['garment_type'] = 'flat-lay'
           ..fields['seed'] = '$seed'
+          // Новая примерка с этого телефона отменяет его прежние задания.
+          ..fields['client'] = client ?? ''
           ..files.add(http.MultipartFile.fromBytes('person', person, filename: 'person.jpg'))
           ..files.add(http.MultipartFile.fromBytes('garment', garment, filename: 'garment.jpg'));
     try {

@@ -549,7 +549,7 @@ class _GeneratingViewState extends State<_GeneratingView> {
         : job == null
             ? 'Жду ответа сервера'
             : job.state == TryOnJobState.queued
-                ? 'В очереди'
+                ? (job.stage ?? 'В очереди')
                 : job.step == 0
                     ? (job.stage ?? 'Подготовка фото')
                     : 'Шаг ${job.step} из ${job.totalSteps}';
@@ -756,5 +756,8 @@ String _clock(int seconds) =>
 /// 400 секунд → «7 мин»
 String _minutes(double seconds) {
   if (seconds < 90) return 'минуты';
+  // Так долго бывает, только если ноутбук засыпал или перегружен —
+  // точное число минут здесь только пугает.
+  if (seconds > 60 * 60) return 'больше часа';
   return '${(seconds / 60).round()} мин';
 }

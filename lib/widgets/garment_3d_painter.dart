@@ -18,12 +18,17 @@ class Garment3DPainter extends CustomPainter {
     required this.frames,
     required this.color,
     this.opacity = 0.96,
+    this.shading,
   });
 
   final GarmentMesh mesh;
   final Map<String, BoneFrame> frames;
   final Color color;
   final double opacity;
+
+  /// Свет, складки и силуэт человека из кадра камеры ([BodyShading]),
+  /// растянутые на весь [Size]. null — только освещение модели.
+  final ui.Image? shading;
 
   /// Свет падает спереди, сверху и чуть слева.
   static final Vec3 _light = const Vec3(-0.35, -0.55, 0.76).normalized;
@@ -101,18 +106,56 @@ class Garment3DPainter extends CustomPainter {
       colors[i * 3 + 1] = shaded(t.sb, t.inside);
       colors[i * 3 + 2] = shaded(t.sc, t.inside);
     }
-    canvas.drawVertices(
-      ui.Vertices.raw(ui.VertexMode.triangles, positions, colors: colors),
-      BlendMode.srcOver,
-      Paint(),
+    final ui.Vertices vertices =
+        ui.Vertices.raw(ui.VertexMode.triangles, positions, colors: colors);
+    final ui.Image? shading = this.shading;
+    if (shading == null) {
+      canvas.drawVertices(vertices, BlendMode.srcOver, Paint());
+      return;
+    }
+
+    // Реалистичный режим. Всё в отдельных слоях, чтобы смешивание
+    // не задело кадр камеры под ними:
+    // 1. слой A — вещь, как обычно;
+    // 2. слой B ложится на A только там, где есть вещь (srcATop):
+    //    вещь, а поверх неё яркость кадра в режиме hardLight — тени
+    //    и складки своей одежды человека темнят вещь, блики осветляют;
+    // 3. маска человека (альфа-канал той же картинки) обрезает вещь
+    //    по настоящему контуру тела.
+    final Rect bounds = Offset.zero & size;
+    final Rect source = Rect.fromLTWH(
+      0, 0, shading.width.toDouble(), shading.height.toDouble(),
     );
+    canvas.saveLayer(bounds, Paint());
+    canvas.drawVertices(vertices, BlendMode.srcOver, Paint());
+    canvas.saveLayer(bounds, Paint()..blendMode = BlendMode.srcATop);
+    canvas.drawVertices(vertices, BlendMode.srcOver, Paint());
+    canvas.drawImageRect(
+      shading,
+      source,
+      bounds,
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..blendMode = BlendMode.hardLight,
+    );
+    canvas.restore();
+    canvas.drawImageRect(
+      shading,
+      source,
+      bounds,
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..blendMode = BlendMode.dstIn,
+    );
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(Garment3DPainter oldDelegate) =>
       oldDelegate.frames != frames ||
       oldDelegate.mesh != mesh ||
-      oldDelegate.color != color;
+      oldDelegate.color != color ||
+      oldDelegate.shading != shading;
 }
 
 class _Triangle {

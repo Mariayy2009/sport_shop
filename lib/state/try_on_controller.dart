@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -44,6 +45,12 @@ class TryOnController extends ChangeNotifier {
 
   /// Сколько сбоев связи подряд терпим, прежде чем сдаться.
   static const int _maxNetworkErrors = 6;
+
+  /// Метка этого телефона для сервера: новая примерка отменяет
+  /// прежнее задание, если связь с ним прервалась.
+  final String _client = List.generate(
+    12, (_) => Random().nextInt(16).toRadixString(16),
+  ).join();
 
   int? _userId;
   String? _serverUrl;
@@ -202,16 +209,26 @@ class TryOnController extends ChangeNotifier {
         garment: garmentBytes,
         category: category,
         seed: _seed,
+        client: _client,
       );
       _phase = TryOnPhase.generating;
       notifyListeners();
       await _waitForResult(url, _jobId!);
     } on AppException catch (error) {
+      _abandon(url);
       _fail(error.message);
     } on Exception catch (error) {
       debugPrint('Ошибка примерки: $error');
+      _abandon(url);
       _fail('Не удалось выполнить примерку. Проверьте связь с сервером');
     }
+  }
+
+  /// Примерка прервалась — просим сервер удалить задание, чтобы оно
+  /// не занимало ноутбук и не держало очередь.
+  void _abandon(String url) {
+    final String? jobId = _jobId;
+    if (jobId != null) unawaited(_service.delete(url, jobId));
   }
 
   /// Опрашивает сервер, пока изображение не будет готово.

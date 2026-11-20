@@ -85,12 +85,18 @@ class TryOnEngine:
 
         import fashn_vton.pipeline as pipeline_module
 
+        step_seconds: list = []
+
         def progress(iterable, total=None, **_):
             # Подмена индикатора tqdm: так сервер узнаёт номер шага.
+            last = time.time()
             for index, item in enumerate(iterable):
                 if is_cancelled():
                     raise Cancelled()
                 yield item
+                now = time.time()
+                step_seconds.append(now - last)
+                last = now
                 on_step(index + 1, total or steps)
 
         with self._lock:  # модель одна — генерации идут строго по очереди
@@ -113,11 +119,17 @@ class TryOnEngine:
             finally:
                 pipeline_module.tqdm = original
             elapsed = time.time() - started
-            per_step = elapsed / max(steps, 1)
-            self.seconds_per_step = (
-                per_step if self.seconds_per_step is None
-                else 0.5 * self.seconds_per_step + 0.5 * per_step
-            )
+            # Время шага для прогноза — по медиане шагов, а не по общему
+            # времени: если ноутбук на время уснул, один шаг растянется
+            # на часы, и прогноз для следующих примерок испортится.
+            # Подготовка фото (около одного шага) учтена прибавкой.
+            if step_seconds:
+                ordered = sorted(step_seconds)
+                per_step = ordered[len(ordered) // 2] * (1 + 1 / max(steps, 1))
+                self.seconds_per_step = (
+                    per_step if self.seconds_per_step is None
+                    else 0.5 * self.seconds_per_step + 0.5 * per_step
+                )
             log.info("Примерка готова: %d шагов за %.0f с", steps, elapsed)
             return result.images[0]
 
