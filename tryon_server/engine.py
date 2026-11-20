@@ -105,8 +105,12 @@ class TryOnEngine:
                 on_step(index + 1, total or steps)
 
         with self._lock:  # модель одна — генерации идут строго по очереди
-            self.pipeline.tryon_model.single_pass = (
-                self.device == "cpu" and single_pass_for(category))
+            model = self.pipeline.tryon_model
+            model.single_pass = self.device == "cpu" and single_pass_for(category)
+            # Отмена проверяется и внутри шага, между блоками модели:
+            # на медленном ноутбуке шаг длится минуты, и новая примерка
+            # не должна ждать, пока досчитается отменённая.
+            model.is_cancelled = is_cancelled
             original = pipeline_module.tqdm
             pipeline_module.tqdm = progress
             started = time.time()
@@ -183,6 +187,15 @@ def save_memory(model, torch) -> int:
         return {"v_c": with_garment, "v_u": without}
 
     model.forward_for_cfg = forward_for_cfg
+
+    def check_cancel(*_):
+        is_cancelled = getattr(model, "is_cancelled", None)
+        if is_cancelled is not None and is_cancelled():
+            raise Cancelled()
+
+    blocks = [m for m in model.modules() if type(m).__name__.endswith("StreamBlock")]
+    for block in blocks:
+        block.register_forward_pre_hook(check_cancel)
     return saved
 
 
