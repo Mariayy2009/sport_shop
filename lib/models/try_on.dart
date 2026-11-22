@@ -119,6 +119,7 @@ class TryOnServerStatus {
     this.secondsPerStep,
     this.defaultSteps,
     this.message,
+    this.warnings = const [],
   });
 
   /// Сервер ответил.
@@ -144,6 +145,9 @@ class TryOnServerStatus {
   /// Пояснение, если что-то не так.
   final String? message;
 
+  /// Что замедлит примерку на ноутбуке: мало памяти, работа от батареи.
+  final List<String> warnings;
+
   factory TryOnServerStatus.fromJson(Map<String, Object?> json) {
     return TryOnServerStatus(
       reachable: true,
@@ -152,9 +156,14 @@ class TryOnServerStatus {
       secondsPerStep: (json['seconds_per_step'] as num?)?.toDouble(),
       defaultSteps: (json['default_steps'] as num?)?.toInt(),
       message: json['message'] as String?,
+      warnings: _strings(json['warnings']),
     );
   }
 }
+
+List<String> _strings(Object? value) => value is List
+    ? [for (final Object? item in value) if (item is String) item]
+    : const [];
 
 /// Ход генерации на сервере.
 enum TryOnJobState {
@@ -175,6 +184,7 @@ class TryOnJobStatus {
     this.stage,
     this.etaSeconds,
     this.error,
+    this.warnings = const [],
   });
 
   final TryOnJobState state;
@@ -186,6 +196,9 @@ class TryOnJobStatus {
   final double? etaSeconds;
   final String? error;
 
+  /// Что сейчас замедляет генерацию на ноутбуке.
+  final List<String> warnings;
+
   double get progress => totalSteps == 0 ? 0 : (step / totalSteps).clamp(0, 1);
 
   factory TryOnJobStatus.fromJson(Map<String, Object?> json) {
@@ -196,6 +209,7 @@ class TryOnJobStatus {
       stage: json['stage'] as String?,
       etaSeconds: (json['eta_seconds'] as num?)?.toDouble(),
       error: json['error'] as String?,
+      warnings: _strings(json['warnings']),
     );
   }
 }

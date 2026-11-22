@@ -291,6 +291,17 @@ void main() {
     expect(BodyShading.sensorPoint(5, 4, 90, w, h), (4, 14));
   });
 
+  test('предупреждения сервера о медленной работе', () {
+    final TryOnJobStatus job = TryOnJobStatus.fromJson({
+      'state': 'running',
+      'step': 1,
+      'total_steps': 4,
+      'warnings': ['мало памяти', 7],
+    });
+    expect(job.warnings, ['мало памяти']);
+    expect(TryOnServerStatus.fromJson({'model_ready': true}).warnings, isEmpty);
+  });
+
   group('Сервис примерки по фото', () {
     test('адрес сервера', () {
       expect(PhotoTryOnService.normalizeUrl('192.168.1.5'), 'http://192.168.1.5:8000');

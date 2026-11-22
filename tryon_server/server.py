@@ -43,6 +43,8 @@ MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 MIN_SIDE = 256
 MAX_SIDE = 1536
 RESULT_TTL_SECONDS = 30 * 60
+# Сколько памяти модель добирает во время генерации сверх загруженной.
+PEAK_EXTRA_BYTES = int(1.5 * 1024 ** 3)
 
 
 @dataclass
@@ -102,6 +104,8 @@ def worker() -> None:
         # Пока идёт генерация, Windows не должна засыпать: сон ноутбука
         # останавливает примерку, а телефон теряет связь.
         windows_power.keep_awake(True)
+        for warning in windows_power.slowdown_warnings(needed=PEAK_EXTRA_BYTES):
+            log.warning("ВНИМАНИЕ: %s", warning)
 
         def on_step(step: int, total: int, job: Job = job) -> None:
             now = time.time()
@@ -180,6 +184,7 @@ def health() -> dict:
         "default_steps": DEFAULT_STEPS,
         "seconds_per_step": engine.seconds_per_step,
         "jobs_waiting": waiting,
+        "warnings": windows_power.slowdown_warnings(needed=PEAK_EXTRA_BYTES),
         "message": message,
     }
 
@@ -267,6 +272,9 @@ def job_status(job_id: str) -> dict:
         "state": job.state,
         "stage": stage,
         "queue_ahead": ahead,
+        # Почему может быть медленно: мало памяти, работа от батареи.
+        "warnings": windows_power.slowdown_warnings(
+            needed=PEAK_EXTRA_BYTES if job.state == "queued" else 0),
         "step": job.step,
         "total_steps": job.steps,
         "eta_seconds": eta,

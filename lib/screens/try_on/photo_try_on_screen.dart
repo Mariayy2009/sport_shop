@@ -194,6 +194,10 @@ class _SetupView extends StatelessWidget {
       padding: const EdgeInsets.all(AppSizes.screenPadding),
       children: [
         _ServerCard(controller: controller),
+        for (final String warning in server?.warnings ?? const <String>[]) ...[
+          const SizedBox(height: AppSizes.s),
+          _SlowdownNote(text: warning),
+        ],
         const SizedBox(height: AppSizes.m),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -598,6 +602,10 @@ class _GeneratingViewState extends State<_GeneratingView> {
               '${eta == null ? '' : ' · осталось около ${_minutes(eta)}'}',
               style: AppTextStyles.bodySecondary,
             ),
+            for (final String warning in job?.warnings ?? const <String>[]) ...[
+              const SizedBox(height: AppSizes.m),
+              _SlowdownNote(text: warning),
+            ],
             const SizedBox(height: AppSizes.l),
             const Text(
               'Генерация идёт на процессоре вашего ноутбука и занимает '
@@ -754,6 +762,32 @@ String _clock(int seconds) =>
     '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 
 /// 400 секунд → «7 мин»
+/// Предупреждение сервера: что сейчас замедляет примерку.
+class _SlowdownNote extends StatelessWidget {
+  const _SlowdownNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.m),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSizes.radiusS),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.speed, color: AppColors.warning, size: 20),
+          const SizedBox(width: AppSizes.s),
+          Expanded(child: Text(text, style: AppTextStyles.body)),
+        ],
+      ),
+    );
+  }
+}
+
 String _minutes(double seconds) {
   if (seconds < 90) return 'минуты';
   // Так долго бывает, только если ноутбук засыпал или перегружен —

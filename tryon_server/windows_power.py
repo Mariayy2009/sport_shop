@@ -70,3 +70,69 @@ def prepare_console() -> None:
             )
     except Exception as error:  # noqa: BLE001
         log.warning("Не удалось отключить паузу при выделении: %s", error)
+
+
+class _MemoryStatus(ctypes.Structure):
+    _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+
+class _PowerStatus(ctypes.Structure):
+    _fields_ = [("ACLineStatus", ctypes.c_ubyte), ("BatteryFlag", ctypes.c_ubyte),
+                ("BatteryLifePercent", ctypes.c_ubyte), ("SystemStatusFlag", ctypes.c_ubyte),
+                ("BatteryLifeTime", ctypes.c_ulong), ("BatteryFullLifeTime", ctypes.c_ulong)]
+
+
+# Меньше этого свободной памяти — Windows начинает сбрасывать память
+# модели на диск, и шаг идёт в разы дольше (проверено: 334 с вместо ~60).
+LOW_MEMORY_BYTES = 2 * 1024 ** 3
+
+
+def available_memory() -> int | None:
+    """Свободная оперативная память в байтах (None — не удалось узнать)."""
+    try:
+        if _IS_WINDOWS:
+            status = _MemoryStatus()
+            status.dwLength = ctypes.sizeof(status)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                return status.ullAvailPhys
+            return None
+        with open("/proc/meminfo") as meminfo:
+            for line in meminfo:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) * 1024
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def on_battery() -> bool:
+    if not _IS_WINDOWS:
+        return False
+    try:
+        status = _PowerStatus()
+        if ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(status)):
+            return status.ACLineStatus == 0
+    except Exception:  # noqa: BLE001
+        pass
+    return False
+
+
+def slowdown_warnings(needed: int = 0) -> list:
+    """Что сейчас замедляет примерку на ноутбуке — понятным текстом.
+
+    [needed] — сколько памяти ещё понадобится модели сверх уже занятой.
+    """
+    warnings = []
+    free = available_memory()
+    if free is not None and free - needed < LOW_MEMORY_BYTES:
+        warnings.append(
+            f"На ноутбуке мало свободной памяти ({free / 1024 ** 3:.1f} ГБ). "
+            "Закройте браузер и другие программы — иначе примерка идёт в разы дольше")
+    if on_battery():
+        warnings.append("Ноутбук работает от батареи — подключите зарядку, "
+                        "так процессор считает в 2–3 раза быстрее")
+    return warnings
