@@ -51,9 +51,19 @@ class AppDatabase {
     await SeedData.insertAll(db);
   }
 
-  /// Учебная версия: при смене схемы база пересоздаётся с демо-данными.
-  /// В дипломе здесь будут пошаговые миграции без потери данных.
+  /// Обновление схемы. С v8 — пошаговая миграция без потери данных
+  /// (корзина, заказы, избранное сохраняются). Более старые базы
+  /// учебной версии пересоздаются с демо-данными.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion >= 8) {
+      if (oldVersion < 9) {
+        await db.execute(
+          'ALTER TABLE ${DatabaseSchema.exhibits} ADD COLUMN gallery TEXT',
+        );
+        await SeedData.insertAthletes(db);
+      }
+      return;
+    }
     for (final String table in DatabaseSchema.tablesInDropOrder) {
       await db.execute('DROP TABLE IF EXISTS $table');
     }

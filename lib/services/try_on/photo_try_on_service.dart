@@ -42,6 +42,14 @@ class PhotoTryOnService {
     return '${uri.scheme}://${uri.host}:$port';
   }
 
+  /// Фото каталога, где вещь надета на модель (а не лежит отдельно).
+  static const Set<String> modelPhotos = {
+    'assets/images/products/adidas_pants.jpg',
+    'assets/images/products/swimsuit.jpg',
+    'assets/images/products/yoga_leggings.jpg',
+    'assets/images/products/running_tights.jpg',
+  };
+
   /// Проверка файла до отправки: размер и формат (JPEG, PNG, WebP).
   /// null — файл подходит, иначе текст ошибки.
   static String? validateImage(Uint8List bytes) {
@@ -116,12 +124,14 @@ class PhotoTryOnService {
     required TryOnCategory category,
     int seed = 42,
     String? client,
+    bool garmentOnModel = false,
   }) async {
     final http.MultipartRequest request =
         http.MultipartRequest('POST', Uri.parse('$baseUrl/tryon'))
           ..fields['category'] = category.apiValue
-          // Каталожное фото: вещь без человека.
-          ..fields['garment_type'] = 'flat-lay'
+          // Вещь снята отдельно (flat-lay) или надетой на модель (model):
+          // модели нужно знать, чтобы не перенести на фото чужую фигуру.
+          ..fields['garment_type'] = garmentOnModel ? 'model' : 'flat-lay'
           ..fields['seed'] = '$seed'
           // Новая примерка с этого телефона отменяет его прежние задания.
           ..fields['client'] = client ?? ''

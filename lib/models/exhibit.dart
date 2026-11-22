@@ -1,10 +1,10 @@
 /// Откуда экспонат.
 enum ExhibitSource {
   /// Экспозиция университета КНУС.
-  knus('knus', 'КНУС', 'Экспонат КНУС'),
+  knus('knus', 'Музей КНУС', 'Экспонат музея КНУС'),
 
   /// Экипировка известных спортсменов Казахстана.
-  kazakhstan('kazakhstan', 'Казахстан', 'Спортсмены Казахстана');
+  kazakhstan('kazakhstan', 'Спортсмен Казахстана', 'Спортсмены Казахстана');
 
   const ExhibitSource(this.value, this.label, this.fullLabel);
 
@@ -31,6 +31,7 @@ class Exhibit {
     this.year,
     this.story,
     this.imageUrl,
+    this.gallery = const [],
     this.source = ExhibitSource.knus,
     required this.createdAt,
     this.sportName,
@@ -56,11 +57,20 @@ class Exhibit {
   /// История экспоната: достижение, соревнование, факты с таблички.
   final String? story;
   final String? imageUrl;
+
+  /// Дополнительные фото — листаются на странице экспоната после [imageUrl].
+  final List<String> gallery;
   final ExhibitSource source;
   final DateTime createdAt;
 
   /// Название вида спорта каталога — заполняется через JOIN.
   final String? sportName;
+
+  /// Все фото экспоната: обложка и галерея.
+  List<String> get images => [
+        if (imageUrl != null && imageUrl!.isNotEmpty) imageUrl!,
+        ...gallery,
+      ];
 
   /// Вид спорта для показа: подпись экспоната, а без неё — из каталога.
   String? get sportTitle {
@@ -78,6 +88,11 @@ class Exhibit {
       year: map['year'] as String?,
       story: map['story'] as String?,
       imageUrl: map['image_url'] as String?,
+      gallery: [
+        for (final String line
+            in ((map['gallery'] as String?) ?? '').split('\n'))
+          if (line.trim().isNotEmpty) line.trim(),
+      ],
       source: ExhibitSource.fromValue(map['source'] as String?),
       createdAt: DateTime.parse(map['created_at'] as String),
       sportName: map['sport_name'] as String?,
@@ -94,6 +109,7 @@ class Exhibit {
       'year': year,
       'story': story,
       'image_url': imageUrl,
+      'gallery': gallery.join('\n'),
       'source': source.value,
       'created_at': createdAt.toIso8601String(),
     };

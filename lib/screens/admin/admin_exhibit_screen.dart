@@ -111,6 +111,8 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
       year: _nullIfEmpty(_year),
       story: _nullIfEmpty(_story),
       imageUrl: _imageUrl,
+      // Дополнительные фото в форме пока не редактируются — сохраняем.
+      gallery: widget.exhibit?.gallery ?? const [],
       source: _source,
       createdAt: widget.exhibit?.createdAt ?? DateTime.now(),
     ));
@@ -218,7 +220,7 @@ class _AdminExhibitScreenState extends State<AdminExhibitScreen> {
               ),
               segments: [
                 for (final ExhibitSource source in ExhibitSource.values)
-                  ButtonSegment(value: source, label: Text(source.fullLabel)),
+                  ButtonSegment(value: source, label: Text(source.label)),
               ],
               selected: {_source},
               onSelectionChanged: (value) => setState(() => _source = value.first),

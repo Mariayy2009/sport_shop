@@ -23,7 +23,9 @@ class DatabaseSchema {
   /// v7: exhibits.sport_label и экспонаты КНУС в демо-данных.
   /// v8: убраны таблица fitting_photos и products.try_on_photo —
   ///     старая 2D-примерка заменена AI-примеркой и живой 3D-примеркой.
-  static const int version = 8;
+  /// v9: exhibits.gallery (несколько фото), спортсмены Казахстана в «Зале
+  ///     славы». Обновление с v8 — без потери данных (см. AppDatabase).
+  static const int version = 9;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -239,6 +241,7 @@ class DatabaseSchema {
       year TEXT,
       story TEXT,
       image_url TEXT,
+      gallery TEXT,
       source TEXT NOT NULL DEFAULT 'knus'
         CHECK (source IN ('knus', 'kazakhstan')),
       created_at TEXT NOT NULL,

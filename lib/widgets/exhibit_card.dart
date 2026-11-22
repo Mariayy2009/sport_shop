@@ -6,34 +6,8 @@ import '../core/theme/app_text_styles.dart';
 import '../models/exhibit.dart';
 import 'product_image.dart';
 
-/// Плашка источника экспоната: «КНУС» или «Казахстан».
-class ExhibitSourceBadge extends StatelessWidget {
-  const ExhibitSourceBadge({super.key, required this.source});
-
-  final ExhibitSource source;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isKnus = source == ExhibitSource.knus;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.s, vertical: AppSizes.xxs),
-      decoration: BoxDecoration(
-        color: isKnus ? AppColors.accent : AppColors.black,
-        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-      ),
-      child: Text(
-        source.label,
-        style: AppTextStyles.caption.copyWith(
-          color: AppColors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-/// Карточка экспоната в «Зале славы»: фото с плашкой источника,
-/// что за вещь, чья она, вид спорта и год.
+/// Карточка экспоната в «Зале славы»: фото (со значком, если фото
+/// несколько), имя или вещь, достижение или владелец, вид спорта и год.
 class ExhibitCard extends StatelessWidget {
   const ExhibitCard({super.key, required this.exhibit, required this.onTap});
 
@@ -62,11 +36,12 @@ class ExhibitCard extends StatelessWidget {
                       placeholderIcon: Icons.emoji_events_outlined,
                     ),
                   ),
-                  Positioned(
-                    left: AppSizes.s,
-                    top: AppSizes.s,
-                    child: ExhibitSourceBadge(source: exhibit.source),
-                  ),
+                  if (exhibit.images.length > 1)
+                    Positioned(
+                      right: AppSizes.s,
+                      top: AppSizes.s,
+                      child: _PhotoCount(count: exhibit.images.length),
+                    ),
                 ],
               ),
             ),
@@ -98,6 +73,38 @@ class ExhibitCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Значок «несколько фото» на карточке.
+class _PhotoCount extends StatelessWidget {
+  const _PhotoCount({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.s, vertical: AppSizes.xxs),
+      decoration: BoxDecoration(
+        color: AppColors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.photo_library_outlined, size: 14, color: AppColors.white),
+          const SizedBox(width: AppSizes.xxs),
+          Text(
+            '$count',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

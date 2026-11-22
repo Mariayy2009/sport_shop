@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -618,12 +620,28 @@ void main() {
   group('Зал славы', () {
     test('экспонаты: создание, изменение, источник, удаление', () async {
       final Sport volleyball = await sport('Волейбол');
-      // В демо-данных — 23 экспоната экспозиции КНУС, №1 первым.
+      // В демо-данных — 11 спортсменов Казахстана (первыми) и 23 экспоната
+      // музея КНУС (№1 первым среди них).
       final List<Exhibit> seeded = await deps.exhibitRepository.getAll();
-      expect(seeded.length, 23);
-      expect(seeded.first.sportTitle, 'Лыжные гонки');
-      expect(seeded.every((item) => item.source == ExhibitSource.knus), isTrue);
+      expect(seeded.length, 34);
+      expect(seeded.first.title, 'Михаил Шайдоров');
+      expect(seeded.first.images, hasLength(2));
+      expect(seeded.take(11).every((e) => e.source == ExhibitSource.kazakhstan), isTrue);
+      final List<Exhibit> knus =
+          seeded.where((e) => e.source == ExhibitSource.knus).toList();
+      expect(knus, hasLength(23));
+      expect(knus.first.sportTitle, 'Лыжные гонки');
       expect(seeded.every((item) => item.imageUrl != null && item.story != null), isTrue);
+      // Все фото экспонатов есть в ресурсах приложения.
+      for (final Exhibit exhibit in seeded) {
+        for (final String image in exhibit.images) {
+          expect(File(image).existsSync(), isTrue, reason: image);
+        }
+      }
+      final Exhibit boxer =
+          seeded.firstWhere((item) => item.title == 'Бекзат Саттарханов');
+      expect(boxer.sportName, 'Бокс');
+      expect(boxer.images, hasLength(2));
       final Exhibit karate =
           seeded.firstWhere((item) => item.athlete == 'Софья Берульцева');
       expect(karate.sportName, 'Карате');

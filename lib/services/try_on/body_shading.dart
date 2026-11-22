@@ -24,8 +24,10 @@ class BodyShading {
   /// Ширина картинки: складкам хватает, а кадр считается за миллисекунды.
   static const int targetWidth = 120;
 
-  /// Насколько сильно переносить свет: 1 — полностью.
-  static const double strength = 0.85;
+  /// Насколько сильно переносить свет: 1 — полностью. При сильном
+  /// переносе сквозь вещь «просвечивает» рисунок своей одежды (надписи,
+  /// полоски), и вещь кажется полупрозрачной — поэтому только крупные тени.
+  static const double strength = 0.4;
 
   /// Кадр камеры → яркость и маска.
   ///
@@ -97,19 +99,24 @@ class BodyShading {
     final Float32List local = _localMean(
       light, hasMask ? person : null, width, height, (width / 7).round(),
     );
+    // Мелкий рисунок своей одежды (принты, швы, полоски) размываем:
+    // на новую вещь переходят только складки и тени.
+    final Float32List soft = _localMean(
+      light, hasMask ? person : null, width, height, (width / 40).round().clamp(1, 8),
+    );
 
     final Uint8List rgba = Uint8List(width * height * 4);
     for (int i = 0; i < light.length; i++) {
       // Отношение к яркости вокруг: тень < 128 < блик.
-      final double relative = light[i] / local[i] - 1;
+      final double relative = soft[i] / local[i] - 1;
       final int shade =
           (128 + 128 * strength * relative).round().clamp(0, 255);
       rgba[i * 4] = shade;
       rgba[i * 4 + 1] = shade;
       rgba[i * 4 + 2] = shade;
-      // Мягкий край силуэта: 0,35 → прозрачно, 0,65 → полностью.
+      // Чёткий край силуэта: внутри тела вещь полностью непрозрачна.
       rgba[i * 4 + 3] =
-          hasMask ? ((person[i] - 0.35) / 0.3 * 255).round().clamp(0, 255) : 255;
+          hasMask ? ((person[i] - 0.42) / 0.16 * 255).round().clamp(0, 255) : 255;
     }
     return BodyShading(width: width, height: height, rgba: rgba);
   }

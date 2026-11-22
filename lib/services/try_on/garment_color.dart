@@ -23,6 +23,9 @@ class GarmentColor {
     'assets/images/products/running_tights.jpg': ui.Color(0xFF3A3D44),
     'assets/images/products/volleyball_uniform.jpg': ui.Color(0xFFE6EAF2),
     'assets/images/products/karate_kimono.jpg': ui.Color(0xFFF3F1EB),
+    'assets/images/products/adidas_pants.jpg': ui.Color(0xFF8A9099),
+    'assets/images/products/swimsuit.jpg': ui.Color(0xFF1E1F24),
+    'assets/images/products/yoga_leggings.jpg': ui.Color(0xFF7B3FA8),
   };
 
   /// Цвет вещи для товара с фото [imageUrl] (байты фото — [bytes]).

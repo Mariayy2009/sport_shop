@@ -215,6 +215,7 @@ class TryOnController extends ChangeNotifier {
         category: category,
         seed: _seed,
         client: _client,
+        garmentOnModel: PhotoTryOnService.modelPhotos.contains(product.imageUrl),
       );
       if (generation != _generation) {
         // Пока фото отправлялись, примерку отменили.

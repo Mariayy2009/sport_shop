@@ -4,6 +4,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/password_hasher.dart';
 import '../../models/enums.dart';
 import 'database_schema.dart';
+import 'seed_athletes.dart';
 import 'seed_exhibits.dart';
 
 /// Демонстрационные данные, которые записываются в SQLite
@@ -447,6 +448,7 @@ class SeedData {
 
     await _insertUsersAndOrders(db, sportIds, productIds);
     await _insertExhibits(db, sportIds);
+    await insertAthletes(db);
   }
 
   /// Экспонаты «Зала славы» (экспозиция КНУС).
@@ -472,6 +474,34 @@ class SeedData {
         'image_url': '${SeedExhibits.imagesFolder}/$image.jpg',
         'source': 'knus',
         // Порядок в списке — как в каталоге экспозиции: №1 первым.
+        'created_at': added.subtract(Duration(minutes: i)).toIso8601String(),
+      });
+    }
+  }
+
+  /// Спортсмены Казахстана в «Зале славы». Вызывается и при создании
+  /// базы, и при обновлении с версии 8 (виды спорта ищутся по названию).
+  static Future<void> insertAthletes(DatabaseExecutor db) async {
+    final Map<String, int> sportIdsByName = {
+      for (final Map<String, Object?> row
+          in await db.query(DatabaseSchema.sports, columns: ['id', 'name']))
+        row['name']! as String: row['id']! as int,
+    };
+    // Позже экспонатов КНУС — в «Зале славы» спортсмены идут первыми.
+    final DateTime added = DateTime(2026, 11, 22);
+    for (int i = 0; i < SeedAthletes.items.length; i++) {
+      final SeedAthlete athlete = SeedAthletes.items[i];
+      final List<String> images = athlete.imagePaths;
+      await db.insert(DatabaseSchema.exhibits, {
+        'title': athlete.name,
+        'athlete': athlete.headline,
+        'sport_id': sportIdsByName[athlete.catalogSport],
+        'sport_label': athlete.sport,
+        'year': athlete.year,
+        'story': athlete.story,
+        'image_url': images.first,
+        'gallery': images.skip(1).join('\n'),
+        'source': 'kazakhstan',
         'created_at': added.subtract(Duration(minutes: i)).toIso8601String(),
       });
     }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/routes/main_tab.dart';
@@ -15,8 +14,9 @@ import '../../widgets/exhibit_card.dart';
 
 /// «Зал славы»: экипировка, в которой побеждали.
 ///
-/// Экспонаты университета КНУС и вещи известных спортсменов Казахстана
-/// показываются вместе; источник виден по плашке и выбирается фильтром.
+/// Спортсмены Казахстана и экспонаты музея КНУС — одним списком:
+/// экспонаты КНУС тоже про спорт Казахстана, отдельный раздел не нужен.
+/// Принадлежность к музею КНУС подписана на странице экспоната.
 class HallOfFameScreen extends StatefulWidget {
   const HallOfFameScreen({super.key});
 
@@ -26,9 +26,6 @@ class HallOfFameScreen extends StatefulWidget {
 
 class _HallOfFameScreenState extends State<HallOfFameScreen> {
   late Future<List<Exhibit>> _future = _load();
-
-  /// null — показывать все источники.
-  ExhibitSource? _source;
 
   Future<List<Exhibit>> _load() => context.read<ExhibitRepository>().getAll();
 
@@ -74,9 +71,7 @@ class _HallOfFameScreenState extends State<HallOfFameScreen> {
               onAction: isAdmin ? _add : null,
             );
           }
-          final List<Exhibit> shown = _source == null
-              ? all
-              : all.where((exhibit) => exhibit.source == _source).toList();
+          final List<Exhibit> shown = all;
           return CustomScrollView(
             slivers: [
               SliverPadding(
@@ -91,26 +86,9 @@ class _HallOfFameScreenState extends State<HallOfFameScreen> {
                       ),
                       const SizedBox(height: AppSizes.xs),
                       const Text(
-                        'Посмотри на вещи чемпионов, узнай их историю '
-                        'и примерь похожую экипировку.',
+                        'Чемпионы Казахстана, их экипировка и истории. '
+                        'Узнай, в чём побеждали, и примерь похожее.',
                         style: AppTextStyles.bodySecondary,
-                      ),
-                      const SizedBox(height: AppSizes.m),
-                      Wrap(
-                        spacing: AppSizes.s,
-                        children: [
-                          _FilterChip(
-                            label: 'Все',
-                            isSelected: _source == null,
-                            onTap: () => setState(() => _source = null),
-                          ),
-                          for (final ExhibitSource source in ExhibitSource.values)
-                            _FilterChip(
-                              label: source.label,
-                              isSelected: _source == source,
-                              onTap: () => setState(() => _source = source),
-                            ),
-                        ],
                       ),
                     ],
                   ),
@@ -152,36 +130,6 @@ class _HallOfFameScreenState extends State<HallOfFameScreen> {
           );
         },
       ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ChoiceChip(
-      selected: isSelected,
-      showCheckmark: false,
-      label: Text(label),
-      labelStyle: AppTextStyles.bodySecondary.copyWith(
-        color: isSelected ? AppColors.white : AppColors.textPrimary,
-        fontWeight: FontWeight.w600,
-      ),
-      backgroundColor: AppColors.surface,
-      selectedColor: AppColors.black,
-      side: BorderSide(color: isSelected ? AppColors.black : AppColors.border),
-      shape: const StadiumBorder(),
-      onSelected: (_) => onTap(),
     );
   }
 }

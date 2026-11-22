@@ -17,9 +17,8 @@ import '../../state/auth_state.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/exhibit_card.dart';
+import '../../widgets/exhibit_gallery.dart';
 import '../../widgets/product_card.dart';
-import '../../widgets/product_image.dart';
 import '../../widgets/section_header.dart';
 
 /// Экспонат «Зала славы»: фото, история и переход к покупке —
@@ -134,29 +133,11 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
           body: ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
             children: [
-              AspectRatio(
-                aspectRatio: 0.85,
-                child: ProductImage(
-                  imageUrl: exhibit.imageUrl,
-                  width: double.infinity,
-                  borderRadius: AppSizes.radiusL,
-                  placeholderIcon: Icons.emoji_events_outlined,
-                ),
-              ),
+              ExhibitGallery(images: exhibit.images),
               const SizedBox(height: AppSizes.l),
-              Row(
-                children: [
-                  ExhibitSourceBadge(source: exhibit.source),
-                  const SizedBox(width: AppSizes.s),
-                  Expanded(
-                    child: Text(
-                      [exhibit.sportTitle, exhibit.year]
-                          .whereType<String>()
-                          .join(' · '),
-                      style: AppTextStyles.bodySecondary,
-                    ),
-                  ),
-                ],
+              Text(
+                [exhibit.sportTitle, exhibit.year].whereType<String>().join(' · '),
+                style: AppTextStyles.bodySecondary,
               ),
               const SizedBox(height: AppSizes.s),
               Text(exhibit.title, style: AppTextStyles.screenTitle),
@@ -173,8 +154,10 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
                   style: AppTextStyles.body.copyWith(height: 1.5),
                 ),
               ],
-              const SizedBox(height: AppSizes.s),
-              Text(exhibit.source.fullLabel, style: AppTextStyles.caption),
+              if (exhibit.source == ExhibitSource.knus) ...[
+                const SizedBox(height: AppSizes.s),
+                Text(exhibit.source.fullLabel, style: AppTextStyles.caption),
+              ],
               if (similar.isEmpty) ...[
                 const SizedBox(height: AppSizes.l),
                 const Text(

@@ -62,3 +62,16 @@
 | `basketball.jpg` | Баскетбол |
 | `yoga.jpg` | Йога |
 | `fitness.jpg` | Фитнес |
+
+# Источники фото, добавленных позже
+
+`adidas_pants.jpg`, `football_shorts.jpg`, `swimsuit.jpg`, `yoga_leggings.jpg` —
+из открытого набора каталожных фото «Fashion Product Images» (Param Aggarwal,
+лицензия MIT; копия на Hugging Face:
+`benitomartin/fashion-product-images-small-900x1200`). Каталожные фото на белом
+фоне лучше всего подходят для примерки по фото. Штаны, купальник и леггинсы
+сняты на модели — приложение сообщает об этом серверу примерки
+(`garment_type=model`, список в `PhotoTryOnService.modelPhotos`).
+
+Фото спортсменов в «Зале славы» (`assets/images/exhibits/kz_*.jpg`) предоставлены
+автором проекта.
