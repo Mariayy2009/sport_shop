@@ -18,6 +18,11 @@ import 'body_shading.dart';
 /// Поза считается на устройстве (Google ML Kit Pose Detection),
 /// кадры никуда не отправляются. Работает на Android и iOS.
 class LiveTryOnService {
+  /// [withShading] — считать свет и силуэт для реалистичной одежды.
+  /// Игре с мячом это не нужно: без модели силуэта поза приходит чаще.
+  LiveTryOnService({this.withShading = true});
+
+  final bool withShading;
   CameraController? _camera;
   PoseDetector? _detector;
   SelfieSegmenter? _segmenter;
@@ -37,6 +42,7 @@ class LiveTryOnService {
   static const double _smoothing = 0.55;
 
   static const Map<PoseLandmarkType, BodyJoint> _joints = {
+    PoseLandmarkType.nose: BodyJoint.nose,
     PoseLandmarkType.leftShoulder: BodyJoint.leftShoulder,
     PoseLandmarkType.rightShoulder: BodyJoint.rightShoulder,
     PoseLandmarkType.leftElbow: BodyJoint.leftElbow,
@@ -139,7 +145,7 @@ class LiveTryOnService {
     );
     // Модель силуэта ставится вместе с приложением (около 4 МБ)
     // и работает на телефоне.
-    _segmenter ??= SelfieSegmenter(enableRawSizeMask: true);
+    if (withShading) _segmenter ??= SelfieSegmenter(enableRawSizeMask: true);
     _previous = null;
     _mask = null;
     _running = true;
@@ -165,7 +171,7 @@ class LiveTryOnService {
           .smoothedFrom(_previous, _smoothing);
       _previous = pose;
       _poses.add(pose);
-      await _updateShading(image, input);
+      if (withShading) await _updateShading(image, input);
     } on Exception catch (error) {
       debugPrint('Ошибка определения позы: $error');
     } finally {

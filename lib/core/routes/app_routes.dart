@@ -27,6 +27,7 @@ class AppRoutes {
   static const String kits = '/kits'; // аргумент: id вида спорта (необязателен)
   static const String compare = '/compare';
   static const String hallOfFame = '/hall-of-fame';
+  static const String ballGame = '/game/ball'; // аргумент: BallGameMode (необязателен)
   static const String exhibit = '/hall-of-fame/exhibit'; // аргумент: id экспоната
   static const String adminExhibit = '/admin/exhibit'; // аргумент: экспонат (null — новый)
   static const String admin = '/admin';

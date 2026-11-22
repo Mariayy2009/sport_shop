@@ -14,6 +14,7 @@ import '../../data/repositories/product_repository.dart';
 import '../../models/product.dart';
 import '../../models/try_on.dart';
 import '../../models/user_sizes.dart';
+import '../../services/games/ball_game.dart';
 import '../../services/size_advisor.dart';
 import '../../state/cart_state.dart';
 import '../../state/compare_state.dart';
@@ -140,6 +141,16 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 
+  /// Для футбольных и волейбольных мячей — вход в игру «Набей мяч».
+  static BallGameMode? _gameModeFor(Product product) {
+    if (!product.name.toLowerCase().contains('мяч')) return null;
+    return switch (product.sportName) {
+      'Футбол' => BallGameMode.football,
+      'Волейбол' => BallGameMode.volleyballLow,
+      _ => null,
+    };
+  }
+
   Widget _buildContent(Product product) {
     final UserSizes? sizes = context.watch<ProfileState>().sizes;
     final Set<int> cartIds = context.watch<CartState>().productIds;
@@ -245,6 +256,15 @@ class _ProductScreenState extends State<ProductScreen> {
           icon: const Icon(Icons.checkroom, size: 18),
           label: Text(tryOn.any ? 'Примерить' : 'Примерка недоступна'),
         ),
+        if (_gameModeFor(product) case final BallGameMode mode) ...[
+          const SizedBox(height: AppSizes.s),
+          OutlinedButton.icon(
+            onPressed: () =>
+                Navigator.of(context).pushNamed(AppRoutes.ballGame, arguments: mode),
+            icon: const Icon(Icons.sports_soccer, size: 18),
+            label: const Text('Сыграть с мячом: набей через камеру'),
+          ),
+        ],
         const SizedBox(height: AppSizes.l),
         AppCard(
           child: Column(

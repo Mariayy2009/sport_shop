@@ -94,8 +94,22 @@ class HomeScreen extends StatelessWidget {
             sportName: sizes?.sportName,
           ),
           const SizedBox(height: AppSizes.l),
-          _HallOfFameBanner(
+          _FeatureBanner(
+            icon: Icons.emoji_events,
+            color: AppColors.star,
+            title: 'Зал славы',
+            subtitle: 'Чемпионы Казахстана и их экипировка: '
+                'посмотри и примерь похожее',
             onTap: () => Navigator.of(context).pushNamed(AppRoutes.hallOfFame),
+          ),
+          const SizedBox(height: AppSizes.m),
+          _FeatureBanner(
+            icon: Icons.sports_soccer,
+            color: AppColors.success,
+            title: 'Игра: набей мяч',
+            subtitle: 'Чеканка и волейбольный приём через камеру. '
+                'Побей свой рекорд!',
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.ballGame),
           ),
           const SizedBox(height: AppSizes.l),
           SectionHeader(
@@ -197,10 +211,20 @@ class _AiBanner extends StatelessWidget {
   }
 }
 
-/// Вход в «Зал славы» — экипировку спортсменов с историей.
-class _HallOfFameBanner extends StatelessWidget {
-  const _HallOfFameBanner({required this.onTap});
+/// Баннер раздела на главной: «Зал славы», игра с мячом.
+class _FeatureBanner extends StatelessWidget {
+  const _FeatureBanner({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
   final VoidCallback onTap;
 
   @override
@@ -219,24 +243,17 @@ class _HallOfFameBanner extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(
-                  color: AppColors.star,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.emoji_events, color: AppColors.white),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Icon(icon, color: AppColors.white),
               ),
               const SizedBox(width: AppSizes.m),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Зал славы', style: AppTextStyles.sectionTitle),
-                    SizedBox(height: AppSizes.xxs),
-                    Text(
-                      'Экипировка, в которой побеждали: посмотри '
-                      'и примерь похожее',
-                      style: AppTextStyles.bodySecondary,
-                    ),
+                    Text(title, style: AppTextStyles.sectionTitle),
+                    const SizedBox(height: AppSizes.xxs),
+                    Text(subtitle, style: AppTextStyles.bodySecondary),
                   ],
                 ),
               ),

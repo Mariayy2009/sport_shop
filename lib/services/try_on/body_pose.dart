@@ -22,6 +22,8 @@ class BodyPoint {
 
 /// Суставы, нужные для посадки одежды.
 enum BodyJoint {
+  /// Нос — положение головы (для игры с мячом).
+  nose,
   leftShoulder,
   rightShoulder,
   leftElbow,

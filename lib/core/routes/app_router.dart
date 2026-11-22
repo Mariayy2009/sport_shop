@@ -16,6 +16,8 @@ import '../../screens/common/not_found_screen.dart';
 import '../../screens/compare/compare_screen.dart';
 import '../../screens/exhibits/exhibit_screen.dart';
 import '../../screens/exhibits/hall_of_fame_screen.dart';
+import '../../screens/games/ball_game_screen.dart';
+import '../../services/games/ball_game.dart';
 import '../../screens/favorites/favorites_screen.dart';
 import '../../screens/kits/kits_screen.dart';
 import '../../screens/try_on/live_try_on_screen.dart';
@@ -63,6 +65,9 @@ class AppRouter {
       AppRoutes.liveTryOn =>
         LiveTryOnScreen(productId: args is int ? args : null),
       AppRoutes.hallOfFame => const HallOfFameScreen(),
+      AppRoutes.ballGame => BallGameScreen(
+          initialMode: args is BallGameMode ? args : BallGameMode.football,
+        ),
       AppRoutes.exhibit when args is int => ExhibitScreen(exhibitId: args),
       AppRoutes.adminExhibit =>
         AdminExhibitScreen(exhibit: args is Exhibit ? args : null),
