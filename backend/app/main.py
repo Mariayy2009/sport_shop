@@ -28,6 +28,7 @@ def product_json(product: Product) -> dict:
         "size": product.size,
         "stock": product.stock,
         "image_url": product.image_url,
+        "gallery": [line for line in (product.gallery or "").split("\n") if line.strip()],
         "brand": product.brand,
         "material": product.material,
         "rating": float(product.rating) if product.rating is not None else None,

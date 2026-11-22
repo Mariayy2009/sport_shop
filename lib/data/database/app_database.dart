@@ -62,6 +62,12 @@ class AppDatabase {
         );
         await SeedData.insertAthletes(db);
       }
+      if (oldVersion < 10) {
+        await db.execute(
+          'ALTER TABLE ${DatabaseSchema.products} ADD COLUMN gallery TEXT',
+        );
+        await SeedData.insertExtraProducts(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

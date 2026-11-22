@@ -5,6 +5,7 @@ import '../../core/utils/password_hasher.dart';
 import '../../models/enums.dart';
 import 'database_schema.dart';
 import 'seed_athletes.dart';
+import 'seed_products_extra.dart';
 import 'seed_exhibits.dart';
 
 /// Демонстрационные данные, которые записываются в SQLite
@@ -222,7 +223,7 @@ class SeedData {
     'boxing_gloves': ('Everlast', 'Искусственная кожа', 4.7),
     'hand_wraps': ('Everlast', 'Хлопок, эластан', 4.5),
     'mouth_guard': ('Venum', 'Термопластик', 4.3),
-    'karate_kimono': ('Adidas', 'Хлопок 100%', 4.6),
+    'karate_kimono': (SeedProductsExtra.kimonoSeller, 'Хлопок 100%', 4.6),
     'karate_belt': ('Adidas', 'Хлопок 100%', 4.5),
     'yoga_mat': ('Manduka', 'ТПЭ', 4.8),
     'yoga_block': ('Demix', 'Пена EVA', 4.4),
@@ -428,6 +429,8 @@ class SeedData {
       });
     }
 
+    await insertExtraProducts(db);
+
     for (final (sport, level, product, isMandatory) in _requirements) {
       await db.insert(DatabaseSchema.sportRequirements, {
         'sport_id': _id(sportIds, sport),
@@ -477,6 +480,59 @@ class SeedData {
         'created_at': added.subtract(Duration(minutes: i)).toIso8601String(),
       });
     }
+  }
+
+  /// Товары, добавленные позже основного каталога, и дополнительные фото
+  /// товаров. Вызывается при создании базы (сразу после основного
+  /// каталога — id совпадают с сервером) и при обновлении с версий 8–9.
+  /// Виды спорта и категории ищутся по названию.
+  static Future<void> insertExtraProducts(DatabaseExecutor db) async {
+    Future<Map<String, int>> idsByName(String table) async => {
+          for (final Map<String, Object?> row
+              in await db.query(table, columns: ['id', 'name']))
+            row['name']! as String: row['id']! as int,
+        };
+    final Map<String, int> sportsByName = await idsByName(DatabaseSchema.sports);
+    final Map<String, int> categoriesByName =
+        await idsByName(DatabaseSchema.categories);
+    final Map<String, String> sportNames = {
+      for (final (key, name, _) in _sports) key: name,
+    };
+    final Map<String, String> categoryNames = {
+      for (final (key, name) in _categories) key: name,
+    };
+    for (final SeedProduct item in SeedProductsExtra.items) {
+      await db.insert(DatabaseSchema.products, {
+        'name': item.name,
+        'description': item.description,
+        'price': item.price.toDouble(),
+        'category_id': categoriesByName[categoryNames[item.category]],
+        'sport_id': sportsByName[sportNames[item.sport]],
+        'size': item.sizes,
+        'stock': item.stock,
+        'image_url': SeedProductsExtra.path(item.key),
+        'gallery': item.gallery.map(SeedProductsExtra.path).join('\n'),
+        'brand': item.brand,
+        'material': item.material,
+        'rating': item.rating,
+      });
+    }
+    for (final MapEntry<String, List<String>> entry
+        in SeedProductsExtra.galleries.entries) {
+      await db.update(
+        DatabaseSchema.products,
+        {'gallery': entry.value.map(SeedProductsExtra.path).join('\n')},
+        where: 'image_url = ?',
+        whereArgs: [SeedProductsExtra.path(entry.key)],
+      );
+    }
+    // Детское кимоно — тоже у продавца кимоно (варианты в одном магазине).
+    await db.update(
+      DatabaseSchema.products,
+      {'brand': SeedProductsExtra.kimonoSeller},
+      where: 'image_url = ?',
+      whereArgs: [SeedProductsExtra.path('karate_kimono')],
+    );
   }
 
   /// Спортсмены Казахстана в «Зале славы». Вызывается и при создании

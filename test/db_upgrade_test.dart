@@ -14,9 +14,29 @@ void main() {
     // База версии 8: таблица экспонатов без gallery и одна запись в корзине.
     final Database old = await openDatabase(path, version: 8, onCreate: (db, _) async {
       for (final String statement in DatabaseSchema.createStatements) {
-        await db.execute(statement.replaceFirst('gallery TEXT,', ''));
+        await db.execute(statement.replaceAll('gallery TEXT,', ''));
       }
-      await db.insert('sports', {'name': 'Бокс', 'description': ''});
+      for (final String sport in [
+        'Волейбол', 'Бег', 'Футбол', 'Плавание', 'Бокс', 'Карате',
+        'Баскетбол', 'Йога', 'Фитнес',
+      ]) {
+        await db.insert('sports', {'name': sport, 'description': ''});
+      }
+      for (final String category in [
+        'Одежда', 'Обувь', 'Аксессуары', 'Защита', 'Инвентарь',
+      ]) {
+        await db.insert('categories', {'name': category});
+      }
+      // Товар покупателя в корзине должен пережить обновление.
+      await db.insert('products', {
+        'name': 'Кимоно для карате',
+        'price': 15990.0,
+        'category_id': 1,
+        'sport_id': 6,
+        'stock': 3,
+        'image_url': 'assets/images/products/karate_kimono.jpg',
+        'brand': 'Adidas',
+      });
       await db.insert('exhibits', {
         'title': 'Экспонат КНУС',
         'athlete': 'Федерация',
@@ -37,6 +57,18 @@ void main() {
     final Map<String, Object?> golovkin =
         exhibits.firstWhere((row) => row['title'] == 'Геннадий Головкин');
     expect(golovkin['sport_id'], isNotNull);
+
+    // v10: новые товары и варианты одного продавца.
+    final List<Map<String, Object?>> products = await db.query('products');
+    expect(products.length, 17);
+    final List<Map<String, Object?>> kimonos = products
+        .where((row) => (row['name']! as String).startsWith('Кимоно'))
+        .toList();
+    expect(kimonos.length, 3);
+    expect(kimonos.every((row) => row['brand'] == 'Budo Pro'), isTrue);
+    final Map<String, Object?> uniform = products
+        .firstWhere((row) => row['name'] == 'Форма волейбольная женская');
+    expect((uniform['gallery']! as String).split('\n'), hasLength(7));
     await db.close();
     await deleteDatabase(path);
   });

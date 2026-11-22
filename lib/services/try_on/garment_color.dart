@@ -26,6 +26,11 @@ class GarmentColor {
     'assets/images/products/adidas_pants.jpg': ui.Color(0xFF8A9099),
     'assets/images/products/swimsuit.jpg': ui.Color(0xFF1E1F24),
     'assets/images/products/yoga_leggings.jpg': ui.Color(0xFF7B3FA8),
+    'assets/images/products/kimono_classic.jpg': ui.Color(0xFFF4F4F1),
+    'assets/images/products/kimono_kyokushin.jpg': ui.Color(0xFFF1F2F4),
+    'assets/images/products/running_shorts_2in1.jpg': ui.Color(0xFF1C1C1E),
+    'assets/images/products/adidas_joggers.jpg': ui.Color(0xFF1F2E4F),
+    'assets/images/products/nike_training_tee.jpg': ui.Color(0xFF151517),
   };
 
   /// Цвет вещи для товара с фото [imageUrl] (байты фото — [bytes]).

@@ -25,7 +25,9 @@ class DatabaseSchema {
   ///     старая 2D-примерка заменена AI-примеркой и живой 3D-примеркой.
   /// v9: exhibits.gallery (несколько фото), спортсмены Казахстана в «Зале
   ///     славы». Обновление с v8 — без потери данных (см. AppDatabase).
-  static const int version = 9;
+  /// v10: products.gallery (несколько фото товара) и новые товары,
+  ///      в том числе варианты одного продавца. Обновление без потери данных.
+  static const int version = 10;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -125,6 +127,7 @@ class DatabaseSchema {
       size TEXT,
       stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
       image_url TEXT,
+      gallery TEXT,
       brand TEXT,
       material TEXT,
       rating REAL CHECK (rating IS NULL OR rating BETWEEN 0 AND 5),

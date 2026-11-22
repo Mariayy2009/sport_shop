@@ -49,7 +49,7 @@ void main() {
     final Map<String, int> counts = await database.tableCounts();
     expect(counts['sports'], 9);
     expect(counts['categories'], 5);
-    expect(counts['products'], 38);
+    expect(counts['products'], 54);
     expect(counts['users'], 3);
     expect(counts['orders'], 4);
   });

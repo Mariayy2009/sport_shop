@@ -60,6 +60,12 @@ class TryOnSupport {
             'Размер поможет выбрать подсказка в карточке товара.',
       );
     }
+    if (has('комплект для фитнеса')) {
+      return const TryOnSupport(
+        reason: 'Комплект из двух вещей примерка пока не надевает целиком. '
+            'Примерьте похожие леггинсы или футболку отдельно.',
+      );
+    }
     if (has('костюм') || has('комбинезон')) {
       return const TryOnSupport(
         category: TryOnCategory.onePieces,

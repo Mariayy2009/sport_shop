@@ -48,6 +48,8 @@ class PhotoTryOnService {
     'assets/images/products/swimsuit.jpg',
     'assets/images/products/yoga_leggings.jpg',
     'assets/images/products/running_tights.jpg',
+    'assets/images/products/running_shorts_2in1.jpg',
+    'assets/images/products/adidas_joggers.jpg',
   };
 
   /// Проверка файла до отправки: размер и формат (JPEG, PNG, WebP).

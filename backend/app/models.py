@@ -55,6 +55,8 @@ class Product(Base):
     size: Mapped[Optional[str]] = mapped_column(String(120))
     stock: Mapped[int] = mapped_column(default=0)
     image_url: Mapped[Optional[str]] = mapped_column(String(300))
+    # Дополнительные фото через перевод строки (как в базе телефона).
+    gallery: Mapped[Optional[str]] = mapped_column(Text)
     brand: Mapped[Optional[str]] = mapped_column(String(60))
     material: Mapped[Optional[str]] = mapped_column(String(120))
     rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(2, 1))

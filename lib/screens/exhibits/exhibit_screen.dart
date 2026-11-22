@@ -17,7 +17,7 @@ import '../../state/auth_state.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/exhibit_gallery.dart';
+import '../../widgets/photo_gallery.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/section_header.dart';
 
@@ -133,7 +133,10 @@ class _ExhibitScreenState extends State<ExhibitScreen> {
           body: ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
             children: [
-              ExhibitGallery(images: exhibit.images),
+              PhotoGallery(
+                images: exhibit.images,
+                placeholderIcon: Icons.emoji_events_outlined,
+              ),
               const SizedBox(height: AppSizes.l),
               Text(
                 [exhibit.sportTitle, exhibit.year].whereType<String>().join(' · '),

@@ -24,7 +24,8 @@ import '../../widgets/app_scaffold.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/product_feedback_section.dart';
-import '../../widgets/product_image.dart';
+import '../../widgets/photo_gallery.dart';
+import '../../widgets/seller_products_section.dart';
 import '../../widgets/rating_badge.dart';
 import '../../widgets/size_chart_sheet.dart';
 import '../../widgets/size_selector.dart';
@@ -148,18 +149,10 @@ class _ProductScreenState extends State<ProductScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
       children: [
-        Container(
+        PhotoGallery(
+          images: product.images,
           height: 280,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppSizes.radiusL),
-          ),
           padding: const EdgeInsets.all(AppSizes.m),
-          child: ProductImage(
-            imageUrl: product.imageUrl,
-            fit: BoxFit.contain,
-            placeholderIcon: Icons.image_outlined,
-          ),
         ),
         const SizedBox(height: AppSizes.l),
         Row(
@@ -302,6 +295,7 @@ class _ProductScreenState extends State<ProductScreen> {
             ],
           ),
         ),
+        SellerProductsSection(product: product),
         ProductFeedbackSection(
           product: product,
           onRatingChanged: _refreshProduct,

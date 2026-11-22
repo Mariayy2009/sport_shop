@@ -10,6 +10,7 @@ class Product {
     this.size,
     required this.stock,
     this.imageUrl,
+    this.gallery = const [],
     this.brand,
     this.material,
     this.rating,
@@ -32,6 +33,15 @@ class Product {
   /// Путь к картинке: «assets/images/products/...» сейчас,
   /// «https://...» после переноса изображений в облако.
   final String? imageUrl;
+
+  /// Дополнительные фото — листаются в карточке товара после [imageUrl].
+  final List<String> gallery;
+
+  /// Все фото товара: главное и дополнительные.
+  List<String> get images => [
+        if (imageUrl != null && imageUrl!.isNotEmpty) imageUrl!,
+        ...gallery,
+      ];
 
   /// Производитель: «Mizuno», «Adidas».
   final String? brand;
@@ -90,6 +100,7 @@ class Product {
       size: map['size'] as String?,
       stock: (map['stock'] as int?) ?? 0,
       imageUrl: map['image_url'] as String?,
+      gallery: _gallery(map['gallery']),
       brand: map['brand'] as String?,
       material: map['material'] as String?,
       rating: (map['rating'] as num?)?.toDouble(),
@@ -110,10 +121,23 @@ class Product {
       'size': size,
       'stock': stock,
       'image_url': imageUrl,
+      'gallery': gallery.join('\n'),
       'brand': brand,
       'material': material,
       'rating': rating,
     };
+  }
+
+  /// Фото хранятся в базе одной строкой через перевод строки;
+  /// сервер может прислать и список.
+  static List<String> _gallery(Object? value) {
+    final Iterable<Object?> items = value is List
+        ? value
+        : ((value as String?) ?? '').split('\n');
+    return [
+      for (final Object? item in items)
+        if (item is String && item.trim().isNotEmpty) item.trim(),
+    ];
   }
 
   factory Product.fromJson(Map<String, Object?> json) => Product.fromMap(json);
@@ -130,6 +154,7 @@ class Product {
     String? size,
     int? stock,
     String? imageUrl,
+    List<String>? gallery,
     String? brand,
     String? material,
     double? rating,
@@ -146,6 +171,7 @@ class Product {
       size: size ?? this.size,
       stock: stock ?? this.stock,
       imageUrl: imageUrl ?? this.imageUrl,
+      gallery: gallery ?? this.gallery,
       brand: brand ?? this.brand,
       material: material ?? this.material,
       rating: rating ?? this.rating,
