@@ -50,7 +50,7 @@ void main() {
     expect(counts['sports'], 9);
     expect(counts['categories'], 5);
     expect(counts['products'], 54);
-    expect(counts['users'], 3);
+    expect(counts['users'], 5); // покупатели, администратор и 2 продавца
     expect(counts['orders'], 4);
   });
 

@@ -17,7 +17,25 @@ class Product {
     this.reviewsCount = 0,
     this.categoryName,
     this.sportName,
+    this.sellerId,
+    this.sellerName,
+    this.isBlocked = false,
+    this.blockReason,
   });
+
+  /// Продавец (пользователь с магазином). null — продаёт сам магазин SPORT.
+  final int? sellerId;
+
+  /// Название магазина продавца — заполняется через JOIN.
+  final String? sellerName;
+
+  /// Снят с продажи администратором (запрещённый товар, мошенничество).
+  /// Покупатели его не видят.
+  final bool isBlocked;
+  final String? blockReason;
+
+  /// Кто продаёт — для карточки товара.
+  String get sellerTitle => sellerName ?? 'SPORT';
 
   final int? id;
   final String name;
@@ -107,6 +125,10 @@ class Product {
       reviewsCount: (map['reviews_count'] as int?) ?? 0,
       categoryName: map['category_name'] as String?,
       sportName: map['sport_name'] as String?,
+      sellerId: map['seller_id'] as int?,
+      sellerName: map['seller_name'] as String?,
+      isBlocked: map['status'] == 'blocked',
+      blockReason: map['block_reason'] as String?,
     );
   }
 
@@ -125,6 +147,9 @@ class Product {
       'brand': brand,
       'material': material,
       'rating': rating,
+      'seller_id': sellerId,
+      'status': isBlocked ? 'blocked' : 'active',
+      'block_reason': blockReason,
     };
   }
 
@@ -178,6 +203,10 @@ class Product {
       reviewsCount: reviewsCount,
       categoryName: categoryName ?? this.categoryName,
       sportName: sportName ?? this.sportName,
+      sellerId: sellerId,
+      sellerName: sellerName,
+      isBlocked: isBlocked,
+      blockReason: blockReason,
     );
   }
 

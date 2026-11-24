@@ -9,6 +9,10 @@ library;
 enum UserRole {
   guest('guest', 'Гость'),
   customer('customer', 'Покупатель'),
+
+  /// Продавец: у пользователя есть магазин (таблица sellers). В базе
+  /// роль хранится как customer — продавцом его делает магазин.
+  seller('seller', 'Продавец'),
   admin('admin', 'Администратор');
 
   const UserRole(this.value, this.label);

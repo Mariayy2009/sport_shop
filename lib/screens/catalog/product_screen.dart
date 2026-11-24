@@ -184,8 +184,31 @@ class _ProductScreenState extends State<ProductScreen> {
               ),
           ],
         ),
+        if (product.isBlocked) ...[
+          const SizedBox(height: AppSizes.s),
+          Container(
+            padding: const EdgeInsets.all(AppSizes.m),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppSizes.radiusM),
+            ),
+            child: Text(
+              'Товар снят с продажи администратором'
+              '${product.blockReason == null ? '' : ': ${product.blockReason}'}',
+              style: AppTextStyles.body.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
         const SizedBox(height: AppSizes.xs),
         Text(product.name, style: AppTextStyles.sectionTitle.copyWith(fontSize: 20)),
+        const SizedBox(height: AppSizes.xxs),
+        Row(
+          children: [
+            const Icon(Icons.storefront_outlined, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: AppSizes.xxs),
+            Text('Продавец: ${product.sellerTitle}', style: AppTextStyles.bodySecondary),
+          ],
+        ),
         const SizedBox(height: AppSizes.xs),
         Text(Formatters.price(product.price), style: AppTextStyles.priceLarge),
         const SizedBox(height: AppSizes.xs),

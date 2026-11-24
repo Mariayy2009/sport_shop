@@ -80,6 +80,29 @@ class OrderLocalDataSource {
     return _withItems(db, rows);
   }
 
+  /// Заказы, в которых есть товары продавца [sellerId].
+  Future<List<Order>> getOrdersForSeller(int sellerId) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      'SELECT DISTINCT o.* FROM ${DatabaseSchema.orders} o '
+      'JOIN ${DatabaseSchema.orderItems} oi ON oi.order_id = o.id '
+      'JOIN ${DatabaseSchema.products} p ON p.id = oi.product_id '
+      'WHERE p.seller_id = ? ORDER BY o.created_at DESC, o.id DESC',
+      [sellerId],
+    );
+    return _withItems(db, rows);
+  }
+
+  Future<void> updateTracking(int orderId, String? note) async {
+    final Database db = await _appDatabase.database;
+    await db.update(
+      DatabaseSchema.orders,
+      {'tracking_note': note},
+      where: 'id = ?',
+      whereArgs: [orderId],
+    );
+  }
+
   Future<void> updateStatus(int orderId, OrderStatus status) async {
     final Database db = await _appDatabase.database;
     await db.update(

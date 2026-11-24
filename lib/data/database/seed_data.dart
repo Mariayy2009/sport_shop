@@ -452,6 +452,7 @@ class SeedData {
     await _insertUsersAndOrders(db, sportIds, productIds);
     await _insertExhibits(db, sportIds);
     await insertAthletes(db);
+    await insertSellers(db);
   }
 
   /// Экспонаты «Зала славы» (экспозиция КНУС).
@@ -537,6 +538,37 @@ class SeedData {
         {'gallery': entry.value.map(SeedProductsExtra.path).join('\n')},
         where: 'image_url = ?',
         whereArgs: [SeedProductsExtra.path(entry.key)],
+      );
+    }
+  }
+
+  /// Демо-продавцы и их магазины. Товары брендов «Budo Pro» и
+  /// «Sportlife» — их; остальное продаёт сам магазин SPORT.
+  ///   budo@sport.kz / Seller123 — магазин «Budo Pro» (кимоно)
+  ///   sportlife@sport.kz / Seller123 — магазин «Sportlife»
+  static Future<void> insertSellers(DatabaseExecutor db) async {
+    final DateTime created = DateTime(2026, 11, 25);
+    for (final (email, name, shop) in const [
+      ('budo@sport.kz', 'Даурен', 'Budo Pro'),
+      ('sportlife@sport.kz', 'Алия', 'Sportlife'),
+    ]) {
+      final int userId = await db.insert(DatabaseSchema.users, {
+        'email': email,
+        'password_hash': PasswordHasher.hash('Seller123'),
+        'role': UserRole.customer.value,
+        'first_name': name,
+        'created_at': created.toIso8601String(),
+      });
+      await db.insert(DatabaseSchema.sellers, {
+        'user_id': userId,
+        'shop_name': shop,
+        'created_at': created.toIso8601String(),
+      });
+      await db.update(
+        DatabaseSchema.products,
+        {'seller_id': userId},
+        where: 'brand = ?',
+        whereArgs: [shop],
       );
     }
   }

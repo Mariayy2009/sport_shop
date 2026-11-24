@@ -22,6 +22,9 @@ abstract class FeedbackRepository {
   /// Все вопросы для администратора: сначала без ответа.
   Future<List<Question>> getAllQuestions();
 
+  /// Вопросы о товарах продавца — он на них отвечает.
+  Future<List<Question>> getQuestionsForSeller(int sellerId);
+
   Future<void> askQuestion(Question question);
 
   Future<void> answerQuestion(int questionId, String answer);

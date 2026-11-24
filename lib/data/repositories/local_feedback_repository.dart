@@ -123,6 +123,17 @@ class LocalFeedbackRepository implements FeedbackRepository {
   }
 
   @override
+  Future<List<Question>> getQuestionsForSeller(int sellerId) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      '$_selectQuestions WHERE p.seller_id = ? '
+      'ORDER BY (q.answer IS NOT NULL), q.created_at DESC',
+      [sellerId],
+    );
+    return rows.map(Question.fromMap).toList();
+  }
+
+  @override
   Future<List<Question>> getAllQuestions() async {
     final Database db = await _appDatabase.database;
     final List<Map<String, Object?>> rows = await db.rawQuery(

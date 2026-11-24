@@ -205,6 +205,12 @@ class ProfileScreen extends StatelessWidget {
                 : 'Данные: на телефоне',
             onTap: () => ShopServerSheet.show(context),
           ),
+          if (authState.currentUser?.isSeller ?? false)
+            _MenuItem(
+              icon: Icons.storefront_outlined,
+              title: 'Кабинет продавца',
+              onTap: () => Navigator.of(context).pushNamed(AppRoutes.seller),
+            ),
           if (authState.isAdmin)
             _MenuItem(
               icon: Icons.admin_panel_settings_outlined,

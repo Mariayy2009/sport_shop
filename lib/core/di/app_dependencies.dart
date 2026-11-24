@@ -17,6 +17,7 @@ import '../../data/repositories/local_order_repository.dart';
 import '../../data/repositories/local_product_repository.dart';
 import '../../data/repositories/local_recommendation_repository.dart';
 import '../../data/repositories/local_user_repository.dart';
+import '../../data/repositories/moderation_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/preferences_repository.dart';
 import '../../data/datasources/local/shop_server_storage.dart';
@@ -54,6 +55,7 @@ class AppDependencies {
     required this.exhibitRepository,
     required this.tryOnRepository,
     required this.preferencesRepository,
+    required this.moderationRepository,
     required this.mediaStorage,
     required this.photoTryOnService,
     required this.authService,
@@ -111,6 +113,7 @@ class AppDependencies {
       exhibitRepository: LocalExhibitRepository(database),
       tryOnRepository: tryOnRepository ?? LocalTryOnRepository(),
       preferencesRepository: preferences,
+      moderationRepository: LocalModerationRepository(database),
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
       photoTryOnService: photoTryOnService ?? PhotoTryOnService(),
       authService: AuthService(
@@ -142,6 +145,9 @@ class AppDependencies {
 
   /// Анкета покупателя: цвета, позиция, материалы.
   final PreferencesRepository preferencesRepository;
+
+  /// Модерация: снятие товаров с продажи, предупреждения продавцам.
+  final ModerationRepository moderationRepository;
   final MediaStorage mediaStorage;
   final PhotoTryOnService photoTryOnService;
   final AuthService authService;

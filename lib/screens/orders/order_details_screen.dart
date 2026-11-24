@@ -227,6 +227,23 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       Text(order.deliveryAddress!, style: AppTextStyles.body),
                     SummaryRow(label: 'Получатель', value: order.customerName ?? '—'),
                     SummaryRow(label: 'Телефон', value: order.phone ?? '—'),
+                    if (order.trackingNote != null) ...[
+                      const SizedBox(height: AppSizes.s),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.local_shipping_outlined, size: 18),
+                          const SizedBox(width: AppSizes.xs),
+                          Expanded(
+                            child: Text(
+                              'Где товар: ${order.trackingNote}',
+                              style: AppTextStyles.body
+                                  .copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

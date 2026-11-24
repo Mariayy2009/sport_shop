@@ -18,6 +18,7 @@ class Order {
     this.deliveryAddress,
     this.deliveryMethod = DeliveryMethod.courier,
     this.items = const [],
+    this.trackingNote,
   });
 
   final int? id;
@@ -29,6 +30,10 @@ class Order {
   final String? phone;
   final String? deliveryAddress;
   final DeliveryMethod deliveryMethod;
+
+  /// Где сейчас товар — пишет продавец или магазин: «Отправлен из Алматы,
+  /// привезём 27 ноября».
+  final String? trackingNote;
 
   /// Позиции заказа — загружаются отдельным запросом к order_items.
   final List<OrderItem> items;
@@ -49,6 +54,7 @@ class Order {
       phone: map['phone'] as String?,
       deliveryAddress: map['delivery_address'] as String?,
       deliveryMethod: DeliveryMethod.fromValue(map['delivery_method'] as String?),
+      trackingNote: map['tracking_note'] as String?,
       items: items,
     );
   }
@@ -99,6 +105,7 @@ class Order {
       deliveryAddress: deliveryAddress,
       deliveryMethod: deliveryMethod,
       items: items ?? this.items,
+      trackingNote: trackingNote,
     );
   }
 }

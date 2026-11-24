@@ -15,7 +15,13 @@ class User {
     this.phone,
     this.avatarPath,
     required this.createdAt,
+    this.shopName,
   });
+
+  /// Название магазина, если пользователь — продавец.
+  final String? shopName;
+
+  bool get isSeller => role == UserRole.seller;
 
   /// null — пользователь ещё не сохранён в БД.
   final int? id;
@@ -55,7 +61,11 @@ class User {
       id: map['id'] as int?,
       email: map['email'] as String,
       passwordHash: (map['password_hash'] as String?) ?? '',
-      role: UserRole.fromValue(map['role'] as String?),
+      role: map['shop_name'] != null &&
+              UserRole.fromValue(map['role'] as String?) == UserRole.customer
+          ? UserRole.seller
+          : UserRole.fromValue(map['role'] as String?),
+      shopName: map['shop_name'] as String?,
       firstName: map['first_name'] as String?,
       lastName: map['last_name'] as String?,
       phone: map['phone'] as String?,
@@ -69,7 +79,8 @@ class User {
       if (id != null) 'id': id,
       'email': email,
       'password_hash': passwordHash,
-      'role': role.value,
+      // В таблице users продавец — покупатель с магазином.
+      'role': role == UserRole.seller ? UserRole.customer.value : role.value,
       'first_name': firstName,
       'last_name': lastName,
       'phone': phone,
@@ -107,6 +118,7 @@ class User {
       phone: phone ?? this.phone,
       avatarPath: clearAvatar ? null : (avatarPath ?? this.avatarPath),
       createdAt: createdAt ?? this.createdAt,
+      shopName: shopName,
     );
   }
 }

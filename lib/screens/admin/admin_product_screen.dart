@@ -26,10 +26,13 @@ import '../../widgets/product_image.dart';
 /// Добавление и редактирование товара администратором.
 /// Возвращает true, если каталог изменился.
 class AdminProductScreen extends StatefulWidget {
-  const AdminProductScreen({super.key, this.product});
+  const AdminProductScreen({super.key, this.product, this.sellerId});
 
   /// null — создаётся новый товар.
   final Product? product;
+
+  /// Продавец, который добавляет товар из своего кабинета.
+  final int? sellerId;
 
   @override
   State<AdminProductScreen> createState() => _AdminProductScreenState();
@@ -62,7 +65,13 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     );
     _stock = TextEditingController(text: product?.stock.toString() ?? '');
     _sizes = TextEditingController(text: product?.size ?? '');
-    _brand = TextEditingController(text: product?.brand ?? '');
+    // Новый товар продавца — сразу с названием его магазина.
+    _brand = TextEditingController(
+      text: product?.brand ??
+          (widget.sellerId == null
+              ? ''
+              : context.read<AuthState>().currentUser?.shopName ?? ''),
+    );
     _material = TextEditingController(text: product?.material ?? '');
     _sportId = product?.sportId;
     _categoryId = product?.categoryId;
@@ -152,6 +161,11 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       material: _nullIfEmpty(_material),
       rating: widget.product?.rating,
       reviewsCount: widget.product?.reviewsCount ?? 0,
+      // Продавец и статус модерации при правке не меняются. Новый товар
+      // продавца — его товар; новый товар администратора — магазина SPORT.
+      sellerId: widget.product?.sellerId ?? widget.sellerId,
+      isBlocked: widget.product?.isBlocked ?? false,
+      blockReason: widget.product?.blockReason,
     );
     try {
       if (_isNew) {

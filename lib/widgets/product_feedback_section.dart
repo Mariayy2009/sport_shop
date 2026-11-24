@@ -149,7 +149,7 @@ class _ProductFeedbackSectionState extends State<ProductFeedbackSection> {
     final FeedbackRepository repository = context.read<FeedbackRepository>();
     final String? text = await TextInputSheet.show(
       context,
-      title: 'Ответ магазина',
+      title: widget.product.sellerId == null ? 'Ответ магазина' : 'Ответ продавца',
       subtitle: question.text,
       hint: 'Ответ увидят все покупатели',
       buttonText: 'Опубликовать ответ',
@@ -192,7 +192,13 @@ class _ProductFeedbackSectionState extends State<ProductFeedbackSection> {
             ),
             const SizedBox(height: AppSizes.m),
             if (_showQuestions)
-              ..._questions(data, auth.isAdmin)
+              // Отвечает администратор или продавец этого товара.
+              ..._questions(
+                data,
+                auth.isAdmin ||
+                    (auth.currentUser?.isSeller == true &&
+                        auth.currentUser?.id == widget.product.sellerId),
+              )
             else
               ..._reviews(data, auth.currentUser?.id),
           ],
@@ -237,6 +243,9 @@ class _ProductFeedbackSectionState extends State<ProductFeedbackSection> {
           child: _QuestionCard(
             question: question,
             onAnswer: isAdmin ? () => _answer(question) : null,
+            answerLabel: widget.product.sellerId == null
+                ? 'Ответ магазина'
+                : 'Ответ продавца ${widget.product.sellerName ?? ''}'.trim(),
           ),
         ),
       OutlinedButton.icon(
@@ -357,9 +366,14 @@ class _ReviewCard extends StatelessWidget {
 }
 
 class _QuestionCard extends StatelessWidget {
-  const _QuestionCard({required this.question, required this.onAnswer});
+  const _QuestionCard({
+    required this.question,
+    required this.onAnswer,
+    this.answerLabel = 'Ответ магазина',
+  });
 
   final Question question;
+  final String answerLabel;
 
   /// Задан только для администратора.
   final VoidCallback? onAnswer;
@@ -393,7 +407,7 @@ class _QuestionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ответ магазина',
+                    answerLabel,
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.accentDark,
                       fontWeight: FontWeight.w700,

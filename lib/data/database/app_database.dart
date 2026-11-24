@@ -69,6 +69,21 @@ class AppDatabase {
         await SeedData.insertExtraProducts(db);
       }
       if (oldVersion < 11) await SeedData.applyGalleries(db);
+      if (oldVersion < 12) {
+        // Продавцы и модерация: только новые колонки и таблицы — данные
+        // покупателей, корзина и заказы не трогаются.
+        for (final String column in DatabaseSchema.productSellerColumns
+            .split(',\n')
+            .map((line) => line.trim())) {
+          await db.execute('ALTER TABLE ${DatabaseSchema.products} ADD COLUMN $column');
+        }
+        await db.execute(
+          'ALTER TABLE ${DatabaseSchema.orders} ADD COLUMN tracking_note TEXT',
+        );
+        await db.execute(DatabaseSchema.createSellers);
+        await db.execute(DatabaseSchema.createSellerWarnings);
+        await SeedData.insertSellers(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

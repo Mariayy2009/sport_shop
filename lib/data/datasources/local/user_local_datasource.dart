@@ -11,25 +11,26 @@ class UserLocalDataSource {
 
   final AppDatabase _appDatabase;
 
+  /// Пользователь вместе с магазином, если он продавец.
+  static const String _select = 'SELECT u.*, s.shop_name '
+      'FROM ${DatabaseSchema.users} u '
+      'LEFT JOIN ${DatabaseSchema.sellers} s ON s.user_id = u.id';
+
   Future<User?> findByEmail(String email) async {
     final Database db = await _appDatabase.database;
     // Колонка email объявлена с COLLATE NOCASE — поиск без учёта регистра.
-    final List<Map<String, Object?>> rows = await db.query(
-      DatabaseSchema.users,
-      where: 'email = ?',
-      whereArgs: [email.trim()],
-      limit: 1,
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      '$_select WHERE u.email = ? LIMIT 1',
+      [email.trim()],
     );
     return rows.isEmpty ? null : User.fromMap(rows.first);
   }
 
   Future<User?> findById(int id) async {
     final Database db = await _appDatabase.database;
-    final List<Map<String, Object?>> rows = await db.query(
-      DatabaseSchema.users,
-      where: 'id = ?',
-      whereArgs: [id],
-      limit: 1,
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      '$_select WHERE u.id = ? LIMIT 1',
+      [id],
     );
     return rows.isEmpty ? null : User.fromMap(rows.first);
   }
@@ -37,7 +38,7 @@ class UserLocalDataSource {
   Future<List<User>> getAll() async {
     final Database db = await _appDatabase.database;
     final List<Map<String, Object?>> rows =
-        await db.query(DatabaseSchema.users, orderBy: 'created_at DESC');
+        await db.rawQuery('$_select ORDER BY u.created_at DESC');
     return rows.map(User.fromMap).toList();
   }
 

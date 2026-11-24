@@ -29,7 +29,10 @@ class DatabaseSchema {
   ///      в том числе варианты одного продавца. Обновление без потери данных.
   /// v11: дополнительные фото у товаров основного каталога (беговая
   ///      футболка, пояс, бинты, блок для йоги, вратарские перчатки).
-  static const int version = 11;
+  /// v12: продавцы (таблица sellers — магазин пользователя), у товара —
+  ///      продавец и статус «снят с продажи», у заказа — «где товар»,
+  ///      предупреждения продавцам от администратора (seller_warnings).
+  static const int version = 12;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -46,6 +49,8 @@ class DatabaseSchema {
   static const String reviews = 'reviews';
   static const String questions = 'questions';
   static const String exhibits = 'exhibits';
+  static const String sellers = 'sellers';
+  static const String sellerWarnings = 'seller_warnings';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
   static const List<String> tablesInCreateOrder = [
@@ -63,6 +68,8 @@ class DatabaseSchema {
     reviews,
     questions,
     exhibits,
+    sellers,
+    sellerWarnings,
   ];
 
   /// Таблицы прежних версий: удаляются при обновлении схемы.
@@ -73,6 +80,37 @@ class DatabaseSchema {
 
   static final String _clothingSizesSql =
       UserSizes.clothingSizes.map((size) => "'$size'").join(', ');
+
+  /// Колонки товара про продавца и модерацию (те же — в миграции v12).
+  static const String productSellerColumns = '''
+      seller_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'blocked')),
+      block_reason TEXT''';
+
+  /// Магазин продавца: пользователь с записью здесь — продавец.
+  static const String createSellers = '''
+    CREATE TABLE $sellers (
+      user_id INTEGER PRIMARY KEY,
+      shop_name TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
+    )
+    ''';
+
+  /// Предупреждения продавцам от администратора.
+  static const String createSellerWarnings = '''
+    CREATE TABLE $sellerWarnings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      seller_id INTEGER NOT NULL,
+      product_id INTEGER,
+      reason TEXT NOT NULL,
+      text TEXT,
+      created_at TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (seller_id) REFERENCES $users(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE SET NULL
+    )
+    ''';
 
   static final List<String> createStatements = [
     '''
@@ -134,6 +172,7 @@ class DatabaseSchema {
       material TEXT,
       rating REAL CHECK (rating IS NULL OR rating BETWEEN 0 AND 5),
       reviews_count INTEGER NOT NULL DEFAULT 0,
+      $productSellerColumns,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -174,6 +213,7 @@ class DatabaseSchema {
       delivery_address TEXT,
       delivery_method TEXT NOT NULL DEFAULT 'courier'
         CHECK (delivery_method IN ('courier', 'pickup')),
+      tracking_note TEXT,
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE RESTRICT
     )
     ''',
@@ -253,6 +293,8 @@ class DatabaseSchema {
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE SET NULL
     )
     ''',
+    createSellers,
+    createSellerWarnings,
     // Индексы для частых выборок: каталог, подбор, история заказов
     'CREATE INDEX idx_products_sport ON $products(sport_id)',
     'CREATE INDEX idx_products_category ON $products(category_id)',

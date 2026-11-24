@@ -14,4 +14,10 @@ abstract class OrderRepository {
   Future<List<Order>> getAllOrders();
 
   Future<void> updateStatus(int orderId, OrderStatus status);
+
+  /// Заказы с товарами продавца — для кабинета продавца.
+  Future<List<Order>> getOrdersForSeller(int sellerId);
+
+  /// «Где товар» — пишет продавец или магазин. null — убрать.
+  Future<void> updateTracking(int orderId, String? note);
 }

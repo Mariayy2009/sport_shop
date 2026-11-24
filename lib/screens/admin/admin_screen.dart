@@ -9,19 +9,21 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/repositories/feedback_repository.dart';
+import '../../data/repositories/moderation_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/product_repository.dart';
-import '../../models/enums.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
+import '../../models/product_filter.dart';
 import '../../models/question.dart';
 import '../../state/auth_state.dart';
 import '../../state/order_state.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/order_manage_card.dart';
+import '../../widgets/warning_sheet.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/product_image.dart';
-import '../../widgets/status_chip.dart';
 import '../../widgets/text_input_sheet.dart';
 
 /// Панель администратора: товары, заказы и вопросы покупателей.
@@ -95,8 +97,56 @@ class _ProductsTabState extends State<_ProductsTab>
   @override
   bool get wantKeepAlive => true;
 
-  Future<List<Product>> _load() =>
-      context.read<ProductRepository>().getProducts();
+  // Администратор видит и снятые с продажи товары.
+  Future<List<Product>> _load() => context
+      .read<ProductRepository>()
+      .getProducts(const ProductFilter(includeBlocked: true));
+
+  void _reload() => setState(() => _future = _load());
+
+  Future<void> _block(Product product) async {
+    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final (WarningReason, String?)? result = await WarningSheet.show(
+      context,
+      title: 'Снять «${product.name}» с продажи',
+      buttonText: 'Снять с продажи',
+    );
+    if (result == null) return;
+    await moderation.blockProduct(product, result.$1, text: result.$2);
+    if (!mounted) return;
+    AppMessages.showSuccess(
+      context,
+      product.sellerId == null
+          ? 'Товар снят с продажи'
+          : 'Товар снят, продавец получил предупреждение',
+    );
+    _reload();
+  }
+
+  Future<void> _unblock(Product product) async {
+    await context.read<ModerationRepository>().unblockProduct(product.id!);
+    if (!mounted) return;
+    AppMessages.showSuccess(context, 'Товар снова в продаже');
+    _reload();
+  }
+
+  Future<void> _warn(Product product) async {
+    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final (WarningReason, String?)? result = await WarningSheet.show(
+      context,
+      title: 'Предупреждение продавцу «${product.sellerName}»',
+      buttonText: 'Отправить предупреждение',
+    );
+    if (result == null) return;
+    await moderation.warnSeller(
+      sellerId: product.sellerId!,
+      productId: product.id,
+      reason: result.$1,
+      text: result.$2,
+    );
+    if (!mounted) return;
+    AppMessages.showSuccess(context, 'Предупреждение отправлено продавцу');
+  }
 
   Future<void> _edit(Product? product) async {
     final Object? changed = await Navigator.of(context)
@@ -182,9 +232,17 @@ class _ProductsTabState extends State<_ProductsTab>
                             ),
                             Text(
                               '${Formatters.price(product.price)} · '
-                              '${product.sportName ?? ''}',
+                              'Продавец: ${product.sellerTitle}',
                               style: AppTextStyles.caption,
                             ),
+                            if (product.isBlocked)
+                              Text(
+                                'Снят с продажи: ${product.blockReason ?? ''}',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -199,7 +257,33 @@ class _ProductsTabState extends State<_ProductsTab>
                                   : AppColors.success,
                         ),
                       ),
-                      const Icon(Icons.chevron_right),
+                      PopupMenuButton<String>(
+                        tooltip: 'Модерация',
+                        onSelected: (action) => switch (action) {
+                          'edit' => _edit(product),
+                          'block' => _block(product),
+                          'unblock' => _unblock(product),
+                          _ => _warn(product),
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(value: 'edit', child: Text('Изменить')),
+                          if (product.isBlocked)
+                            const PopupMenuItem(
+                              value: 'unblock',
+                              child: Text('Вернуть в продажу'),
+                            )
+                          else
+                            const PopupMenuItem(
+                              value: 'block',
+                              child: Text('Снять с продажи'),
+                            ),
+                          if (product.sellerId != null)
+                            const PopupMenuItem(
+                              value: 'warn',
+                              child: Text('Предупредить продавца'),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -232,20 +316,6 @@ class _OrdersTabState extends State<_OrdersTab>
   Future<List<Order>> _load() =>
       context.read<OrderRepository>().getAllOrders();
 
-  Future<void> _setStatus(Order order, OrderStatus status) async {
-    if (status == order.status) return;
-    final OrderState orders = context.read<OrderState>();
-    await context.read<OrderRepository>().updateStatus(order.id!, status);
-    // Если это заказ самого администратора — обновим и его историю.
-    await orders.load();
-    if (!mounted) return;
-    AppMessages.showSuccess(
-      context,
-      'Заказ ${Formatters.orderNumber(order.id!)}: «${status.label}»',
-    );
-    setState(() => _future = _load());
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -267,64 +337,14 @@ class _OrdersTabState extends State<_OrdersTab>
           itemCount: orders.length,
           separatorBuilder: (context, index) =>
               const SizedBox(height: AppSizes.s),
-          itemBuilder: (context, index) {
-            final Order order = orders[index];
-            return AppCard(
-              onTap: () => Navigator.of(context)
-                  .pushNamed(AppRoutes.orderDetails, arguments: order.id),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Заказ ${Formatters.orderNumber(order.id!)}',
-                          style: AppTextStyles.body
-                              .copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      StatusChip(status: order.status),
-                    ],
-                  ),
-                  const SizedBox(height: AppSizes.xxs),
-                  Text(
-                    '${Formatters.date(order.createdAt)} · '
-                    '${order.customerName ?? 'Покупатель'} · '
-                    '${order.deliveryMethod.label}',
-                    style: AppTextStyles.caption,
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    '${Formatters.itemsCount(order.itemsCount)} на '
-                    '${Formatters.price(order.totalPrice)}',
-                    style: AppTextStyles.bodySecondary,
-                  ),
-                  const SizedBox(height: AppSizes.s),
-                  SegmentedButton<OrderStatus>(
-                    showSelectedIcon: false,
-                    style: SegmentedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: AppColors.surface,
-                      selectedBackgroundColor: AppColors.black,
-                      selectedForegroundColor: AppColors.white,
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      textStyle: AppTextStyles.caption
-                          .copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    segments: [
-                      for (final OrderStatus status in OrderStatus.values)
-                        ButtonSegment(value: status, label: Text(status.label)),
-                    ],
-                    selected: {order.status},
-                    onSelectionChanged: (value) =>
-                        _setStatus(order, value.first),
-                  ),
-                ],
-              ),
-            );
-          },
+          itemBuilder: (context, index) => OrderManageCard(
+            order: orders[index],
+            onChanged: () async {
+              // Если это заказ самого администратора — обновим и его историю.
+              await context.read<OrderState>().load();
+              if (mounted) setState(() => _future = _load());
+            },
+          ),
         );
       },
     );

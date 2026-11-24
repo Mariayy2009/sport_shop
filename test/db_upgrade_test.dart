@@ -13,8 +13,16 @@ void main() {
     final String path = '${DateTime.now().microsecondsSinceEpoch}_v8.db';
     // База версии 8: таблица экспонатов без gallery и одна запись в корзине.
     final Database old = await openDatabase(path, version: 8, onCreate: (db, _) async {
+      // Схема версии 8: без колонок и таблиц, добавленных позже.
       for (final String statement in DatabaseSchema.createStatements) {
-        await db.execute(statement.replaceAll('gallery TEXT,', ''));
+        if (statement == DatabaseSchema.createSellers ||
+            statement == DatabaseSchema.createSellerWarnings) {
+          continue;
+        }
+        await db.execute(statement
+            .replaceAll('gallery TEXT,', '')
+            .replaceAll('${DatabaseSchema.productSellerColumns},', '')
+            .replaceAll('tracking_note TEXT,', ''));
       }
       for (final String sport in [
         'Волейбол', 'Бег', 'Футбол', 'Плавание', 'Бокс', 'Карате',
@@ -74,6 +82,16 @@ void main() {
     final Map<String, Object?> kimono = products.firstWhere(
         (row) => row['image_url'] == 'assets/images/products/karate_kimono.jpg');
     expect(kimono['brand'], 'Budo Pro');
+
+    // v12: продавцы. Кимоно теперь продаёт магазин «Budo Pro».
+    final List<Map<String, Object?>> sellers = await db.query('sellers');
+    expect(sellers.map((row) => row['shop_name']), containsAll(['Budo Pro', 'Sportlife']));
+    final int budo = sellers.firstWhere((row) => row['shop_name'] == 'Budo Pro')['user_id']! as int;
+    final Map<String, Object?> kimonoNow = (await db.query('products',
+        where: 'image_url = ?',
+        whereArgs: ['assets/images/products/karate_kimono.jpg'])).single;
+    expect(kimonoNow['seller_id'], budo);
+    expect(kimonoNow['status'], 'active');
     await db.close();
     await deleteDatabase(path);
   });

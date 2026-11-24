@@ -18,6 +18,7 @@ import '../../screens/exhibits/exhibit_screen.dart';
 import '../../screens/exhibits/hall_of_fame_screen.dart';
 import '../../screens/games/ball_game_screen.dart';
 import '../../screens/profile/preferences_screen.dart';
+import '../../screens/seller/seller_screen.dart';
 import '../../screens/recommendation/preference_results_screen.dart';
 import '../../services/games/ball_game.dart';
 import '../../screens/favorites/favorites_screen.dart';
@@ -68,6 +69,7 @@ class AppRouter {
         LiveTryOnScreen(productId: args is int ? args : null),
       AppRoutes.hallOfFame => const HallOfFameScreen(),
       AppRoutes.preferences => const PreferencesScreen(),
+      AppRoutes.seller => const SellerScreen(),
       AppRoutes.preferenceResults => const PreferenceResultsScreen(),
       AppRoutes.ballGame => BallGameScreen(
           initialMode: args is BallGameMode ? args : BallGameMode.football,

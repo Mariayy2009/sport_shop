@@ -15,16 +15,24 @@ class ProductLocalDataSource {
 
   /// Товар вместе с названиями категории и вида спорта (JOIN).
   static const String _selectProducts =
-      'SELECT p.*, c.name AS category_name, s.name AS sport_name '
+      'SELECT p.*, c.name AS category_name, s.name AS sport_name, '
+      'sl.shop_name AS seller_name '
       'FROM ${DatabaseSchema.products} p '
       'JOIN ${DatabaseSchema.categories} c ON c.id = p.category_id '
-      'JOIN ${DatabaseSchema.sports} s ON s.id = p.sport_id';
+      'JOIN ${DatabaseSchema.sports} s ON s.id = p.sport_id '
+      'LEFT JOIN ${DatabaseSchema.sellers} sl ON sl.user_id = p.seller_id';
 
   Future<List<Product>> getProducts(ProductFilter filter) async {
     final Database db = await _appDatabase.database;
     final List<String> conditions = [];
     final List<Object?> args = [];
 
+    // Снятые с продажи товары видят только администратор и их продавец.
+    if (!filter.includeBlocked) conditions.add("p.status = 'active'");
+    if (filter.sellerId != null) {
+      conditions.add('p.seller_id = ?');
+      args.add(filter.sellerId);
+    }
     if (filter.sportId != null) {
       conditions.add('p.sport_id = ?');
       args.add(filter.sportId);

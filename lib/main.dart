@@ -12,6 +12,7 @@ import 'data/database/app_database.dart';
 import 'data/database/database_helper.dart';
 import 'data/repositories/exhibit_repository.dart';
 import 'data/repositories/feedback_repository.dart';
+import 'data/repositories/moderation_repository.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/preferences_repository.dart';
 import 'data/repositories/product_repository.dart';
@@ -78,6 +79,9 @@ class SportShopApp extends StatelessWidget {
           value: dependencies.assistantEngine,
         ),
         Provider<MediaStorage>.value(value: dependencies.mediaStorage),
+        Provider<ModerationRepository>.value(
+          value: dependencies.moderationRepository,
+        ),
         Provider<PreferencesRepository>.value(
           value: dependencies.preferencesRepository,
         ),

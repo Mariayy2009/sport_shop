@@ -8,7 +8,15 @@ class ProductFilter {
     this.minPrice,
     this.maxPrice,
     this.onlyAvailable = false,
+    this.includeBlocked = false,
+    this.sellerId,
   });
+
+  /// Показывать и снятые с продажи (панели администратора и продавца).
+  final bool includeBlocked;
+
+  /// Только товары этого продавца (кабинет продавца).
+  final int? sellerId;
 
   final String query;
   final int? sportId;
