@@ -19,6 +19,11 @@ enum BallGameMode {
     'Верхний приём',
     'Волейбол',
     'Встречай мяч ладонями над головой',
+  ),
+  basketball(
+    'Дриблинг',
+    'Баскетбол',
+    'Веди мяч: бей ладонью вниз, когда он отскочит от пола',
   );
 
   const BallGameMode(this.title, this.sport, this.hint);
@@ -29,7 +34,7 @@ enum BallGameMode {
   /// Как правильно бить в этом режиме — подсказка на экране.
   final String hint;
 
-  bool get isVolleyball => this != football;
+  bool get isVolleyball => this == volleyballLow || this == volleyballHigh;
 }
 
 enum BallGamePhase {
@@ -120,6 +125,8 @@ class BallGame {
     reset();
     phase = BallGamePhase.playing;
     velocity = Offset(0, _h * 0.05);
+    // Дриблинг начинается с мяча в руке — на уровне пояса.
+    if (mode == BallGameMode.basketball) position = Offset(size.width / 2, _h * 0.45);
   }
 
   /// Новая поза от камеры. [dt] — секунд с прошлой позы.
@@ -161,7 +168,10 @@ class BallGame {
 
     BallHit? hit;
     final BodyPose? pose = _pose;
-    if (pose != null && _cooldown == 0 && velocity.dy > 0) {
+    if (mode == BallGameMode.basketball) {
+      _floorBounce(pose);
+      if (pose != null && _cooldown == 0) hit = _dribble(pose);
+    } else if (pose != null && _cooldown == 0 && velocity.dy > 0) {
       hit = _collide(pose);
     }
     if (hit != null) {
@@ -179,7 +189,11 @@ class BallGame {
   bool tap(Offset at) {
     if (phase != BallGamePhase.playing) return false;
     if ((at - position).distance > radius * 1.6) return false;
-    _bounce(at, Offset.zero, HitPart.finger);
+    if (mode == BallGameMode.basketball) {
+      velocity = Offset(0, dribbleSpeed * _h);
+    } else {
+      _bounce(at, Offset.zero, HitPart.finger);
+    }
     score++;
     lastHit = BallHit(HitPart.finger, at);
     _cooldown = hitCooldown;
@@ -241,8 +255,77 @@ class BallGame {
         final Offset? lw = _at(pose, BodyJoint.leftWrist);
         final Offset? rw = _at(pose, BodyJoint.rightWrist);
         if (lw != null && rw != null) put(HitPart.hands, (lw + rw) / 2);
+      case BallGameMode.basketball:
+        // Ведут одной рукой — берём ту ладонь, что ближе к мячу.
+        final List<Offset> hands = [
+          for (final BodyJoint joint in [BodyJoint.leftWrist, BodyJoint.rightWrist])
+            if (_at(pose, joint) case final Offset wrist) wrist,
+        ];
+        if (hands.isNotEmpty) {
+          hands.sort((a, b) =>
+              (a - position).distance.compareTo((b - position).distance));
+          put(HitPart.hands, hands.first);
+        }
     }
     return parts;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Баскетбол: дриблинг
+
+  /// Скорость, с которой ладонь отправляет мяч в пол (доля высоты кадра/с).
+  static const double dribbleSpeed = 1.5;
+
+  /// Отскок от пола: доля скорости, которая остаётся у мяча.
+  static const double floorBounce = 0.8;
+
+  /// Пол — уровень стоп; без человека в кадре — низ кадра.
+  double _floorY(BodyPose? pose) {
+    if (pose == null) return _h * 0.95;
+    final List<double> ankles = [
+      for (final BodyJoint joint in [BodyJoint.leftAnkle, BodyJoint.rightAnkle])
+        if (_at(pose, joint) case final Offset ankle) ankle.dy,
+    ];
+    if (ankles.isEmpty) return _h * 0.95;
+    return math.min(ankles.reduce(math.max) + radius * 0.3, _h * 0.98);
+  }
+
+  /// Мяч ударился о пол. Если без ладони он уже не поднимается
+  /// до колен — мяч «умер», игра окончена.
+  void _floorBounce(BodyPose? pose) {
+    final double floor = _floorY(pose);
+    if (position.dy + radius < floor || velocity.dy <= 0) return;
+    position = Offset(position.dx, floor - radius);
+    velocity = Offset(velocity.dx * 0.9, -velocity.dy * floorBounce);
+    final double peak = velocity.dy * velocity.dy / (2 * gravity * _h);
+    final double knee = (pose == null ? null : _kneeY(pose)) ?? _h * 0.75;
+    if (floor - peak > knee) phase = BallGamePhase.over;
+  }
+
+  double? _kneeY(BodyPose pose) {
+    final List<double> knees = [
+      for (final BodyJoint joint in [BodyJoint.leftKnee, BodyJoint.rightKnee])
+        if (_at(pose, joint) case final Offset knee) knee.dy,
+    ];
+    return knees.isEmpty ? null : knees.reduce(math.max);
+  }
+
+  /// Ладонь встречает мяч сверху и толкает в пол.
+  BallHit? _dribble(BodyPose pose) {
+    final Offset? hand = _partsOf(pose)[HitPart.hands];
+    if (hand == null) return null;
+    final double reach = (_shoulderWidth(pose) ?? size.width * 0.3) * 0.45;
+    final Offset delta = position - hand;
+    // Ладонь над мячом (или рядом), мяч не летит уже вниз быстро.
+    if (delta.distance > radius + reach || delta.dy < -radius * 0.8) return null;
+    if (velocity.dy > dribbleSpeed * _h * 0.5) return null;
+    final Offset handVelocity = _partVelocity[HitPart.hands] ?? Offset.zero;
+    velocity = Offset(
+      (handVelocity.dx * 0.3).clamp(-0.3 * size.width, 0.3 * size.width),
+      dribbleSpeed * _h + math.max(0, handVelocity.dy) * 0.2,
+    );
+    spin = velocity.dx / radius;
+    return BallHit(HitPart.hands, hand);
   }
 
   /// Голова: нос, а если его не видно — над серединой плеч.

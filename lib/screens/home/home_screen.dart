@@ -107,8 +107,8 @@ class HomeScreen extends StatelessWidget {
             icon: Icons.sports_soccer,
             color: AppColors.success,
             title: 'Игра: набей мяч',
-            subtitle: 'Чеканка и волейбольный приём через камеру. '
-                'Побей свой рекорд!',
+            subtitle: 'Футбольная чеканка, волейбольный приём и баскетбольный '
+                'дриблинг через камеру. Побей свой рекорд!',
             onTap: () => Navigator.of(context).pushNamed(AppRoutes.ballGame),
           ),
           const SizedBox(height: AppSizes.l),

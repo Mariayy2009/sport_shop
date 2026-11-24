@@ -36,6 +36,8 @@ class _BallGameScreenState extends State<BallGameScreen>
   /// Мячи из каталога: футбольный и волейбольный.
   static const String footballImage = 'assets/images/products/trionda_ball.jpg';
   static const String volleyballImage = 'assets/images/products/mikasa_v200w.jpg';
+  /// Свой рисунок: на фото каталога мяч обрезан краем кадра.
+  static const String basketballImage = 'assets/images/game_basketball.png';
 
   /// Кадр без камеры (компьютер): вертикальный, как телефон.
   static const Size _demoFrame = Size(720, 1280);
@@ -78,7 +80,7 @@ class _BallGameScreenState extends State<BallGameScreen>
   }
 
   Future<void> _loadBalls() async {
-    for (final String path in [footballImage, volleyballImage]) {
+    for (final String path in [footballImage, volleyballImage, basketballImage]) {
       try {
         final ByteData data = await rootBundle.load(path);
         final ui.Codec codec = await ui.instantiateImageCodec(
@@ -208,10 +210,11 @@ class _BallGameScreenState extends State<BallGameScreen>
     }
     final BodyPose? pose = _pose;
     if (pose == null) return 'Встань перед камерой: поставь телефон и отойди';
-    if (_game.mode == BallGameMode.football &&
+    if ((_game.mode == BallGameMode.football ||
+            _game.mode == BallGameMode.basketball) &&
         pose[BodyJoint.leftAnkle] == null &&
         pose[BodyJoint.rightAnkle] == null) {
-      return 'Отойди дальше: для чеканки в кадре нужны ноги';
+      return 'Отойди дальше: в кадре нужны ноги';
     }
     if (_game.phase == BallGamePhase.playing) return null;
     return _game.mode.hint;
@@ -291,7 +294,11 @@ class _BallGameScreenState extends State<BallGameScreen>
         painter: _GamePainter(
           game: _game,
           pose: _live ? _pose : null,
-          ball: _balls[_game.mode.isVolleyball ? volleyballImage : footballImage],
+          ball: _balls[switch (_game.mode) {
+            BallGameMode.football => footballImage,
+            BallGameMode.basketball => basketballImage,
+            _ => volleyballImage,
+          }],
           flash: _flash,
         ),
       ),
@@ -572,7 +579,7 @@ class _StartPanel extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: AppSizes.m),
               ),
               icon: const Icon(Icons.sports_soccer),
-              label: Text(over ? 'Ещё раз' : 'Подбросить мяч'),
+              label: Text(over ? 'Ещё раз' : 'Начать'),
             ),
           ),
         ],

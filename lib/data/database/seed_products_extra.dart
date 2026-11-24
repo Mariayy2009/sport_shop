@@ -286,6 +286,23 @@ class SeedProductsExtra {
     'football_ball': ['football_ball_2'],
     'kettlebell': ['kettlebell_set'],
     'yoga_mat': ['yoga_mat_purple'],
+    // Как вещь сидит на человеке и другие цвета той же модели.
+    'running_tshirt': [
+      'running_tshirt_1', 'running_tshirt_2', 'running_tshirt_3',
+      'running_tshirt_4', 'running_tshirt_5', 'running_tshirt_6',
+      'running_tshirt_7', 'running_tshirt_8', 'running_tshirt_9',
+      'running_tshirt_10', 'running_tshirt_pile',
+    ],
+    'running_belt': [
+      'running_belt_1', 'running_belt_2', 'running_belt_3', 'running_belt_4',
+    ],
+    'hand_wraps': ['hand_wraps_1', 'hand_wraps_2', 'hand_wraps_3'],
+    'yoga_block': ['yoga_block_1', 'yoga_block_2', 'yoga_block_3', 'yoga_block_4'],
+    'goalkeeper_gloves': [
+      'goalkeeper_gloves_1', 'goalkeeper_gloves_2', 'goalkeeper_gloves_3',
+      'goalkeeper_gloves_4', 'goalkeeper_gloves_5', 'goalkeeper_gloves_6',
+      'goalkeeper_gloves_7', 'goalkeeper_gloves_8',
+    ],
   };
 
   static String path(String key) => '$imagesFolder/$key.jpg';

@@ -130,4 +130,26 @@ void main() {
     expect(game.score, 1);
     expect(game.tap(const Offset(0, 0)), isFalse);
   });
+
+  test('дриблинг: мяч отскакивает от пола, ладонь бьёт вниз — очко', () {
+    final BallGame game = BallGame(size: frame, mode: BallGameMode.basketball)
+      ..start();
+    // Ладонь на уровне пояса, ноги на 90% высоты.
+    game.updatePose(person(
+      leftWrist: const Offset(0.5, 0.5),
+      rightWrist: const Offset(0.62, 0.55),
+    ));
+    final List<BallHit> hits = run(game, 4);
+    expect(game.phase, BallGamePhase.playing);
+    expect(hits.length, greaterThanOrEqualTo(3));
+    expect(hits.every((hit) => hit.part == HitPart.hands), isTrue);
+  });
+
+  test('дриблинг: без ладони мяч затухает — игра окончена', () {
+    final BallGame game = BallGame(size: frame, mode: BallGameMode.basketball)
+      ..start();
+    game.updatePose(null);
+    run(game, 10);
+    expect(game.phase, BallGamePhase.over);
+  });
 }

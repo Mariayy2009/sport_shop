@@ -20,11 +20,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 16));
     }
     expect(find.textContaining('отбивай мяч мышкой'), findsOneWidget);
-    expect(find.text('Подбросить мяч'), findsOneWidget);
+    expect(find.text('Начать'), findsOneWidget);
 
     await tester.tap(find.text('Волейбол: нижний приём'));
     await tester.pump();
-    await tester.tap(find.text('Подбросить мяч'));
+    await tester.tap(find.text('Начать'));
     for (int i = 0; i < 300; i++) {
       await tester.pump(const Duration(milliseconds: 16));
     }

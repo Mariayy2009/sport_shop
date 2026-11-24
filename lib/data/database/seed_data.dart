@@ -517,6 +517,19 @@ class SeedData {
         'rating': item.rating,
       });
     }
+    await applyGalleries(db);
+    // Детское кимоно — тоже у продавца кимоно (варианты в одном магазине).
+    await db.update(
+      DatabaseSchema.products,
+      {'brand': SeedProductsExtra.kimonoSeller},
+      where: 'image_url = ?',
+      whereArgs: [SeedProductsExtra.path('karate_kimono')],
+    );
+  }
+
+  /// Дополнительные фото товаров основного каталога (повторный вызов
+  /// безопасен — фото просто перезаписываются).
+  static Future<void> applyGalleries(DatabaseExecutor db) async {
     for (final MapEntry<String, List<String>> entry
         in SeedProductsExtra.galleries.entries) {
       await db.update(
@@ -526,13 +539,6 @@ class SeedData {
         whereArgs: [SeedProductsExtra.path(entry.key)],
       );
     }
-    // Детское кимоно — тоже у продавца кимоно (варианты в одном магазине).
-    await db.update(
-      DatabaseSchema.products,
-      {'brand': SeedProductsExtra.kimonoSeller},
-      where: 'image_url = ?',
-      whereArgs: [SeedProductsExtra.path('karate_kimono')],
-    );
   }
 
   /// Спортсмены Казахстана в «Зале славы». Вызывается и при создании

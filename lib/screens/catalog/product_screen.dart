@@ -147,6 +147,7 @@ class _ProductScreenState extends State<ProductScreen> {
     return switch (product.sportName) {
       'Футбол' => BallGameMode.football,
       'Волейбол' => BallGameMode.volleyballLow,
+      'Баскетбол' => BallGameMode.basketball,
       _ => null,
     };
   }

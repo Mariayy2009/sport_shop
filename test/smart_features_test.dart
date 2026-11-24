@@ -621,7 +621,7 @@ void main() {
     test('экспонаты: создание, изменение, источник, удаление', () async {
       final Sport volleyball = await sport('Волейбол');
       // В демо-данных — 11 спортсменов Казахстана (первыми) и 23 экспоната
-      // музея КНУС (№1 первым среди них).
+      // КНУС (№1 первым среди них).
       final List<Exhibit> seeded = await deps.exhibitRepository.getAll();
       expect(seeded.length, 34);
       expect(seeded.first.title, 'Михаил Шайдоров');
