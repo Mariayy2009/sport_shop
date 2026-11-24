@@ -16,12 +16,17 @@ import '../../data/repositories/product_repository.dart';
 import '../../models/product.dart';
 import '../../models/try_on.dart';
 import '../../services/try_on/body_pose.dart';
+import '../../services/size_advisor.dart';
 import '../../services/try_on/body_shading.dart';
+import '../../services/try_on/garment_cutout.dart';
 import '../../services/try_on/garment_color.dart';
 import '../../services/try_on/garment_mesh.dart';
 import '../../services/try_on/live_try_on_service.dart';
 import '../../services/try_on/photo_try_on_service.dart';
+import '../../state/profile_state.dart';
+import '../../widgets/dark_pill.dart';
 import '../../widgets/garment_3d_painter.dart';
+import '../../widgets/photo_garment_painter.dart';
 import '../../widgets/try_on_product_strip.dart';
 
 /// Живая примерка: камера, поза тела в реальном времени и 3D-модель
@@ -63,6 +68,30 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
   String? _error;
   bool _isStarting = true;
   bool _showJoints = false;
+
+  /// Вещь, вырезанная из фото товара (режим «Фото вещи»). null — фото
+  /// не подходит (вещь снята на человеке или фон не однотонный).
+  GarmentCutout? _cutout;
+
+  /// true — накладывать фото вещи, false — 3D-модель.
+  bool _photoMode = true;
+  String? _size;
+  SizeAdvice? _advice;
+  static const SizeAdvisor _sizeAdvisor = SizeAdvisor();
+
+  bool get _usePhoto => _photoMode && _cutout != null;
+
+  bool get _isBottom {
+    final GarmentShape? shape =
+        _product == null ? null : TryOnSupport.of(_product!).shape;
+    return shape == GarmentShape.shorts || shape == GarmentShape.pants;
+  }
+
+  double get _sizeScale => SizeFit.scale(
+        _product?.availableSizes ?? const [],
+        _size,
+        _advice?.size,
+      );
 
   bool get _live => LiveTryOnService.isSupported;
 
@@ -138,17 +167,33 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       final ByteData data = await rootBundle.load(shape.assetPath);
       final GarmentMesh mesh = GarmentMesh.fromGlb(data.buffer.asUint8List());
       Color color = GarmentColor.fallback;
+      GarmentCutout? cutout;
       try {
-        color = await GarmentColor.forProduct(
-            product.imageUrl, await _images.loadProductImage(product));
+        final Uint8List bytes = await _images.loadProductImage(product);
+        color = await GarmentColor.forProduct(product.imageUrl, bytes);
+        // Вещь на фото надета на человека — вырезать её нельзя.
+        if (!PhotoTryOnService.modelPhotos.contains(product.imageUrl)) {
+          cutout = await GarmentCutout.fromImage(
+            bytes,
+            isBottom: shape == GarmentShape.shorts || shape == GarmentShape.pants,
+          );
+        }
       } on AppException {
         // У товара нет фото — оставляем цвет по умолчанию.
       }
       if (!mounted) return;
+      final SizeAdvice? advice =
+          _sizeAdvisor.advise(product, context.read<ProfileState>().sizes);
+      final List<String> sizes = product.availableSizes;
       setState(() {
         _product = product;
         _mesh = mesh;
         _color = color;
+        _cutout = cutout;
+        _advice = advice;
+        // Сначала — рекомендуемый размер, без анкеты — средний.
+        _size = advice?.size ??
+            (sizes.isEmpty ? null : sizes[sizes.length ~/ 2]);
       });
     } on Exception catch (error) {
       debugPrint('Не удалось загрузить 3D-модель: $error');
@@ -215,6 +260,16 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                     padding: const EdgeInsets.only(bottom: AppSizes.m),
                     child: _Hint(text: _statusText!),
                   ),
+                if (product != null)
+                  _FitPanel(
+                    sizes: product.availableSizes,
+                    selected: _size,
+                    advice: _advice,
+                    hasPhoto: _cutout != null,
+                    photoMode: _photoMode,
+                    onSize: (size) => setState(() => _size = size),
+                    onPhotoMode: (value) => setState(() => _photoMode = value),
+                  ),
                 TryOnProductStrip(
                   products: _products,
                   selectedId: product?.id,
@@ -259,7 +314,7 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
     if (_error != null) return _error;
     if (_isStarting) return 'Запускаю камеру…';
     if (!_live) {
-      return 'Предпросмотр 3D-модели на условной фигуре. Живая примерка '
+      return 'Предпросмотр на условной фигуре. Живая примерка '
           'с камерой работает на телефоне';
     }
     final BodyPose? pose = _pose;
@@ -292,6 +347,9 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                   pose: pose,
                   color: _color,
                   showJoints: true,
+                  cutout: _usePhoto ? _cutout : null,
+                  isBottom: _isBottom,
+                  sizeScale: _sizeScale,
                 ),
                 size: constraints.biggest,
               );
@@ -325,6 +383,9 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                 color: _color,
                 showJoints: _showJoints,
                 shading: _shading,
+                cutout: _usePhoto ? _cutout : null,
+                isBottom: _isBottom,
+                sizeScale: _sizeScale,
               ),
             ),
           ],
@@ -366,9 +427,15 @@ class _StagePainter extends CustomPainter {
     required this.color,
     required this.showJoints,
     this.shading,
+    this.cutout,
+    this.isBottom = false,
+    this.sizeScale = 1,
   });
 
   final GarmentMesh? mesh;
+  final GarmentCutout? cutout;
+  final bool isBottom;
+  final double sizeScale;
   final BodyPose? pose;
   final Color color;
   final bool showJoints;
@@ -394,6 +461,19 @@ class _StagePainter extends CustomPainter {
     final BodyPose? pose = this.pose;
     if (pose == null) return;
     if (showJoints) _paintSkeleton(canvas, size, pose);
+    final GarmentCutout? cutout = this.cutout;
+    if (cutout != null) {
+      PhotoGarmentPainter.paint(
+        canvas,
+        size,
+        pose,
+        cutout,
+        isBottom: isBottom,
+        sizeScale: sizeScale,
+        shading: shading,
+      );
+      return;
+    }
     final GarmentMesh? mesh = this.mesh;
     if (mesh == null) return;
     Garment3DPainter(
@@ -439,6 +519,8 @@ class _StagePainter extends CustomPainter {
       oldDelegate.mesh != mesh ||
       oldDelegate.color != color ||
       oldDelegate.shading != shading ||
+      oldDelegate.cutout != cutout ||
+      oldDelegate.sizeScale != sizeScale ||
       oldDelegate.showJoints != showJoints;
 }
 
@@ -525,6 +607,100 @@ class _Hint extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         style: AppTextStyles.bodySecondary.copyWith(color: AppColors.white),
+      ),
+    );
+  }
+}
+
+/// Размер и режим примерки: «Фото вещи» (настоящий принт и надписи)
+/// или 3D-модель (следует за руками). Размер меняет вещь на теле:
+/// больше рекомендуемого — шире и длиннее, меньше — уже и короче.
+class _FitPanel extends StatelessWidget {
+  const _FitPanel({
+    required this.sizes,
+    required this.selected,
+    required this.advice,
+    required this.hasPhoto,
+    required this.photoMode,
+    required this.onSize,
+    required this.onPhotoMode,
+  });
+
+  final List<String> sizes;
+  final String? selected;
+  final SizeAdvice? advice;
+  final bool hasPhoto;
+  final bool photoMode;
+  final ValueChanged<String> onSize;
+  final ValueChanged<bool> onPhotoMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final String fit = SizeFit.describe(sizes, selected, advice?.size);
+    final String note = advice == null
+        ? 'Укажите рост и вес в профиле — подскажем размер'
+        : selected == advice!.size
+            ? 'Ваш размер по параметрам: ${advice!.size}'
+            : 'Советуем ${advice!.size}. Размер $selected будет: $fit';
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+        AppSizes.screenPadding, 0, AppSizes.screenPadding, AppSizes.s,
+      ),
+      padding: const EdgeInsets.all(AppSizes.s),
+      decoration: BoxDecoration(
+        color: AppColors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  note,
+                  style: AppTextStyles.caption.copyWith(color: AppColors.white),
+                ),
+              ),
+              if (hasPhoto)
+                TextButton(
+                  onPressed: () => onPhotoMode(!photoMode),
+                  child: Text(
+                    photoMode ? 'Показать 3D' : 'Показать фото вещи',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (sizes.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.xs),
+            SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: sizes.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(width: AppSizes.xs),
+                itemBuilder: (context, index) {
+                  final String size = sizes[index];
+                  final bool isSelected = size == selected;
+                  final bool isAdvice = size == advice?.size;
+                  return Center(
+                    child: DarkPill(
+                      label: size,
+                      selected: isSelected,
+                      highlighted: isAdvice,
+                      onTap: () => onSize(size),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

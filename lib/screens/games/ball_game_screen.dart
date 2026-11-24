@@ -15,6 +15,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../services/games/ball_game.dart';
 import '../../services/try_on/body_pose.dart';
 import '../../services/try_on/live_try_on_service.dart';
+import '../../widgets/dark_pill.dart';
 
 /// Игра «Набей мяч»: камера находит тело (ML Kit Pose, на телефоне),
 /// сверху падает мяч из каталога — его нужно отбивать.
@@ -467,23 +468,10 @@ class _ModeTabs extends StatelessWidget {
           for (final BallGameMode mode in BallGameMode.values)
             Padding(
               padding: const EdgeInsets.only(right: AppSizes.s),
-              child: ChoiceChip(
+              child: DarkPill(
+                label: '${mode.sport}: ${mode.title.toLowerCase()}',
                 selected: mode == selected,
-                showCheckmark: false,
-                label: Text('${mode.sport}: ${mode.title.toLowerCase()}'),
-                labelStyle: AppTextStyles.bodySecondary.copyWith(
-                  color: mode == selected ? AppColors.black : AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-                // В Material 3 цвет фона чипа задаётся через color.
-                color: WidgetStateProperty.resolveWith(
-                  (states) => states.contains(WidgetState.selected)
-                      ? AppColors.white
-                      : const Color(0x59000000),
-                ),
-                side: BorderSide.none,
-                shape: const StadiumBorder(),
-                onSelected: (_) => onSelected(mode),
+                onTap: () => onSelected(mode),
               ),
             ),
         ],

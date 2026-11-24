@@ -111,12 +111,15 @@ class BodyShading {
       final double relative = soft[i] / local[i] - 1;
       final int shade =
           (128 + 128 * strength * relative).round().clamp(0, 255);
-      rgba[i * 4] = shade;
-      rgba[i * 4 + 1] = shade;
-      rgba[i * 4 + 2] = shade;
       // Чёткий край силуэта: внутри тела вещь полностью непрозрачна.
-      rgba[i * 4 + 3] =
+      final int alpha =
           hasMask ? ((person[i] - 0.42) / 0.16 * 255).round().clamp(0, 255) : 255;
+      // Цвет умножен на прозрачность — так Flutter рисует пиксели.
+      final int value = shade * alpha ~/ 255;
+      rgba[i * 4] = value;
+      rgba[i * 4 + 1] = value;
+      rgba[i * 4 + 2] = value;
+      rgba[i * 4 + 3] = alpha;
     }
     return BodyShading(width: width, height: height, rgba: rgba);
   }
