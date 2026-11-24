@@ -84,6 +84,17 @@ class AppDatabase {
         await db.execute(DatabaseSchema.createSellerWarnings);
         await SeedData.insertSellers(db);
       }
+      if (oldVersion < 13) {
+        for (final String column in ['variants', 'try_on_image', 'try_on_meta']) {
+          await db.execute(
+            'ALTER TABLE ${DatabaseSchema.products} ADD COLUMN $column TEXT',
+          );
+        }
+        await db.execute('ALTER TABLE ${DatabaseSchema.reviews} ADD COLUMN photos TEXT');
+        await SeedData.applyGalleries(db);
+        await SeedData.applyVariants(db);
+        await SeedData.insertReviews(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

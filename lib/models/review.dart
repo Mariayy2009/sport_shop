@@ -10,6 +10,7 @@ class Review {
     required this.createdAt,
     this.authorName,
     this.authorAvatarPath,
+    this.photos = const [],
   });
 
   static const int minRating = 1;
@@ -25,6 +26,9 @@ class Review {
   final String? text;
   final DateTime createdAt;
 
+  /// Фото покупателя к отзыву (пути к файлам).
+  final List<String> photos;
+
   // Заполняются через JOIN с users.
   final String? authorName;
   final String? authorAvatarPath;
@@ -37,6 +41,10 @@ class Review {
       rating: map['rating'] as int,
       text: map['text'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
+      photos: [
+        for (final String line in ((map['photos'] as String?) ?? '').split('\n'))
+          if (line.trim().isNotEmpty) line.trim(),
+      ],
       authorName: map['author_name'] as String?,
       authorAvatarPath: map['author_avatar_path'] as String?,
     );
@@ -49,6 +57,7 @@ class Review {
       'product_id': productId,
       'rating': rating,
       'text': text,
+      'photos': photos.isEmpty ? null : photos.join('\n'),
       'created_at': createdAt.toIso8601String(),
     };
   }

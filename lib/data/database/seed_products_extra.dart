@@ -298,10 +298,85 @@ class SeedProductsExtra {
     ],
     'hand_wraps': ['hand_wraps_1', 'hand_wraps_2', 'hand_wraps_3'],
     'yoga_block': ['yoga_block_1', 'yoga_block_2', 'yoga_block_3', 'yoga_block_4'],
+    'mouth_guard': [
+      'mouth_guard_1', 'mouth_guard_2', 'mouth_guard_3', 'mouth_guard_4',
+      'mouth_guard_5', 'mouth_guard_6', 'mouth_guard_7', 'mouth_guard_8',
+      'mouth_guard_9', 'mouth_guard_10', 'mouth_guard_11',
+    ],
+    'football_socks': [
+      'football_socks_1', 'football_socks_2', 'football_socks_3',
+      'football_socks_4', 'football_socks_5', 'football_socks_6',
+      'football_socks_7', 'football_socks_8', 'football_socks_9',
+      'football_socks_10', 'football_socks_11', 'football_socks_12',
+      'football_socks_13', 'football_socks_14',
+    ],
+    'running_shoes': [
+      'running_shoes_1', 'running_shoes_2', 'running_shoes_3', 'running_shoes_4',
+      'running_shoes_5', 'running_shoes_6', 'running_shoes_7', 'running_shoes_8',
+      'running_shoes_9', 'running_shoes_10', 'running_shoes_11', 'running_shoes_12',
+      'running_shoes_13', 'running_shoes_14', 'running_shoes_15', 'running_shoes_16',
+      'running_shoes_17', 'running_shoes_18',
+    ],
     'goalkeeper_gloves': [
       'goalkeeper_gloves_1', 'goalkeeper_gloves_2', 'goalkeeper_gloves_3',
       'goalkeeper_gloves_4', 'goalkeeper_gloves_5', 'goalkeeper_gloves_6',
       'goalkeeper_gloves_7', 'goalkeeper_gloves_8',
+    ],
+  };
+
+  /// Варианты товара (цвет или модель) и их фото: покупатель выбирает,
+  /// какой именно положить в корзину. Ключ — товар (имя файла фото).
+  static const Map<String, List<(String, String)>> variants = {
+    'running_tshirt': [
+      ('Синяя', 'running_tshirt'), ('Салатовая', 'running_tshirt_1'),
+      ('Ярко-синяя', 'running_tshirt_2'), ('Мятная', 'running_tshirt_3'),
+      ('Белая с принтом', 'running_tshirt_4'), ('Тёмно-зелёная', 'running_tshirt_5'),
+      ('Чёрная', 'running_tshirt_6'), ('Голубая', 'running_tshirt_7'),
+      ('Бело-синяя', 'running_tshirt_8'), ('Оливковая', 'running_tshirt_9'),
+      ('Белая', 'running_tshirt_10'),
+    ],
+    'running_belt': [
+      ('Чёрный', 'running_belt_2'), ('Салатовый', 'running_belt_1'),
+      ('Розовый', 'running_belt_3'), ('Голубой', 'running_belt_3'),
+      ('Чёрный с карманом для карт', 'running_belt_4'),
+    ],
+    'goalkeeper_gloves': [
+      ('Бело-жёлтые', 'goalkeeper_gloves'), ('Чёрные GK1', 'goalkeeper_gloves_1'),
+      ('Салатовые', 'goalkeeper_gloves_2'), ('Красно-чёрные', 'goalkeeper_gloves_3'),
+      ('Бело-красные', 'goalkeeper_gloves_4'), ('Чёрно-золотые', 'goalkeeper_gloves_5'),
+      ('Белые', 'goalkeeper_gloves_6'), ('Синие', 'goalkeeper_gloves_7'),
+      ('Салатово-чёрные', 'goalkeeper_gloves_8'),
+    ],
+    'mouth_guard': [
+      ('Сине-прозрачная', 'mouth_guard_1'), ('Зелёная', 'mouth_guard_2'),
+      ('Чёрно-белая', 'mouth_guard_3'), ('Зелёная NUMRU', 'mouth_guard_4'),
+      ('Красно-чёрная «Клыки»', 'mouth_guard_5'), ('Синяя', 'mouth_guard_6'),
+      ('Прозрачная', 'mouth_guard_7'), ('Чёрная NUMRU', 'mouth_guard_9'),
+      ('Жёлтая', 'mouth_guard_11'),
+    ],
+    'football_socks': [
+      ('Тёмно-синие', 'football_socks_1'), ('Чёрные с полосами', 'football_socks_2'),
+      ('Красные', 'football_socks_3'), ('Салатовые', 'football_socks_4'),
+      ('Белые', 'football_socks_5'), ('Голубые', 'football_socks_8'),
+      ('Фиолетовые', 'football_socks_11'), ('Синие', 'football_socks_13'),
+      ('Оранжевые', 'football_socks_14'),
+    ],
+    'running_shoes': [
+      ('Чёрные', 'running_shoes_1'), ('Белые', 'running_shoes_3'),
+      ('Серые с полосками', 'running_shoes_4'), ('Чёрно-белые', 'running_shoes_5'),
+      ('Тёмно-серые', 'running_shoes_7'), ('Чёрно-розовые', 'running_shoes_8'),
+      ('Чёрные с салатовой подошвой', 'running_shoes_9'),
+      ('Белые на воздушной подошве', 'running_shoes_10'),
+      ('Серо-красные', 'running_shoes_12'), ('Сине-белые', 'running_shoes_16'),
+      ('Розово-синие', 'running_shoes_17'), ('Чёрные трейловые', 'running_shoes_18'),
+    ],
+    'volleyball_uniform_women_1': [
+      ('Синяя', 'volleyball_uniform_women_1'), ('Голубая', 'volleyball_uniform_women_2'),
+      ('Жёлто-чёрная', 'volleyball_uniform_women_3'),
+      ('Красно-чёрная', 'volleyball_uniform_women_4'),
+      ('Розовая', 'volleyball_uniform_women_5'), ('Красная', 'volleyball_uniform_women_6'),
+      ('Ярко-синяя', 'volleyball_uniform_women_7'),
+      ('Чёрно-золотая', 'volleyball_uniform_women_8'),
     ],
   };
 

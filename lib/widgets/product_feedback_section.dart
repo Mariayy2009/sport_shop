@@ -14,6 +14,7 @@ import '../models/review.dart';
 import '../models/user.dart';
 import '../state/auth_state.dart';
 import 'app_card.dart';
+import 'product_image.dart';
 import 'review_sheet.dart';
 import 'star_rating.dart';
 import 'text_input_sheet.dart';
@@ -358,6 +359,25 @@ class _ReviewCard extends StatelessWidget {
           if (review.text != null) ...[
             const SizedBox(height: AppSizes.s),
             Text(review.text!, style: AppTextStyles.body.copyWith(height: 1.4)),
+          ],
+          if (review.photos.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.s),
+            Wrap(
+              spacing: AppSizes.s,
+              children: [
+                for (final String photo in review.photos)
+                  GestureDetector(
+                    onTap: () => showDialog<void>(
+                      context: context,
+                      builder: (context) => Dialog(
+                        insetPadding: const EdgeInsets.all(AppSizes.l),
+                        child: ProductImage(imageUrl: photo, fit: BoxFit.contain),
+                      ),
+                    ),
+                    child: ProductImage(imageUrl: photo, width: 72, height: 72),
+                  ),
+              ],
+            ),
           ],
         ],
       ),

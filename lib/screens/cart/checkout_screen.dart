@@ -12,6 +12,7 @@ import '../../core/utils/app_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/validators.dart';
 import '../../models/cart_item.dart';
+import '../../models/item_options.dart';
 import '../../models/enums.dart';
 import '../../models/order.dart';
 import '../../models/user.dart';
@@ -232,7 +233,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   for (final CartItem item in cart.items)
                     SummaryRow(
                       label: '${item.product.name}'
-                          '${item.selectedSize == null ? '' : ', ${item.selectedSize}'}'
+                          '${item.selectedSize == null ? '' : ', ${ItemOptions.decode(item.selectedSize).label}'}'
                           ' × ${item.quantity}',
                       value: Formatters.price(item.total),
                     ),

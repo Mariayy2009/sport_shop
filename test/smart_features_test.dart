@@ -76,7 +76,9 @@ void main() {
     final Product shoes = await product('Кроссовки для волейбола');
     expect(shoes.brand, 'Asics');
     expect(shoes.material, isNotEmpty);
-    expect(shoes.rating, 4.8);
+    // Рейтинг — средняя оценка демо-отзывов покупателей.
+    expect(shoes.rating, inInclusiveRange(4.0, 5.0));
+    expect(shoes.reviewsCount, greaterThanOrEqualTo(3));
   });
 
   group('Умный подбор размера', () {
@@ -321,17 +323,24 @@ void main() {
             createdAt: DateTime(2026, 6, 1),
           );
 
+      // У товара уже есть демо-отзывы покупателей.
+      final List<int> demo = [
+        for (final Review r in await deps.feedbackRepository.getReviews(shorts.id!)) r.rating,
+      ];
+      double average(List<int> ratings) =>
+          (ratings.reduce((a, b) => a + b) / ratings.length * 10).round() / 10;
+
       await deps.feedbackRepository.saveReview(review(user.id!, 5));
       await deps.feedbackRepository.saveReview(review(ivan.id!, 2));
       Product updated = await product('Шорты волейбольные');
-      expect(updated.rating, 3.5);
-      expect(updated.reviewsCount, 2);
+      expect(updated.rating, closeTo(average([...demo, 5, 2]), 0.051));
+      expect(updated.reviewsCount, demo.length + 2);
 
       // Повторный отзыв заменяет прежний, а не добавляется.
       await deps.feedbackRepository.saveReview(review(ivan.id!, 4));
       updated = await product('Шорты волейбольные');
-      expect(updated.rating, 4.5);
-      expect(updated.reviewsCount, 2);
+      expect(updated.rating, closeTo(average([...demo, 5, 4]), 0.051));
+      expect(updated.reviewsCount, demo.length + 2);
 
       final List<Review> reviews =
           await deps.feedbackRepository.getReviews(shorts.id!);
@@ -339,7 +348,7 @@ void main() {
       expect((await deps.feedbackRepository.getReviewsByUser(user.id!))[shorts.id]!.rating, 5);
 
       await deps.feedbackRepository.deleteReview(ivan.id!, shorts.id!);
-      expect((await product('Шорты волейбольные')).reviewsCount, 1);
+      expect((await product('Шорты волейбольные')).reviewsCount, demo.length + 1);
     });
   });
 

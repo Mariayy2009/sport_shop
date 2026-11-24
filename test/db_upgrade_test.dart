@@ -22,7 +22,11 @@ void main() {
         await db.execute(statement
             .replaceAll('gallery TEXT,', '')
             .replaceAll('${DatabaseSchema.productSellerColumns},', '')
-            .replaceAll('tracking_note TEXT,', ''));
+            .replaceAll('tracking_note TEXT,', '')
+            .replaceAll('variants TEXT,', '')
+            .replaceAll('try_on_image TEXT,', '')
+            .replaceAll('try_on_meta TEXT,', '')
+            .replaceAll('photos TEXT,', ''));
       }
       for (final String sport in [
         'Волейбол', 'Бег', 'Футбол', 'Плавание', 'Бокс', 'Карате',
@@ -92,6 +96,14 @@ void main() {
         whereArgs: ['assets/images/products/karate_kimono.jpg'])).single;
     expect(kimonoNow['seller_id'], budo);
     expect(kimonoNow['status'], 'active');
+
+    // v13: варианты и демо-отзывы с фото.
+    final Map<String, Object?> uniformNow = (await db.query('products',
+        where: 'name = ?', whereArgs: ['Форма волейбольная женская'])).single;
+    expect(uniformNow['variants'], contains('Розовая'));
+    final List<Map<String, Object?>> reviews = await db.query('reviews');
+    expect(reviews.length, greaterThan(40));
+    expect(reviews.where((r) => r['photos'] != null), isNotEmpty);
     await db.close();
     await deleteDatabase(path);
   });

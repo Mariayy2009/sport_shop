@@ -5,6 +5,7 @@ import 'dart:ui' show Color;
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../../models/item_options.dart';
 import '../../models/product.dart';
 import '../../models/shopping_preferences.dart';
 import '../try_on/garment_color.dart';
@@ -135,12 +136,19 @@ class PreferenceMatcher {
       }
 
       final String? color = colors[product.id];
-      final bool inColor =
-          color != null && preferences.colors.contains(color);
+      bool inColor = color != null && preferences.colors.contains(color);
       if (inColor) {
         score += colorWeight;
         reasons.add('В любимом цвете: '
             '${StyleCatalog.colorByKey(color)!.name.toLowerCase()}');
+      } else {
+        // Товар есть в любимом цвете одним из вариантов.
+        final String? variant = variantInColors(product, preferences.colors);
+        if (variant != null) {
+          inColor = true;
+          score += colorWeight;
+          reasons.add('Есть в любимом цвете: вариант «$variant»');
+        }
       }
 
       final String material = product.material?.toLowerCase() ?? '';
@@ -177,6 +185,33 @@ class PreferenceMatcher {
           : (b.product.rating ?? 0).compareTo(a.product.rating ?? 0);
     });
     return matches;
+  }
+
+  /// Корни названий цветов в вариантах товара («Салатовая» — зелёный).
+  static const Map<String, List<String>> _colorWords = {
+    'black': ['чёрн', 'черн'],
+    'white': ['бел', 'прозрачн'],
+    'gray': ['сер'],
+    'red': ['красн'],
+    'pink': ['розов'],
+    'orange': ['оранж'],
+    'yellow': ['жёлт', 'желт', 'золот'],
+    'green': ['зелён', 'зелен', 'салатов', 'мятн', 'оливков'],
+    'lightblue': ['голуб'],
+    'blue': ['син'],
+    'purple': ['фиолет'],
+    'brown': ['коричн'],
+  };
+
+  /// Название варианта товара в одном из цветов [colorKeys] или null.
+  static String? variantInColors(Product product, Set<String> colorKeys) {
+    for (final ProductVariant variant in product.variants) {
+      final String name = variant.name.toLowerCase();
+      for (final String key in colorKeys) {
+        if ((_colorWords[key] ?? const []).any(name.contains)) return variant.name;
+      }
+    }
+    return null;
   }
 
   static String _lower(String text) =>

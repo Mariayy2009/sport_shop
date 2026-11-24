@@ -13,7 +13,11 @@ class PhotoGallery extends StatefulWidget {
     this.height,
     this.padding = EdgeInsets.zero,
     this.placeholderIcon = Icons.image_outlined,
+    this.selectedImage,
   });
+
+  /// Перелистнуть к этому фото (например, выбран вариант товара).
+  final String? selectedImage;
 
   final List<String> images;
 
@@ -31,6 +35,21 @@ class PhotoGallery extends StatefulWidget {
 class _PhotoGalleryState extends State<PhotoGallery> {
   final PageController _controller = PageController();
   int _page = 0;
+
+  @override
+  void didUpdateWidget(PhotoGallery oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final String? target = widget.selectedImage;
+    if (target == null || target == oldWidget.selectedImage) return;
+    final int index = widget.images.indexOf(target);
+    if (index >= 0 && _controller.hasClients) {
+      _controller.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   void dispose() {

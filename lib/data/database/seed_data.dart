@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -6,6 +8,7 @@ import '../../models/enums.dart';
 import 'database_schema.dart';
 import 'seed_athletes.dart';
 import 'seed_products_extra.dart';
+import 'seed_reviews.dart';
 import 'seed_exhibits.dart';
 
 /// Демонстрационные данные, которые записываются в SQLite
@@ -453,6 +456,8 @@ class SeedData {
     await _insertExhibits(db, sportIds);
     await insertAthletes(db);
     await insertSellers(db);
+    await applyVariants(db);
+    await insertReviews(db);
   }
 
   /// Экспонаты «Зала славы» (экспозиция КНУС).
@@ -538,6 +543,88 @@ class SeedData {
         {'gallery': entry.value.map(SeedProductsExtra.path).join('\n')},
         where: 'image_url = ?',
         whereArgs: [SeedProductsExtra.path(entry.key)],
+      );
+    }
+  }
+
+  /// Варианты товаров (цвета и модели) с фото.
+  static Future<void> applyVariants(DatabaseExecutor db) async {
+    for (final MapEntry<String, List<(String, String)>> entry
+        in SeedProductsExtra.variants.entries) {
+      await db.update(
+        DatabaseSchema.products,
+        {
+          'variants': jsonEncode([
+            for (final (name, image) in entry.value)
+              {'name': name, 'image': SeedProductsExtra.path(image)},
+          ]),
+        },
+        where: 'image_url = ?',
+        whereArgs: [SeedProductsExtra.path(entry.key)],
+      );
+    }
+  }
+
+  /// Демо-отзывы: по 3 от разных покупателей у каждого товара, у товаров
+  /// с несколькими фото — с фото покупателя. Рейтинг товара и число
+  /// отзывов пересчитываются по всем отзывам.
+  static Future<void> insertReviews(DatabaseExecutor db) async {
+    final List<int> reviewerIds = [];
+    for (final (first, last, email) in SeedReviews.reviewers) {
+      reviewerIds.add(await db.insert(DatabaseSchema.users, {
+        'email': email,
+        'password_hash': PasswordHasher.hash('Review123'),
+        'role': UserRole.customer.value,
+        'first_name': first,
+        'last_name': last,
+        'created_at': DateTime(2026, 9, 1).toIso8601String(),
+      }));
+    }
+    final List<Map<String, Object?>> products = await db.rawQuery(
+      'SELECT p.id, p.rating, p.gallery, c.name AS category '
+      'FROM ${DatabaseSchema.products} p '
+      'JOIN ${DatabaseSchema.categories} c ON c.id = p.category_id ORDER BY p.id',
+    );
+    for (int i = 0; i < products.length; i++) {
+      final Map<String, Object?> product = products[i];
+      final int productId = product['id']! as int;
+      final List<int> ratings =
+          SeedReviews.ratingsFor((product['rating'] as num?)?.toDouble() ?? 4.5);
+      final List<String> texts = SeedReviews.texts[product['category']] ??
+          SeedReviews.texts['Аксессуары']!;
+      final List<String> gallery = ((product['gallery'] as String?) ?? '')
+          .split('\n')
+          .where((line) => line.trim().isNotEmpty)
+          .toList();
+      for (int k = 0; k < SeedReviews.perProduct; k++) {
+        final int reviewer = reviewerIds[(i * 5 + k * 3) % reviewerIds.length];
+        // Плохая оценка — с честным текстом про минус.
+        final int rating = ratings[k];
+        final String text = rating < 5
+            ? texts.firstWhere((t) => t.contains('минус') || t.contains('маломерит') ||
+                    t.contains('узковаты') || t.contains('жёсткие'),
+                orElse: () => texts[(i + k) % texts.length])
+            : texts[(i * 3 + k * 2) % texts.length];
+        await db.insert(DatabaseSchema.reviews, {
+          'user_id': reviewer,
+          'product_id': productId,
+          'rating': rating,
+          'text': text,
+          // Фото покупателя — у первого отзыва, если у товара есть фото.
+          'photos': k == 0 && gallery.isNotEmpty
+              ? gallery[i % gallery.length]
+              : null,
+          'created_at': DateTime(2026, 10, 1)
+              .add(Duration(days: (i * 7 + k * 11) % 50, hours: k * 5))
+              .toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+      await db.rawUpdate(
+        'UPDATE ${DatabaseSchema.products} SET '
+        'reviews_count = (SELECT COUNT(*) FROM ${DatabaseSchema.reviews} WHERE product_id = ?), '
+        'rating = (SELECT ROUND(AVG(rating), 1) FROM ${DatabaseSchema.reviews} WHERE product_id = ?) '
+        'WHERE id = ?',
+        [productId, productId, productId],
       );
     }
   }

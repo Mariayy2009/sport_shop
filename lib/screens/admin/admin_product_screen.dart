@@ -157,6 +157,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       imageUrl: _imageUrl,
       // Дополнительные фото в форме не редактируются — сохраняем как были.
       gallery: widget.product?.gallery ?? const [],
+      variants: widget.product?.variants ?? const [],
       brand: _nullIfEmpty(_brand),
       material: _nullIfEmpty(_material),
       rating: widget.product?.rating,

@@ -32,7 +32,10 @@ class DatabaseSchema {
   /// v12: продавцы (таблица sellers — магазин пользователя), у товара —
   ///      продавец и статус «снят с продажи», у заказа — «где товар»,
   ///      предупреждения продавцам от администратора (seller_warnings).
-  static const int version = 12;
+  /// v13: варианты товара (products.variants), фото в отзывах
+  ///      (reviews.photos), примерка, отсканированная продавцом
+  ///      (products.try_on_image, try_on_meta), демо-отзывы.
+  static const int version = 13;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -173,6 +176,9 @@ class DatabaseSchema {
       rating REAL CHECK (rating IS NULL OR rating BETWEEN 0 AND 5),
       reviews_count INTEGER NOT NULL DEFAULT 0,
       $productSellerColumns,
+      variants TEXT,
+      try_on_image TEXT,
+      try_on_meta TEXT,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -257,6 +263,7 @@ class DatabaseSchema {
       product_id INTEGER NOT NULL,
       rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
       text TEXT,
+      photos TEXT,
       created_at TEXT NOT NULL,
       UNIQUE (user_id, product_id),
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE,

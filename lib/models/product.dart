@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'item_options.dart';
+
 /// Товар (таблица products).
 class Product {
   const Product({
@@ -11,6 +15,7 @@ class Product {
     required this.stock,
     this.imageUrl,
     this.gallery = const [],
+    this.variants = const [],
     this.brand,
     this.material,
     this.rating,
@@ -54,6 +59,17 @@ class Product {
 
   /// Дополнительные фото — листаются в карточке товара после [imageUrl].
   final List<String> gallery;
+
+  /// Варианты (цвета, модели) — покупатель выбирает, какой положить
+  /// в корзину.
+  final List<ProductVariant> variants;
+
+  ProductVariant? variantNamed(String? name) {
+    for (final ProductVariant variant in variants) {
+      if (variant.name == name) return variant;
+    }
+    return null;
+  }
 
   /// Все фото товара: главное и дополнительные.
   List<String> get images => [
@@ -119,6 +135,7 @@ class Product {
       stock: (map['stock'] as int?) ?? 0,
       imageUrl: map['image_url'] as String?,
       gallery: _gallery(map['gallery']),
+      variants: _variants(map['variants']),
       brand: map['brand'] as String?,
       material: map['material'] as String?,
       rating: (map['rating'] as num?)?.toDouble(),
@@ -144,6 +161,9 @@ class Product {
       'stock': stock,
       'image_url': imageUrl,
       'gallery': gallery.join('\n'),
+      'variants': variants.isEmpty
+          ? null
+          : jsonEncode([for (final ProductVariant v in variants) v.toJson()]),
       'brand': brand,
       'material': material,
       'rating': rating,
@@ -162,6 +182,22 @@ class Product {
     return [
       for (final Object? item in items)
         if (item is String && item.trim().isNotEmpty) item.trim(),
+    ];
+  }
+
+  static List<ProductVariant> _variants(Object? value) {
+    Object? list = value;
+    if (value is String && value.isNotEmpty) {
+      try {
+        list = jsonDecode(value);
+      } on FormatException {
+        return const [];
+      }
+    }
+    if (list is! List) return const [];
+    return [
+      for (final Object? item in list)
+        if (ProductVariant.fromJson(item) case final ProductVariant variant) variant,
     ];
   }
 
@@ -197,6 +233,7 @@ class Product {
       stock: stock ?? this.stock,
       imageUrl: imageUrl ?? this.imageUrl,
       gallery: gallery ?? this.gallery,
+      variants: variants,
       brand: brand ?? this.brand,
       material: material ?? this.material,
       rating: rating ?? this.rating,

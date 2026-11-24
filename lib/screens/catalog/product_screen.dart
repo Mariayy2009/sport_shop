@@ -11,6 +11,7 @@ import '../../core/utils/cart_actions.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/product_actions.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../models/item_options.dart';
 import '../../models/product.dart';
 import '../../models/try_on.dart';
 import '../../models/user_sizes.dart';
@@ -26,6 +27,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/product_feedback_section.dart';
 import '../../widgets/photo_gallery.dart';
+import '../../widgets/product_image.dart';
 import '../../widgets/seller_products_section.dart';
 import '../../widgets/rating_badge.dart';
 import '../../widgets/size_chart_sheet.dart';
@@ -46,6 +48,9 @@ class ProductScreen extends StatefulWidget {
 class _ProductScreenState extends State<ProductScreen> {
   late Future<Product?> _future;
   String? _selectedSize;
+
+  /// Выбранный вариант (цвет, модель); null — у товара вариантов нет.
+  String? _variant;
   bool _sizeError = false;
   bool _sizeInitialized = false;
   bool _isAdding = false;
@@ -79,7 +84,12 @@ class _ProductScreenState extends State<ProductScreen> {
       return;
     }
     setState(() => _isAdding = true);
-    await CartActions.addToCart(context, product, size: _selectedSize);
+    await CartActions.addToCart(
+      context,
+      product,
+      size: _selectedSize,
+      variant: _variant,
+    );
     if (mounted) setState(() => _isAdding = false);
   }
 
@@ -162,9 +172,15 @@ class _ProductScreenState extends State<ProductScreen> {
       padding: const EdgeInsets.all(AppSizes.screenPadding),
       children: [
         PhotoGallery(
-          images: product.images,
+          // Фото вариантов тоже листаются, даже если их нет в галерее.
+          images: [
+            ...product.images,
+            for (final ProductVariant variant in product.variants)
+              if (!product.images.contains(variant.image)) variant.image,
+          ],
           height: 280,
           padding: const EdgeInsets.all(AppSizes.m),
+          selectedImage: product.variantNamed(_variant)?.image,
         ),
         const SizedBox(height: AppSizes.l),
         Row(
@@ -224,6 +240,19 @@ class _ProductScreenState extends State<ProductScreen> {
         if (product.description != null) ...[
           const SizedBox(height: AppSizes.m),
           Text(product.description!, style: AppTextStyles.body),
+        ],
+        if (product.variants.isNotEmpty) ...[
+          const SizedBox(height: AppSizes.l),
+          Text(
+            'Цвет и модель: ${_variant ?? product.variants.first.name}',
+            style: AppTextStyles.sectionTitle,
+          ),
+          const SizedBox(height: AppSizes.s),
+          _VariantPicker(
+            variants: product.variants,
+            selected: _variant ?? product.variants.first.name,
+            onSelected: (name) => setState(() => _variant = name),
+          ),
         ],
         if (product.requiresSize) ...[
           const SizedBox(height: AppSizes.l),
@@ -519,6 +548,78 @@ class _SizeAdviceCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Варианты товара: миниатюры фото с подписью, выбранный — в рамке.
+class _VariantPicker extends StatelessWidget {
+  const _VariantPicker({
+    required this.variants,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<ProductVariant> variants;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: variants.length,
+        separatorBuilder: (context, index) => const SizedBox(width: AppSizes.s),
+        itemBuilder: (context, index) {
+          final ProductVariant variant = variants[index];
+          final bool isSelected = variant.name == selected;
+          return Semantics(
+            button: true,
+            selected: isSelected,
+            label: variant.name,
+            child: GestureDetector(
+              onTap: () => onSelected(variant.name),
+              child: SizedBox(
+                width: 68,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppSizes.radiusS),
+                        border: Border.all(
+                          color: isSelected ? AppColors.black : AppColors.border,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: ProductImage(
+                        imageUrl: variant.image,
+                        borderRadius: AppSizes.radiusS - 2,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.xxs),
+                    Text(
+                      variant.name,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

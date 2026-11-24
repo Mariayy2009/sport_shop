@@ -5,6 +5,7 @@ import '../core/constants/app_sizes.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/utils/formatters.dart';
 import '../models/cart_item.dart';
+import '../models/item_options.dart';
 import 'app_card.dart';
 import 'product_image.dart';
 import 'quantity_stepper.dart';
@@ -28,6 +29,10 @@ class CartItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ItemOptions options = ItemOptions.decode(item.selectedSize);
+    // Выбран вариант — показываем его фото (тот цвет, что в корзине).
+    final String? image =
+        item.product.variantNamed(options.variant)?.image ?? item.product.imageUrl;
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.all(AppSizes.s),
@@ -35,7 +40,7 @@ class CartItemTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ProductImage(
-            imageUrl: item.product.imageUrl,
+            imageUrl: image,
             width: 72,
             height: 72,
             borderRadius: AppSizes.radiusS,
@@ -53,9 +58,9 @@ class CartItemTile extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSizes.xxs),
                 Text(
-                  item.selectedSize == null
+                  options.isEmpty
                       ? Formatters.price(item.product.price)
-                      : 'Размер ${item.selectedSize} · '
+                      : '${options.label} · '
                           '${Formatters.price(item.product.price)}',
                   style: AppTextStyles.caption,
                 ),

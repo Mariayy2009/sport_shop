@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/item_options.dart';
 import '../../models/product.dart';
 import '../../models/user_sizes.dart';
 import '../../state/auth_state.dart';
@@ -22,6 +23,7 @@ class CartActions {
     BuildContext context,
     Product product, {
     String? size,
+    String? variant,
     bool askSizeIfUnknown = true,
   }) async {
     final NavigatorState navigator = Navigator.of(context);
@@ -46,6 +48,9 @@ class CartActions {
       return false;
     }
 
+    // Вариант не выбран (добавили из каталога) — первый, как на главном фото.
+    final String? chosenVariant = variant ??
+        (product.variants.isEmpty ? null : product.variants.first.name);
     String? chosenSize = size;
     if (product.requiresSize && chosenSize == null) {
       final UserSizes? sizes = context.read<ProfileState>().sizes;
@@ -67,7 +72,11 @@ class CartActions {
 
     if (!context.mounted) return false;
     try {
-      await context.read<CartState>().add(product, size: chosenSize);
+      // Размер и выбранный вариант (цвет, модель) — одной строкой.
+      await context.read<CartState>().add(
+            product,
+            size: ItemOptions(size: chosenSize, variant: chosenVariant).encode(),
+          );
       if (!context.mounted) return true;
       AppMessages.show(
         context,

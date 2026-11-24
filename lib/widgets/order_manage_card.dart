@@ -10,6 +10,7 @@ import '../core/utils/formatters.dart';
 import '../data/repositories/order_repository.dart';
 import '../models/enums.dart';
 import '../models/order.dart';
+import '../models/item_options.dart';
 import '../models/order_item.dart';
 import 'app_card.dart';
 import 'status_chip.dart';
@@ -67,7 +68,7 @@ class OrderManageCard extends StatelessWidget {
       for (final OrderItem item in order.items)
         if (onlyProductIds == null || onlyProductIds!.contains(item.productId))
           '${item.productName ?? 'Товар'} × ${item.quantity}'
-              '${item.size == null ? '' : ' (${item.size})'}',
+              '${item.size == null ? '' : ' (${ItemOptions.decode(item.size).label})'}',
     ];
     return AppCard(
       onTap: () => Navigator.of(context)

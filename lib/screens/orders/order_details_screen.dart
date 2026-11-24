@@ -12,6 +12,7 @@ import '../../core/utils/formatters.dart';
 import '../../data/repositories/feedback_repository.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../models/enums.dart';
+import '../../models/item_options.dart';
 import '../../models/order.dart';
 import '../../models/order_item.dart';
 import '../../models/product.dart';
@@ -309,7 +310,7 @@ class _OrderItemRow extends StatelessWidget {
                 children: [
                   Text(item.productName ?? 'Товар', style: AppTextStyles.body),
                   Text(
-                    '${item.size == null ? '' : 'Размер ${item.size} · '}'
+                    '${item.size == null ? '' : '${ItemOptions.decode(item.size).label} · '}'
                     '${item.quantity} × ${Formatters.price(item.price)}',
                     style: AppTextStyles.caption,
                   ),
