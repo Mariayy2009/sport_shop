@@ -88,7 +88,13 @@
       "brand": "Mizuno",
       "material": "Полиэстер 100%",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 2,
@@ -103,8 +109,14 @@
       "gallery": null,
       "brand": "Asics",
       "material": "Нейлон, пена EVA",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 3,
@@ -119,8 +131,14 @@
       "gallery": null,
       "brand": "Asics",
       "material": "Сетка, резина",
-      "rating": 4.8,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 4,
@@ -135,8 +153,14 @@
       "gallery": null,
       "brand": "Mizuno",
       "material": "Полиэстер, эластан",
-      "rating": 4.4,
-      "reviews_count": 0
+      "rating": 4.3,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 5,
@@ -151,8 +175,14 @@
       "gallery": null,
       "brand": "McDavid",
       "material": "Неопрен",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 6,
@@ -167,8 +197,14 @@
       "gallery": null,
       "brand": "Mikasa",
       "material": "Микрофибра",
-      "rating": 4.9,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 7,
@@ -183,8 +219,14 @@
       "gallery": null,
       "brand": "Mikasa",
       "material": "Полиэстер 600D",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 8,
@@ -196,11 +238,17 @@
       "size": "36,37,38,39,40,41,42,43,44,45",
       "stock": 10,
       "image_url": "assets/images/products/running_shoes.jpg",
-      "gallery": null,
+      "gallery": "assets/images/products/running_shoes_1.jpg\nassets/images/products/running_shoes_2.jpg\nassets/images/products/running_shoes_3.jpg\nassets/images/products/running_shoes_4.jpg\nassets/images/products/running_shoes_5.jpg\nassets/images/products/running_shoes_6.jpg\nassets/images/products/running_shoes_7.jpg\nassets/images/products/running_shoes_8.jpg\nassets/images/products/running_shoes_9.jpg\nassets/images/products/running_shoes_10.jpg\nassets/images/products/running_shoes_11.jpg\nassets/images/products/running_shoes_12.jpg\nassets/images/products/running_shoes_13.jpg\nassets/images/products/running_shoes_14.jpg\nassets/images/products/running_shoes_15.jpg\nassets/images/products/running_shoes_16.jpg\nassets/images/products/running_shoes_17.jpg\nassets/images/products/running_shoes_18.jpg",
       "brand": "Nike",
       "material": "Сетка, пена",
       "rating": 5.0,
-      "reviews_count": 1
+      "reviews_count": 4,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Чёрные\",\"image\":\"assets/images/products/running_shoes_1.jpg\"},{\"name\":\"Белые\",\"image\":\"assets/images/products/running_shoes_3.jpg\"},{\"name\":\"Серые с полосками\",\"image\":\"assets/images/products/running_shoes_4.jpg\"},{\"name\":\"Чёрно-белые\",\"image\":\"assets/images/products/running_shoes_5.jpg\"},{\"name\":\"Тёмно-серые\",\"image\":\"assets/images/products/running_shoes_7.jpg\"},{\"name\":\"Чёрно-розовые\",\"image\":\"assets/images/products/running_shoes_8.jpg\"},{\"name\":\"Чёрные с салатовой подошвой\",\"image\":\"assets/images/products/running_shoes_9.jpg\"},{\"name\":\"Белые на воздушной подошве\",\"image\":\"assets/images/products/running_shoes_10.jpg\"},{\"name\":\"Серо-красные\",\"image\":\"assets/images/products/running_shoes_12.jpg\"},{\"name\":\"Сине-белые\",\"image\":\"assets/images/products/running_shoes_16.jpg\"},{\"name\":\"Розово-синие\",\"image\":\"assets/images/products/running_shoes_17.jpg\"},{\"name\":\"Чёрные трейловые\",\"image\":\"assets/images/products/running_shoes_18.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 9,
@@ -216,7 +264,13 @@
       "brand": "Nike",
       "material": "Полиэстер 100%",
       "rating": 4.0,
-      "reviews_count": 1
+      "reviews_count": 4,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Синяя\",\"image\":\"assets/images/products/running_tshirt.jpg\"},{\"name\":\"Салатовая\",\"image\":\"assets/images/products/running_tshirt_1.jpg\"},{\"name\":\"Ярко-синяя\",\"image\":\"assets/images/products/running_tshirt_2.jpg\"},{\"name\":\"Мятная\",\"image\":\"assets/images/products/running_tshirt_3.jpg\"},{\"name\":\"Белая с принтом\",\"image\":\"assets/images/products/running_tshirt_4.jpg\"},{\"name\":\"Тёмно-зелёная\",\"image\":\"assets/images/products/running_tshirt_5.jpg\"},{\"name\":\"Чёрная\",\"image\":\"assets/images/products/running_tshirt_6.jpg\"},{\"name\":\"Голубая\",\"image\":\"assets/images/products/running_tshirt_7.jpg\"},{\"name\":\"Бело-синяя\",\"image\":\"assets/images/products/running_tshirt_8.jpg\"},{\"name\":\"Оливковая\",\"image\":\"assets/images/products/running_tshirt_9.jpg\"},{\"name\":\"Белая\",\"image\":\"assets/images/products/running_tshirt_10.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 10,
@@ -231,8 +285,14 @@
       "gallery": null,
       "brand": "Under Armour",
       "material": "Полиэстер, эластан",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 11,
@@ -248,7 +308,13 @@
       "brand": "Kalenji",
       "material": "Неопрен",
       "rating": 4.3,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Чёрный\",\"image\":\"assets/images/products/running_belt_2.jpg\"},{\"name\":\"Салатовый\",\"image\":\"assets/images/products/running_belt_1.jpg\"},{\"name\":\"Розовый\",\"image\":\"assets/images/products/running_belt_3.jpg\"},{\"name\":\"Голубой\",\"image\":\"assets/images/products/running_belt_3.jpg\"},{\"name\":\"Чёрный с карманом для карт\",\"image\":\"assets/images/products/running_belt_4.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 12,
@@ -263,8 +329,14 @@
       "gallery": null,
       "brand": "Garmin",
       "material": "Пластик, силикон",
-      "rating": 4.9,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 13,
@@ -280,7 +352,13 @@
       "brand": "Adidas",
       "material": "Синтетическая кожа",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 14,
@@ -295,8 +373,14 @@
       "gallery": null,
       "brand": "Nike",
       "material": "Пластик, пена EVA",
-      "rating": 4.4,
-      "reviews_count": 0
+      "rating": 4.3,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 15,
@@ -308,11 +392,17 @@
       "size": "S,M,L",
       "stock": 30,
       "image_url": "assets/images/products/football_socks.jpg",
-      "gallery": null,
+      "gallery": "assets/images/products/football_socks_1.jpg\nassets/images/products/football_socks_2.jpg\nassets/images/products/football_socks_3.jpg\nassets/images/products/football_socks_4.jpg\nassets/images/products/football_socks_5.jpg\nassets/images/products/football_socks_6.jpg\nassets/images/products/football_socks_7.jpg\nassets/images/products/football_socks_8.jpg\nassets/images/products/football_socks_9.jpg\nassets/images/products/football_socks_10.jpg\nassets/images/products/football_socks_11.jpg\nassets/images/products/football_socks_12.jpg\nassets/images/products/football_socks_13.jpg\nassets/images/products/football_socks_14.jpg",
       "brand": "Adidas",
       "material": "Нейлон, эластан",
       "rating": 4.3,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Тёмно-синие\",\"image\":\"assets/images/products/football_socks_1.jpg\"},{\"name\":\"Чёрные с полосами\",\"image\":\"assets/images/products/football_socks_2.jpg\"},{\"name\":\"Красные\",\"image\":\"assets/images/products/football_socks_3.jpg\"},{\"name\":\"Салатовые\",\"image\":\"assets/images/products/football_socks_4.jpg\"},{\"name\":\"Белые\",\"image\":\"assets/images/products/football_socks_5.jpg\"},{\"name\":\"Голубые\",\"image\":\"assets/images/products/football_socks_8.jpg\"},{\"name\":\"Фиолетовые\",\"image\":\"assets/images/products/football_socks_11.jpg\"},{\"name\":\"Синие\",\"image\":\"assets/images/products/football_socks_13.jpg\"},{\"name\":\"Оранжевые\",\"image\":\"assets/images/products/football_socks_14.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 16,
@@ -327,8 +417,14 @@
       "gallery": null,
       "brand": "Puma",
       "material": "Полиэстер 100%",
-      "rating": 4.4,
-      "reviews_count": 0
+      "rating": 4.3,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 17,
@@ -344,7 +440,13 @@
       "brand": "Adidas",
       "material": "Полиуретан",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 18,
@@ -359,8 +461,14 @@
       "gallery": "assets/images/products/goalkeeper_gloves_1.jpg\nassets/images/products/goalkeeper_gloves_2.jpg\nassets/images/products/goalkeeper_gloves_3.jpg\nassets/images/products/goalkeeper_gloves_4.jpg\nassets/images/products/goalkeeper_gloves_5.jpg\nassets/images/products/goalkeeper_gloves_6.jpg\nassets/images/products/goalkeeper_gloves_7.jpg\nassets/images/products/goalkeeper_gloves_8.jpg",
       "brand": "Reusch",
       "material": "Латекс",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Бело-жёлтые\",\"image\":\"assets/images/products/goalkeeper_gloves.jpg\"},{\"name\":\"Чёрные GK1\",\"image\":\"assets/images/products/goalkeeper_gloves_1.jpg\"},{\"name\":\"Салатовые\",\"image\":\"assets/images/products/goalkeeper_gloves_2.jpg\"},{\"name\":\"Красно-чёрные\",\"image\":\"assets/images/products/goalkeeper_gloves_3.jpg\"},{\"name\":\"Бело-красные\",\"image\":\"assets/images/products/goalkeeper_gloves_4.jpg\"},{\"name\":\"Чёрно-золотые\",\"image\":\"assets/images/products/goalkeeper_gloves_5.jpg\"},{\"name\":\"Белые\",\"image\":\"assets/images/products/goalkeeper_gloves_6.jpg\"},{\"name\":\"Синие\",\"image\":\"assets/images/products/goalkeeper_gloves_7.jpg\"},{\"name\":\"Салатово-чёрные\",\"image\":\"assets/images/products/goalkeeper_gloves_8.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 19,
@@ -375,8 +483,14 @@
       "gallery": null,
       "brand": "Puma",
       "material": "Полиэстер 100%",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 20,
@@ -391,8 +505,14 @@
       "gallery": null,
       "brand": "Adidas",
       "material": "Хлопок, полиэстер",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 21,
@@ -408,7 +528,13 @@
       "brand": "Reebok",
       "material": "Сетка, резина",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 22,
@@ -423,8 +549,14 @@
       "gallery": "assets/images/products/kettlebell_set.jpg",
       "brand": "Torneo",
       "material": "Чугун",
-      "rating": 4.8,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 23,
@@ -440,7 +572,13 @@
       "brand": "Torneo",
       "material": "Сталь, резина",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 24,
@@ -455,8 +593,14 @@
       "gallery": null,
       "brand": "Demix",
       "material": "Тритан",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 25,
@@ -471,8 +615,14 @@
       "gallery": null,
       "brand": "Spalding",
       "material": "Композитная кожа",
-      "rating": 4.8,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 26,
@@ -488,7 +638,13 @@
       "brand": "Nike",
       "material": "Сетка, резина",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 27,
@@ -503,8 +659,14 @@
       "gallery": null,
       "brand": "Jogel",
       "material": "Полиэстер 100%",
-      "rating": 4.4,
-      "reviews_count": 0
+      "rating": 4.3,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 28,
@@ -519,8 +681,14 @@
       "gallery": null,
       "brand": "Speedo",
       "material": "Поликарбонат, силикон",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 29,
@@ -535,8 +703,14 @@
       "gallery": null,
       "brand": "Arena",
       "material": "Силикон",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 30,
@@ -551,8 +725,14 @@
       "gallery": null,
       "brand": "Speedo",
       "material": "Полиамид, эластан",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 31,
@@ -568,7 +748,13 @@
       "brand": "Everlast",
       "material": "Искусственная кожа",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 32,
@@ -583,8 +769,14 @@
       "gallery": "assets/images/products/hand_wraps_1.jpg\nassets/images/products/hand_wraps_2.jpg\nassets/images/products/hand_wraps_3.jpg",
       "brand": "Everlast",
       "material": "Хлопок, эластан",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 33,
@@ -596,11 +788,17 @@
       "size": null,
       "stock": 20,
       "image_url": "assets/images/products/mouth_guard.jpg",
-      "gallery": null,
+      "gallery": "assets/images/products/mouth_guard_1.jpg\nassets/images/products/mouth_guard_2.jpg\nassets/images/products/mouth_guard_3.jpg\nassets/images/products/mouth_guard_4.jpg\nassets/images/products/mouth_guard_5.jpg\nassets/images/products/mouth_guard_6.jpg\nassets/images/products/mouth_guard_7.jpg\nassets/images/products/mouth_guard_8.jpg\nassets/images/products/mouth_guard_9.jpg\nassets/images/products/mouth_guard_10.jpg\nassets/images/products/mouth_guard_11.jpg",
       "brand": "Venum",
       "material": "Термопластик",
       "rating": 4.3,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Сине-прозрачная\",\"image\":\"assets/images/products/mouth_guard_1.jpg\"},{\"name\":\"Зелёная\",\"image\":\"assets/images/products/mouth_guard_2.jpg\"},{\"name\":\"Чёрно-белая\",\"image\":\"assets/images/products/mouth_guard_3.jpg\"},{\"name\":\"Зелёная NUMRU\",\"image\":\"assets/images/products/mouth_guard_4.jpg\"},{\"name\":\"Красно-чёрная «Клыки»\",\"image\":\"assets/images/products/mouth_guard_5.jpg\"},{\"name\":\"Синяя\",\"image\":\"assets/images/products/mouth_guard_6.jpg\"},{\"name\":\"Прозрачная\",\"image\":\"assets/images/products/mouth_guard_7.jpg\"},{\"name\":\"Чёрная NUMRU\",\"image\":\"assets/images/products/mouth_guard_9.jpg\"},{\"name\":\"Жёлтая\",\"image\":\"assets/images/products/mouth_guard_11.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 34,
@@ -615,8 +813,14 @@
       "gallery": null,
       "brand": "Budo Pro",
       "material": "Хлопок 100%",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": 4,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 35,
@@ -631,8 +835,14 @@
       "gallery": null,
       "brand": "Adidas",
       "material": "Хлопок 100%",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 36,
@@ -647,8 +857,14 @@
       "gallery": "assets/images/products/yoga_mat_purple.jpg",
       "brand": "Manduka",
       "material": "ТПЭ",
-      "rating": 4.8,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 37,
@@ -663,8 +879,14 @@
       "gallery": "assets/images/products/yoga_block_1.jpg\nassets/images/products/yoga_block_2.jpg\nassets/images/products/yoga_block_3.jpg\nassets/images/products/yoga_block_4.jpg",
       "brand": "Demix",
       "material": "Пена EVA",
-      "rating": 4.4,
-      "reviews_count": 0
+      "rating": 4.3,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 38,
@@ -680,7 +902,13 @@
       "brand": "Nike",
       "material": "Полиамид, эластан",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 39,
@@ -695,8 +923,14 @@
       "gallery": "",
       "brand": "Budo Pro",
       "material": "Хлопок 100%, 10 унций",
-      "rating": 4.8,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": 4,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 40,
@@ -712,7 +946,13 @@
       "brand": "Budo Pro",
       "material": "Хлопок 80%, полиэстер 20%",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": 4,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 41,
@@ -728,7 +968,13 @@
       "brand": "Nike",
       "material": "Полиэстер 100%",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 42,
@@ -743,8 +989,14 @@
       "gallery": "",
       "brand": "Sportlife",
       "material": "Полиэстер, эластан",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 43,
@@ -760,7 +1012,13 @@
       "brand": "Adidas",
       "material": "Хлопок, полиэстер",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 44,
@@ -775,8 +1033,14 @@
       "gallery": "assets/images/products/volleyball_uniform_women_2.jpg\nassets/images/products/volleyball_uniform_women_3.jpg\nassets/images/products/volleyball_uniform_women_4.jpg\nassets/images/products/volleyball_uniform_women_5.jpg\nassets/images/products/volleyball_uniform_women_6.jpg\nassets/images/products/volleyball_uniform_women_7.jpg\nassets/images/products/volleyball_uniform_women_8.jpg",
       "brand": "Zhouka",
       "material": "Полиэстер 100%",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": "[{\"name\":\"Синяя\",\"image\":\"assets/images/products/volleyball_uniform_women_1.jpg\"},{\"name\":\"Голубая\",\"image\":\"assets/images/products/volleyball_uniform_women_2.jpg\"},{\"name\":\"Жёлто-чёрная\",\"image\":\"assets/images/products/volleyball_uniform_women_3.jpg\"},{\"name\":\"Красно-чёрная\",\"image\":\"assets/images/products/volleyball_uniform_women_4.jpg\"},{\"name\":\"Розовая\",\"image\":\"assets/images/products/volleyball_uniform_women_5.jpg\"},{\"name\":\"Красная\",\"image\":\"assets/images/products/volleyball_uniform_women_6.jpg\"},{\"name\":\"Ярко-синяя\",\"image\":\"assets/images/products/volleyball_uniform_women_7.jpg\"},{\"name\":\"Чёрно-золотая\",\"image\":\"assets/images/products/volleyball_uniform_women_8.jpg\"}]",
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 45,
@@ -791,8 +1055,14 @@
       "gallery": "assets/images/products/fitness_set_2.jpg",
       "brand": "Sportlife",
       "material": "Полиамид, эластан",
-      "rating": 4.8,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 46,
@@ -807,8 +1077,14 @@
       "gallery": "assets/images/products/running_shoes_knit_2.jpg",
       "brand": "Sportlife",
       "material": "Текстиль, пена EVA",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 47,
@@ -823,8 +1099,14 @@
       "gallery": "",
       "brand": "Mikasa",
       "material": "Микрофибра",
-      "rating": 4.9,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 48,
@@ -840,7 +1122,13 @@
       "brand": "Asics",
       "material": "Нейлон, пена",
       "rating": 4.7,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 49,
@@ -855,8 +1143,14 @@
       "gallery": "",
       "brand": "Adidas",
       "material": "Полиуретан",
-      "rating": 4.9,
-      "reviews_count": 0
+      "rating": 5.0,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 50,
@@ -871,8 +1165,14 @@
       "gallery": "",
       "brand": "Macron",
       "material": "Полиэстер 600D",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": null,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 51,
@@ -887,8 +1187,14 @@
       "gallery": "assets/images/products/swim_set_2.jpg",
       "brand": "Sportlife",
       "material": "Силикон, поликарбонат",
-      "rating": 4.6,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 52,
@@ -903,8 +1209,14 @@
       "gallery": "",
       "brand": "Sportlife",
       "material": "Тритан",
-      "rating": 4.5,
-      "reviews_count": 0
+      "rating": 4.7,
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 53,
@@ -920,7 +1232,13 @@
       "brand": "Sportlife",
       "material": "Нейлон, спандекс",
       "rating": 4.3,
-      "reviews_count": 0
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     },
     {
       "id": 54,
@@ -935,8 +1253,14 @@
       "gallery": "",
       "brand": "Sportlife",
       "material": "Нейлон, латекс",
-      "rating": 4.4,
-      "reviews_count": 0
+      "rating": 4.3,
+      "reviews_count": 3,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null
     }
   ]
 }

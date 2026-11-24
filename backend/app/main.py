@@ -4,6 +4,7 @@
 поэтому приложению всё равно, откуда пришёл каталог — из SQLite на телефоне
 или с этого сервера.
 """
+import json
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -11,6 +12,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .db import get_session
+from .search import matches
 from .models import Category, Product, Sport
 
 app = FastAPI(title="Sport Shop API", version="1.0")
@@ -29,6 +31,7 @@ def product_json(product: Product) -> dict:
         "stock": product.stock,
         "image_url": product.image_url,
         "gallery": [line for line in (product.gallery or "").split("\n") if line.strip()],
+        "variants": json.loads(product.variants) if product.variants else [],
         "brand": product.brand,
         "material": product.material,
         "rating": float(product.rating) if product.rating is not None else None,
@@ -91,14 +94,13 @@ def products(
         ).params(size=f"%,{size},%")
     items = [product_json(p) for p in session.scalars(statement).unique()]
 
-    # Поиск без учёта регистра — в Python: так одинаково работает кириллица
-    # при любой локали базы данных.
-    words = query.strip().lower()
-    if words:
+    # Поиск — в Python: без учёта регистра и языка («adidas» = «Адидас»),
+    # одинаково при любой локали базы данных.
+    if query.strip():
         items = [
             item for item in items
-            if any(words in (item[field] or "").lower()
-                   for field in ("name", "description", "category_name", "sport_name"))
+            if matches(query, [item[field] for field in
+                               ("name", "brand", "description", "category_name", "sport_name")])
         ]
     return items
 

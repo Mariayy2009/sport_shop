@@ -57,6 +57,8 @@ class Product(Base):
     image_url: Mapped[Optional[str]] = mapped_column(String(300))
     # Дополнительные фото через перевод строки (как в базе телефона).
     gallery: Mapped[Optional[str]] = mapped_column(Text)
+    # Варианты (цвет/модель) — JSON-список {name, image}, как в приложении.
+    variants: Mapped[Optional[str]] = mapped_column(Text)
     brand: Mapped[Optional[str]] = mapped_column(String(60))
     material: Mapped[Optional[str]] = mapped_column(String(120))
     rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(2, 1))

@@ -53,7 +53,7 @@ def test_product_matches_app_format(client):
     # Те же поля, что читает Product.fromJson в приложении.
     assert set(product) == {
         "id", "name", "description", "price", "category_id", "sport_id", "size",
-        "stock", "image_url", "gallery", "brand", "material", "rating", "reviews_count",
+        "stock", "image_url", "gallery", "variants", "brand", "material", "rating", "reviews_count",
         "category_name", "sport_name",
     }
     assert product["name"] == "Волейбольная форма"
@@ -63,6 +63,10 @@ def test_product_matches_app_format(client):
     uniform = next(p for p in client.get("/products").json()
                    if p["name"] == "Форма волейбольная женская")
     assert len(uniform["gallery"]) == 7
+    assert {v["name"] for v in uniform["variants"]} >= {"Розовая", "Синяя"}
+    # Поиск без разницы языка.
+    found = client.get("/products", params={"query": "адидас"}).json()
+    assert any("Adidas" in p["name"] for p in found)
 
 
 def test_filters(client):

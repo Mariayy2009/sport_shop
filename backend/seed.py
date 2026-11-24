@@ -15,6 +15,14 @@ from sqlalchemy import delete, func, select, text
 from app.db import SessionLocal
 from app.models import Category, Product, Sport
 
+# Поля каталога, которые есть на сервере (в приложении их больше:
+# продавец, модерация, отсканированная примерка — появятся позже).
+PRODUCT_COLUMNS = {column.key for column in Product.__table__.columns}
+
+
+def product_row(row: dict) -> dict:
+    return {key: value for key, value in row.items() if key in PRODUCT_COLUMNS}
+
 FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed", "catalog.json")
 
 
@@ -28,11 +36,17 @@ def main(reset: bool) -> None:
             # (с теми же номерами), ничего не удаляя.
             existing = set(session.scalars(select(Product.id)))
             new = [row for row in data["products"] if row["id"] not in existing]
-            session.add_all(Product(**row) for row in new)
+            session.add_all(Product(**product_row(row)) for row in new)
             for row in data["products"]:
-                if row["id"] in existing and row.get("gallery"):
-                    session.execute(text("UPDATE products SET gallery = :g WHERE id = :id AND gallery IS NULL"),
-                                    {"g": row["gallery"], "id": row["id"]})
+                if row["id"] in existing:
+                    # Новые фото и варианты товаров из приложения.
+                    session.execute(text(
+                        "UPDATE products SET gallery = COALESCE(:g, gallery), "
+                        "variants = COALESCE(:v, variants), rating = :r, "
+                        "reviews_count = :c WHERE id = :id"),
+                        {"g": row.get("gallery") or None, "v": row.get("variants"),
+                         "r": row.get("rating"), "c": row.get("reviews_count", 0),
+                         "id": row["id"]})
             session.flush()
             session.execute(text(
                 "SELECT setval(pg_get_serial_sequence('products', 'id'), "
@@ -46,7 +60,7 @@ def main(reset: bool) -> None:
         session.flush()
         session.add_all(Category(**row) for row in data["categories"])
         session.flush()
-        session.add_all(Product(**row) for row in data["products"])
+        session.add_all(Product(**product_row(row)) for row in data["products"])
         session.flush()
         # Номера заданы явно — двигаем счётчики, чтобы новые записи
         # получали следующие номера.

@@ -1,7 +1,9 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../../models/category.dart';
+import '../../../models/item_options.dart';
 import '../../../models/product.dart';
+import '../../../services/search/search_matcher.dart';
 import '../../../models/product_filter.dart';
 import '../../../models/sport.dart';
 import '../../database/app_database.dart';
@@ -66,14 +68,21 @@ class ProductLocalDataSource {
 
     // Текстовый поиск делаем в Dart: LIKE в SQLite не умеет
     // сравнивать кириллицу без учёта регистра («Футболка» ≠ «футболка»).
-    final String query = filter.query.trim().toLowerCase();
+    final String query = filter.query.trim();
     if (query.isEmpty) return products;
-    return products.where((product) {
-      return product.name.toLowerCase().contains(query) ||
-          (product.description?.toLowerCase().contains(query) ?? false) ||
-          (product.categoryName?.toLowerCase().contains(query) ?? false) ||
-          (product.sportName?.toLowerCase().contains(query) ?? false);
-    }).toList();
+    // Без разницы языка: «adidas» = «Адидас», «найк» = «Nike».
+    final SearchMatcher matcher = SearchMatcher(query);
+    return products
+        .where((product) => matcher.matches([
+              product.name,
+              product.brand,
+              product.description,
+              product.categoryName,
+              product.sportName,
+              product.sellerName,
+              for (final ProductVariant variant in product.variants) variant.name,
+            ]))
+        .toList();
   }
 
   Future<Product?> getProductById(int id) async {
