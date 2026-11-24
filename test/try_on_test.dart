@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -300,6 +301,31 @@ void main() {
     });
     expect(job.warnings, ['мало памяти']);
     expect(TryOnServerStatus.fromJson({'model_ready': true}).warnings, isEmpty);
+  });
+
+  test('цвет кожи с лица: кадр NV21 переводится в RGB', () {
+    // Кадр 40×20 NV21: яркость 150, цветность U=110, V=160 везде.
+    const int w = 40, h = 20;
+    final Uint8List frame = Uint8List(w * h * 3 ~/ 2)..fillRange(0, w * h, 150);
+    for (int i = w * h; i < frame.length; i += 2) {
+      frame[i] = 160; // V
+      frame[i + 1] = 110; // U
+    }
+    final Color? skin = BodyShading.skinColor(
+      planes: [frame],
+      bytesPerRow: const [w],
+      bytesPerPixel: const [1],
+      frameWidth: w,
+      frameHeight: h,
+      rotation: 270,
+      mirror: true,
+      bgra: false,
+      noseX: 0.5,
+      noseY: 0.3,
+    );
+    expect((skin!.r * 255).round(), closeTo(195, 1));
+    expect((skin.g * 255).round(), closeTo(133, 1));
+    expect((skin.b * 255).round(), closeTo(118, 1));
   });
 
   group('Сервис примерки по фото', () {

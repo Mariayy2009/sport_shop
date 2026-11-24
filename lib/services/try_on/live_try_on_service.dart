@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'dart:ui' show Size;
 
 import 'package:camera/camera.dart';
@@ -171,7 +172,7 @@ class LiveTryOnService {
           .smoothedFrom(_previous, _smoothing);
       _previous = pose;
       _poses.add(pose);
-      if (withShading) await _updateShading(image, input);
+      if (withShading) await _updateShading(image, input, pose);
     } on Exception catch (error) {
       debugPrint('Ошибка определения позы: $error');
     } finally {
@@ -181,7 +182,11 @@ class LiveTryOnService {
 
   /// Свет и силуэт для реалистичного режима. Ошибка модели силуэта
   /// не мешает примерке: одежда просто рисуется без обрезки по контуру.
-  Future<void> _updateShading(CameraImage image, InputImage input) async {
+  Future<void> _updateShading(
+    CameraImage image,
+    InputImage input,
+    BodyPose pose,
+  ) async {
     final SelfieSegmenter? segmenter = _segmenter;
     if (segmenter != null && (_mask == null || _frame++ % _maskEvery == 0)) {
       try {
@@ -192,6 +197,22 @@ class LiveTryOnService {
     }
     if (!_running || _shading.isClosed) return;
     final SegmentationMask? mask = _mask;
+    final bool bgra = image.format.group == ImageFormatGroup.bgra8888;
+    final BodyPoint? nose = pose[BodyJoint.nose];
+    final ui.Color? skin = nose == null
+        ? null
+        : BodyShading.skinColor(
+            planes: [for (final Plane plane in image.planes) plane.bytes],
+            bytesPerRow: [for (final Plane plane in image.planes) plane.bytesPerRow],
+            bytesPerPixel: [for (final Plane plane in image.planes) plane.bytesPerPixel],
+            frameWidth: image.width,
+            frameHeight: image.height,
+            rotation: _current?.sensorOrientation ?? 0,
+            mirror: isFrontCamera,
+            bgra: bgra,
+            noseX: nose.x,
+            noseY: nose.y,
+          );
     _shading.add(BodyShading.fromFrame(
       luma: image.planes.first.bytes,
       frameWidth: image.width,
@@ -203,7 +224,7 @@ class LiveTryOnService {
       mask: mask?.confidences,
       maskWidth: mask?.width ?? 0,
       maskHeight: mask?.height ?? 0,
-    ));
+    ).withSkin(skin));
   }
 
   /// Кадр камеры → формат ML Kit с учётом поворота датчика.

@@ -15,7 +15,22 @@ class GarmentCutout {
     required this.bounds,
     required this.topSpanY,
     required this.topSpan,
+    required this.torsoLeft,
+    required this.torsoRight,
+    required this.sleeveBottom,
+    required this.hipRow,
+    required this.hipSpan,
   });
+
+  /// Строка фото, которая ложится на линию бёдер, и ширина вещи на ней.
+  final double hipRow;
+  final double hipSpan;
+
+  /// Корпус вещи без рукавов (по горизонтали) и нижний край рукавов —
+  /// по ним фото режется на части: корпус ложится на тело, рукава — на руки.
+  final double torsoLeft;
+  final double torsoRight;
+  final double sleeveBottom;
 
   /// Картинка с прозрачным фоном.
   final ui.Image image;
@@ -75,6 +90,11 @@ class GarmentCutout {
         bounds: mask.bounds,
         topSpanY: mask.topSpanY,
         topSpan: mask.topSpan,
+        torsoLeft: mask.torsoLeft,
+        torsoRight: mask.torsoRight,
+        sleeveBottom: mask.sleeveBottom,
+        hipRow: mask.hipRow,
+        hipSpan: mask.hipSpan,
       );
     } on Exception {
       return null;
@@ -210,6 +230,45 @@ class GarmentCutout {
     final double topSpan = span(row);
     if (topSpan < 4) return null;
 
+    // Корпус — самая узкая строка в середине вещи (ниже рукавов).
+    (int, int) edges(int y) {
+      int left = -1, right = -1;
+      for (int x = minX; x <= maxX; x++) {
+        if (background[y * w + x] == 0) {
+          if (left < 0) left = x;
+          right = x;
+        }
+      }
+      return (left, right);
+    }
+
+    // Линия бёдер на фото. У футболки и майки низ почти на бёдрах;
+    // если на фото комплект с брюками или шортами (вещь заметно выше,
+    // чем шире: кимоно, волейбольная форма), бёдра — у пояса.
+    final double aspect = height / (maxX - minX + 1);
+    final double hipRow =
+        row + (maxY - row) * (aspect > 1.75 ? 0.5 : 0.85);
+
+    int torsoLeft = minX, torsoRight = maxX;
+    if (!isBottom) {
+      int narrowest = maxX - minX + 1;
+      // Корпус ищем выше пояса: ниже — уже брюки или шорты.
+      for (int y = (row + (hipRow - row) * 0.5).round(); y <= hipRow; y++) {
+        final (int l, int r) = edges(y);
+        if (l >= 0 && r - l + 1 < narrowest) {
+          narrowest = r - l + 1;
+          torsoLeft = l;
+          torsoRight = r;
+        }
+      }
+    }
+    // Нижний край рукавов: последняя строка, где вещь выходит за корпус.
+    int sleeveBottom = row;
+    for (int y = row; y <= hipRow; y++) {
+      final (int l, int r) = edges(y);
+      if (l >= 0 && (l < torsoLeft - 2 || r > torsoRight + 2)) sleeveBottom = y;
+    }
+
     return CutoutMask(
       rgba: rgba,
       bounds: ui.Rect.fromLTRB(
@@ -217,6 +276,11 @@ class GarmentCutout {
       ),
       topSpanY: row.toDouble(),
       topSpan: topSpan,
+      torsoLeft: torsoLeft.toDouble(),
+      torsoRight: torsoRight + 1.0,
+      sleeveBottom: sleeveBottom.toDouble(),
+      hipRow: hipRow,
+      hipSpan: math.max(span(hipRow.round().clamp(minY, maxY)), 4),
     );
   }
 }
@@ -228,10 +292,20 @@ class CutoutMask {
     required this.bounds,
     required this.topSpanY,
     required this.topSpan,
+    required this.torsoLeft,
+    required this.torsoRight,
+    required this.sleeveBottom,
+    required this.hipRow,
+    required this.hipSpan,
   });
 
   final Uint8List rgba;
+  final double hipRow;
+  final double hipSpan;
   final ui.Rect bounds;
   final double topSpanY;
   final double topSpan;
+  final double torsoLeft;
+  final double torsoRight;
+  final double sleeveBottom;
 }

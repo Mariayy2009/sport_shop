@@ -15,7 +15,101 @@ import 'dart:ui' as ui;
 /// [BodyPose]: вертикально, с зеркалом для фронтальной камеры):
 /// RGB — яркость (128 = средняя), A — принадлежность человеку.
 class BodyShading {
-  BodyShading({required this.width, required this.height, required this.rgba});
+  BodyShading({
+    required this.width,
+    required this.height,
+    required this.rgba,
+    this.skin,
+  });
+
+  /// Цвет кожи человека в кадре (с лица) — им закрашивается своя
+  /// одежда там, где у примеряемой вещи нет рукавов или штанин.
+  final ui.Color? skin;
+
+  BodyShading withSkin(ui.Color? color) =>
+      BodyShading(width: width, height: height, rgba: rgba, skin: color);
+
+  /// Цвет кожи у точки [nose] (доли вертикального кадра, как в позе;
+  /// зеркало уже учтено в [mirror]). Кадр: NV21 одной плоскостью
+  /// (Y, затем VU), три плоскости YUV или BGRA. null — не удалось.
+  static ui.Color? skinColor({
+    required List<Uint8List> planes,
+    required List<int> bytesPerRow,
+    required List<int?> bytesPerPixel,
+    required int frameWidth,
+    required int frameHeight,
+    required int rotation,
+    required bool mirror,
+    required bool bgra,
+    required double noseX,
+    required double noseY,
+  }) {
+    final bool sideways = rotation == 90 || rotation == 270;
+    final int uprightWidth = sideways ? frameHeight : frameWidth;
+    final int uprightHeight = sideways ? frameWidth : frameHeight;
+    double r = 0, g = 0, b = 0;
+    int n = 0;
+    // Пятно 9×9 точек с шагом 2 пикселя вокруг носа.
+    for (int dy = -4; dy <= 4; dy++) {
+      for (int dx = -4; dx <= 4; dx++) {
+        final double fx = (mirror ? 1 - noseX : noseX) * uprightWidth + dx * 2;
+        final double fy = noseY * uprightHeight + dy * 2;
+        final (int x, int y) = sensorPoint(fx, fy, rotation, frameWidth, frameHeight);
+        final List<int>? rgb = _rgbAt(planes, bytesPerRow, bytesPerPixel,
+            frameWidth, frameHeight, x, y, bgra);
+        if (rgb == null) continue;
+        r += rgb[0];
+        g += rgb[1];
+        b += rgb[2];
+        n++;
+      }
+    }
+    if (n == 0) return null;
+    return ui.Color.fromARGB(255, r ~/ n, g ~/ n, b ~/ n);
+  }
+
+  static List<int>? _rgbAt(
+    List<Uint8List> planes,
+    List<int> bytesPerRow,
+    List<int?> bytesPerPixel,
+    int w,
+    int h,
+    int x,
+    int y,
+    bool bgra,
+  ) {
+    if (planes.isEmpty) return null;
+    if (bgra) {
+      final int i = y * bytesPerRow[0] + x * 4;
+      if (i + 2 >= planes[0].length) return null;
+      return [planes[0][i + 2], planes[0][i + 1], planes[0][i]];
+    }
+    final int yi = y * bytesPerRow[0] + x;
+    if (yi >= planes[0].length) return null;
+    final int luma = planes[0][yi];
+    int u, v;
+    if (planes.length >= 3) {
+      final int uvRow = bytesPerRow[1];
+      final int step = bytesPerPixel[1] ?? 1;
+      final int ui0 = (y ~/ 2) * uvRow + (x ~/ 2) * step;
+      if (ui0 >= planes[1].length || ui0 >= planes[2].length) return null;
+      u = planes[1][ui0];
+      v = planes[2][ui0];
+    } else {
+      // NV21: после яркости — пары V, U на каждые 2×2 пикселя.
+      final int i = w * h + (y ~/ 2) * w + (x ~/ 2) * 2;
+      if (i + 1 >= planes[0].length) return null;
+      v = planes[0][i];
+      u = planes[0][i + 1];
+    }
+    final double c = luma.toDouble(), d = u - 128.0, e = v - 128.0;
+    int clamp(double value) => value.round().clamp(0, 255);
+    return [
+      clamp(c + 1.402 * e),
+      clamp(c - 0.344 * d - 0.714 * e),
+      clamp(c + 1.772 * d),
+    ];
+  }
 
   final int width;
   final int height;

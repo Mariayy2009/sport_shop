@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sport_shop/services/try_on/garment_cutout.dart';
-import 'package:sport_shop/widgets/photo_garment_painter.dart';
+import 'package:sport_shop/widgets/size_fit.dart';
 
 /// Фото 100×100: белый фон, в центре «футболка» — синий прямоугольник.
 Uint8List photo({int bg = 250}) {
@@ -36,8 +36,10 @@ void main() {
   test('размер: больше рекомендуемого — вещь крупнее', () {
     const List<String> sizes = ['XS', 'S', 'M', 'L', 'XL'];
     expect(SizeFit.scale(sizes, 'M', 'M'), 1);
-    expect(SizeFit.scale(sizes, 'XL', 'M'), closeTo(1.16, 1e-9));
-    expect(SizeFit.scale(sizes, 'S', 'M'), closeTo(0.92, 1e-9));
+    expect(SizeFit.scale(sizes, 'XL', 'M'), closeTo(1.2, 1e-9));
+    expect(SizeFit.scale(sizes, 'S', 'M'), closeTo(0.9, 1e-9));
+    // Без размера в профиле — относительно среднего.
+    expect(SizeFit.scale(sizes, 'XS', null), closeTo(0.8, 1e-9));
     expect(SizeFit.describe(sizes, 'XL', 'M'), 'велико');
     expect(SizeFit.describe(sizes, 'L', 'M'), 'свободно');
     expect(SizeFit.describe(sizes, 'S', 'M'), 'в обтяжку');

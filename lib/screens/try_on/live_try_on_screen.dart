@@ -26,7 +26,8 @@ import '../../services/try_on/photo_try_on_service.dart';
 import '../../state/profile_state.dart';
 import '../../widgets/dark_pill.dart';
 import '../../widgets/garment_3d_painter.dart';
-import '../../widgets/photo_garment_painter.dart';
+import '../../widgets/fitted_garment_painter.dart';
+import '../../widgets/size_fit.dart';
 import '../../widgets/try_on_product_strip.dart';
 
 /// Живая примерка: камера, поза тела в реальном времени и 3D-модель
@@ -52,6 +53,9 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
 
   /// Свет и силуэт из последнего кадра камеры.
   ui.Image? _shading;
+
+  /// Цвет кожи человека в кадре — им закрывается своя одежда.
+  Color? _skin;
   bool _shadingBusy = false;
 
   /// Движение условной фигуры в предпросмотре (без камеры).
@@ -81,11 +85,6 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
 
   bool get _usePhoto => _photoMode && _cutout != null;
 
-  bool get _isBottom {
-    final GarmentShape? shape =
-        _product == null ? null : TryOnSupport.of(_product!).shape;
-    return shape == GarmentShape.shorts || shape == GarmentShape.pants;
-  }
 
   double get _sizeScale => SizeFit.scale(
         _product?.availableSizes ?? const [],
@@ -150,7 +149,10 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
         return;
       }
       final ui.Image? old = _shading;
-      setState(() => _shading = image);
+      setState(() {
+        _shading = image;
+        _skin = shading.skin ?? _skin;
+      });
       // Старую картинку освобождаем после того, как кадр перерисован.
       WidgetsBinding.instance.addPostFrameCallback((_) => old?.dispose());
     } finally {
@@ -348,7 +350,7 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                   color: _color,
                   showJoints: true,
                   cutout: _usePhoto ? _cutout : null,
-                  isBottom: _isBottom,
+                  shape: _product == null ? null : TryOnSupport.of(_product!).shape,
                   sizeScale: _sizeScale,
                 ),
                 size: constraints.biggest,
@@ -383,8 +385,9 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                 color: _color,
                 showJoints: _showJoints,
                 shading: _shading,
+                skin: _skin,
                 cutout: _usePhoto ? _cutout : null,
-                isBottom: _isBottom,
+                shape: _product == null ? null : TryOnSupport.of(_product!).shape,
                 sizeScale: _sizeScale,
               ),
             ),
@@ -428,14 +431,16 @@ class _StagePainter extends CustomPainter {
     required this.showJoints,
     this.shading,
     this.cutout,
-    this.isBottom = false,
+    this.shape,
     this.sizeScale = 1,
+    this.skin,
   });
 
   final GarmentMesh? mesh;
   final GarmentCutout? cutout;
-  final bool isBottom;
+  final GarmentShape? shape;
   final double sizeScale;
+  final Color? skin;
   final BodyPose? pose;
   final Color color;
   final bool showJoints;
@@ -462,15 +467,17 @@ class _StagePainter extends CustomPainter {
     if (pose == null) return;
     if (showJoints) _paintSkeleton(canvas, size, pose);
     final GarmentCutout? cutout = this.cutout;
-    if (cutout != null) {
-      PhotoGarmentPainter.paint(
+    final GarmentShape? shape = this.shape;
+    if (cutout != null && shape != null) {
+      FittedGarmentPainter.paint(
         canvas,
         size,
         pose,
         cutout,
-        isBottom: isBottom,
+        shape: shape,
         sizeScale: sizeScale,
         shading: shading,
+        skin: skin,
       );
       return;
     }
@@ -520,6 +527,7 @@ class _StagePainter extends CustomPainter {
       oldDelegate.color != color ||
       oldDelegate.shading != shading ||
       oldDelegate.cutout != cutout ||
+      oldDelegate.skin != skin ||
       oldDelegate.sizeScale != sizeScale ||
       oldDelegate.showJoints != showJoints;
 }
