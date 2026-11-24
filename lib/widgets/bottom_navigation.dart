@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_sizes.dart';
 import '../core/routes/main_tab.dart';
 import '../core/theme/app_text_styles.dart';
+import '../models/enums.dart';
+import '../state/auth_state.dart';
 
 /// Нижняя навигация из Figma: Home / Catalog / AI / Basket / Profile.
 class AppBottomNavigation extends StatelessWidget {
@@ -22,6 +25,8 @@ class AppBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final UserRole role =
+        context.watch<AuthState>().currentUser?.role ?? UserRole.guest;
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -36,8 +41,14 @@ class AppBottomNavigation extends StatelessWidget {
               for (final MainTab tab in MainTab.values)
                 _NavItem(
                   tab: tab,
+                  role: role,
                   isSelected: tab == currentTab,
-                  badgeCount: tab == MainTab.basket ? basketCount : 0,
+                  // Бейдж корзины — только у покупателя.
+                  badgeCount: tab == MainTab.basket &&
+                          role != UserRole.seller &&
+                          role != UserRole.admin
+                      ? basketCount
+                      : 0,
                   onTap: () => onTabSelected(tab),
                 ),
             ],
@@ -51,12 +62,14 @@ class AppBottomNavigation extends StatelessWidget {
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.tab,
+    required this.role,
     required this.isSelected,
     required this.badgeCount,
     required this.onTap,
   });
 
   final MainTab tab;
+  final UserRole role;
   final bool isSelected;
   final int badgeCount;
   final VoidCallback onTap;
@@ -75,13 +88,13 @@ class _NavItem extends StatelessWidget {
               backgroundColor: AppColors.logoRed,
               label: Text('$badgeCount'),
               child: Icon(
-                isSelected ? tab.activeIcon : tab.icon,
+                tab.iconFor(role, selected: isSelected),
                 color: color,
                 size: AppSizes.iconM,
               ),
             ),
             const SizedBox(height: AppSizes.xxs),
-            Text(tab.label, style: AppTextStyles.navLabel.copyWith(color: color)),
+            Text(tab.labelFor(role), style: AppTextStyles.navLabel.copyWith(color: color)),
           ],
         ),
       ),

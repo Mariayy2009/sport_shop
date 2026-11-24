@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'garment_scan.dart';
+
 /// Вещь, вырезанная из фото товара: фон убран, измерены плечи
 /// (у верха) или пояс (у низа). Её накладывают на тело в живой
 /// примерке — с настоящим цветом, принтом, номером и надписями.
@@ -52,6 +54,35 @@ class GarmentCutout {
 
   /// Насколько цвет может отличаться от фона, чтобы считаться фоном.
   static const int tolerance = 42;
+
+  /// Вещь, отсканированная продавцом: PNG с прозрачным фоном и опорные
+  /// линии, измеренные по позе во время сканирования.
+  static Future<GarmentCutout?> fromScan(
+    Uint8List png,
+    ScanAnchors anchors,
+  ) async {
+    try {
+      final ui.Codec codec = await ui.instantiateImageCodec(png);
+      final ui.Image image = (await codec.getNextFrame()).image;
+      final double w = image.width.toDouble(), h = image.height.toDouble();
+      return GarmentCutout._(
+        image: image,
+        width: image.width,
+        height: image.height,
+        // Снимок выровнен по центру корпуса — центр кадра и есть центр вещи.
+        bounds: ui.Rect.fromLTWH(0, 0, w, h),
+        topSpanY: anchors.shoulderY,
+        topSpan: anchors.span,
+        torsoLeft: anchors.centerX - anchors.span / 2,
+        torsoRight: anchors.centerX + anchors.span / 2,
+        sleeveBottom: anchors.hipY,
+        hipRow: anchors.hipY,
+        hipSpan: anchors.hipSpan,
+      );
+    } on Exception {
+      return null;
+    }
+  }
 
   /// Вырезает вещь из фото [bytes]. [isBottom] — шорты или штаны
   /// (мерить пояс, а не плечи). null — фото не подходит: фон не

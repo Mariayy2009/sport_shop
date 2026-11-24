@@ -29,7 +29,10 @@ import '../../widgets/text_input_sheet.dart';
 /// Панель администратора: товары, заказы и вопросы покупателей.
 /// Доступна только пользователю с ролью admin.
 class AdminScreen extends StatelessWidget {
-  const AdminScreen({super.key});
+  const AdminScreen({super.key, this.embedded = false});
+
+  /// Внутри нижней вкладки «Модерация» — без своей шапки и навигации.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -44,36 +47,39 @@ class AdminScreen extends StatelessWidget {
         ),
       );
     }
+    final Widget content = Column(
+      children: [
+        Material(
+          color: AppColors.surface,
+          child: TabBar(
+            labelColor: AppColors.textPrimary,
+            unselectedLabelColor: AppColors.textSecondary,
+            indicatorColor: AppColors.accent,
+            labelStyle:
+                AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+            tabs: const [
+              Tab(text: 'Товары'),
+              Tab(text: 'Заказы'),
+              Tab(text: 'Вопросы'),
+            ],
+          ),
+        ),
+        const Expanded(
+          child: TabBarView(
+            children: [_ProductsTab(), _OrdersTab(), _QuestionsTab()],
+          ),
+        ),
+      ],
+    );
     return DefaultTabController(
       length: 3,
-      child: AppScaffold(
-        title: 'Панель администратора',
-        navTab: MainTab.profile,
-        body: Column(
-          children: [
-            Material(
-              color: AppColors.surface,
-              child: TabBar(
-                labelColor: AppColors.textPrimary,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.accent,
-                labelStyle:
-                    AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
-                tabs: const [
-                  Tab(text: 'Товары'),
-                  Tab(text: 'Заказы'),
-                  Tab(text: 'Вопросы'),
-                ],
-              ),
+      child: embedded
+          ? content
+          : AppScaffold(
+              title: 'Панель администратора',
+              navTab: MainTab.profile,
+              body: content,
             ),
-            const Expanded(
-              child: TabBarView(
-                children: [_ProductsTab(), _OrdersTab(), _QuestionsTab()],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -105,7 +111,8 @@ class _ProductsTabState extends State<_ProductsTab>
   void _reload() => setState(() => _future = _load());
 
   Future<void> _block(Product product) async {
-    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final ModerationRepository moderation =
+        context.read<ModerationRepository>();
     final (WarningReason, String?)? result = await WarningSheet.show(
       context,
       title: 'Снять «${product.name}» с продажи',
@@ -131,7 +138,8 @@ class _ProductsTabState extends State<_ProductsTab>
   }
 
   Future<void> _warn(Product product) async {
-    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final ModerationRepository moderation =
+        context.read<ModerationRepository>();
     final (WarningReason, String?)? result = await WarningSheet.show(
       context,
       title: 'Предупреждение продавцу «${product.sellerName}»',
@@ -183,7 +191,8 @@ class _ProductsTabState extends State<_ProductsTab>
                       filled: true,
                       fillColor: AppColors.surface,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                        borderRadius:
+                            BorderRadius.circular(AppSizes.radiusPill),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -210,77 +219,97 @@ class _ProductsTabState extends State<_ProductsTab>
                 child: AppCard(
                   padding: const EdgeInsets.all(AppSizes.s),
                   onTap: () => _edit(product),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ProductImage(
-                        imageUrl: product.imageUrl,
-                        width: 52,
-                        height: 52,
-                        borderRadius: AppSizes.radiusS,
-                      ),
-                      const SizedBox(width: AppSizes.m),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.body
-                                  .copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              '${Formatters.price(product.price)} · '
-                              'Продавец: ${product.sellerTitle}',
-                              style: AppTextStyles.caption,
-                            ),
-                            if (product.isBlocked)
-                              Text(
-                                'Снят с продажи: ${product.blockReason ?? ''}',
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.error,
-                                  fontWeight: FontWeight.w700,
+                      Row(
+                        children: [
+                          ProductImage(
+                            imageUrl: product.imageUrl,
+                            width: 52,
+                            height: 52,
+                            borderRadius: AppSizes.radiusS,
+                          ),
+                          const SizedBox(width: AppSizes.m),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.body
+                                      .copyWith(fontWeight: FontWeight.w600),
                                 ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        product.isAvailable ? '${product.stock} шт.' : 'Нет',
-                        style: AppTextStyles.bodySecondary.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: product.stock == 0
-                              ? AppColors.error
-                              : product.stock <= 5
-                                  ? AppColors.statusInTransitText
-                                  : AppColors.success,
-                        ),
-                      ),
-                      PopupMenuButton<String>(
-                        tooltip: 'Модерация',
-                        onSelected: (action) => switch (action) {
-                          'edit' => _edit(product),
-                          'block' => _block(product),
-                          'unblock' => _unblock(product),
-                          _ => _warn(product),
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'edit', child: Text('Изменить')),
-                          if (product.isBlocked)
-                            const PopupMenuItem(
-                              value: 'unblock',
-                              child: Text('Вернуть в продажу'),
-                            )
-                          else
-                            const PopupMenuItem(
-                              value: 'block',
-                              child: Text('Снять с продажи'),
+                                Text(
+                                  '${Formatters.price(product.price)} · '
+                                  'Продавец: ${product.sellerTitle}',
+                                  style: AppTextStyles.caption,
+                                ),
+                                if (product.isBlocked)
+                                  Text(
+                                    'Снят с продажи: ${product.blockReason ?? ''}',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                              ],
                             ),
+                          ),
+                          Text(
+                            product.isAvailable
+                                ? '${product.stock} шт.'
+                                : 'Нет',
+                            style: AppTextStyles.bodySecondary.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: product.stock == 0
+                                  ? AppColors.error
+                                  : product.stock <= 5
+                                      ? AppColors.statusInTransitText
+                                      : AppColors.success,
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      // Модерация — сразу видна, без скрытых меню.
+                      Wrap(
+                        spacing: AppSizes.xs,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => product.isBlocked
+                                ? _unblock(product)
+                                : _block(product),
+                            icon: Icon(
+                              product.isBlocked ? Icons.undo : Icons.block,
+                              size: 18,
+                              color: product.isBlocked
+                                  ? AppColors.success
+                                  : AppColors.error,
+                            ),
+                            label: Text(
+                              product.isBlocked
+                                  ? 'Вернуть в продажу'
+                                  : 'Снять с продажи',
+                              style: AppTextStyles.caption.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: product.isBlocked
+                                    ? AppColors.success
+                                    : AppColors.error,
+                              ),
+                            ),
+                          ),
                           if (product.sellerId != null)
-                            const PopupMenuItem(
-                              value: 'warn',
-                              child: Text('Предупредить продавца'),
+                            TextButton.icon(
+                              onPressed: () => _warn(product),
+                              icon: const Icon(Icons.report_outlined, size: 18),
+                              label: Text(
+                                'Предупредить продавца',
+                                style: AppTextStyles.caption
+                                    .copyWith(fontWeight: FontWeight.w700),
+                              ),
                             ),
                         ],
                       ),
@@ -313,8 +342,7 @@ class _OrdersTabState extends State<_OrdersTab>
   @override
   bool get wantKeepAlive => true;
 
-  Future<List<Order>> _load() =>
-      context.read<OrderRepository>().getAllOrders();
+  Future<List<Order>> _load() => context.read<OrderRepository>().getAllOrders();
 
   @override
   Widget build(BuildContext context) {
@@ -450,14 +478,17 @@ class _QuestionsTabState extends State<_QuestionsTab>
                       ),
                       if (question.isAnswered) ...[
                         const SizedBox(height: AppSizes.xs),
-                        Text(question.answer!, style: AppTextStyles.bodySecondary),
+                        Text(question.answer!,
+                            style: AppTextStyles.bodySecondary),
                       ],
                       Row(
                         children: [
                           TextButton(
                             onPressed: () => _answer(question),
                             child: Text(
-                              question.isAnswered ? 'Изменить ответ' : 'Ответить',
+                              question.isAnswered
+                                  ? 'Изменить ответ'
+                                  : 'Ответить',
                               style: const TextStyle(color: AppColors.accent),
                             ),
                           ),

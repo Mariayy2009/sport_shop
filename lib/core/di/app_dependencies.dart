@@ -23,6 +23,7 @@ import '../../data/repositories/preferences_repository.dart';
 import '../../data/datasources/local/shop_server_storage.dart';
 import '../../data/repositories/switchable_product_repository.dart';
 import '../../data/repositories/try_on_repository.dart';
+import '../../data/repositories/try_on_scan_repository.dart';
 import '../../data/repositories/recommendation_repository.dart';
 import '../../data/repositories/user_repository.dart';
 import '../../services/assistant/ai_key_store.dart';
@@ -56,6 +57,7 @@ class AppDependencies {
     required this.tryOnRepository,
     required this.preferencesRepository,
     required this.moderationRepository,
+    required this.tryOnScanRepository,
     required this.mediaStorage,
     required this.photoTryOnService,
     required this.authService,
@@ -75,6 +77,7 @@ class AppDependencies {
     PhotoTryOnService? photoTryOnService,
     ShopServerStorage? shopServerStorage,
     PreferencesRepository? preferencesRepository,
+    TryOnScanRepository? tryOnScanRepository,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
@@ -114,6 +117,7 @@ class AppDependencies {
       tryOnRepository: tryOnRepository ?? LocalTryOnRepository(),
       preferencesRepository: preferences,
       moderationRepository: LocalModerationRepository(database),
+      tryOnScanRepository: tryOnScanRepository ?? LocalTryOnScanRepository(database),
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
       photoTryOnService: photoTryOnService ?? PhotoTryOnService(),
       authService: AuthService(
@@ -148,6 +152,9 @@ class AppDependencies {
 
   /// Модерация: снятие товаров с продажи, предупреждения продавцам.
   final ModerationRepository moderationRepository;
+
+  /// Примерки, отсканированные продавцами.
+  final TryOnScanRepository tryOnScanRepository;
   final MediaStorage mediaStorage;
   final PhotoTryOnService photoTryOnService;
   final AuthService authService;

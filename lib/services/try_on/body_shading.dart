@@ -55,7 +55,7 @@ class BodyShading {
         final double fx = (mirror ? 1 - noseX : noseX) * uprightWidth + dx * 2;
         final double fy = noseY * uprightHeight + dy * 2;
         final (int x, int y) = sensorPoint(fx, fy, rotation, frameWidth, frameHeight);
-        final List<int>? rgb = _rgbAt(planes, bytesPerRow, bytesPerPixel,
+        final List<int>? rgb = rgbAt(planes, bytesPerRow, bytesPerPixel,
             frameWidth, frameHeight, x, y, bgra);
         if (rgb == null) continue;
         r += rgb[0];
@@ -68,7 +68,8 @@ class BodyShading {
     return ui.Color.fromARGB(255, r ~/ n, g ~/ n, b ~/ n);
   }
 
-  static List<int>? _rgbAt(
+  /// Цвет пикселя кадра датчика (x, y) в RGB.
+  static List<int>? rgbAt(
     List<Uint8List> planes,
     List<int> bytesPerRow,
     List<int?> bytesPerPixel,

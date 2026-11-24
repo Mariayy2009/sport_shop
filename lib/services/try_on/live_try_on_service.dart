@@ -13,6 +13,7 @@ import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentatio
 import '../../core/errors/app_exception.dart';
 import 'body_pose.dart';
 import 'body_shading.dart';
+import 'garment_scan.dart';
 
 /// Живая примерка: видеопоток камеры и определение позы в каждом кадре.
 ///
@@ -24,6 +25,10 @@ class LiveTryOnService {
   LiveTryOnService({this.withShading = true});
 
   final bool withShading;
+
+  /// Кадр камеры с позой и маской человека — для сканирования вещи
+  /// продавцом. null — не нужен (обычная примерка, игра).
+  void Function(ScanFrame frame, BodyPose pose)? onScanFrame;
   CameraController? _camera;
   PoseDetector? _detector;
   SelfieSegmenter? _segmenter;
@@ -173,6 +178,26 @@ class LiveTryOnService {
       _previous = pose;
       _poses.add(pose);
       if (withShading) await _updateShading(image, input, pose);
+      final void Function(ScanFrame, BodyPose)? scan = onScanFrame;
+      if (scan != null) {
+        final SegmentationMask? mask = _mask;
+        scan(
+          ScanFrame(
+            planes: [for (final Plane plane in image.planes) plane.bytes],
+            bytesPerRow: [for (final Plane plane in image.planes) plane.bytesPerRow],
+            bytesPerPixel: [for (final Plane plane in image.planes) plane.bytesPerPixel],
+            width: image.width,
+            height: image.height,
+            rotation: _current?.sensorOrientation ?? 0,
+            mirror: isFrontCamera,
+            bgra: image.format.group == ImageFormatGroup.bgra8888,
+            mask: mask?.confidences,
+            maskWidth: mask?.width ?? 0,
+            maskHeight: mask?.height ?? 0,
+          ),
+          pose,
+        );
+      }
     } on Exception catch (error) {
       debugPrint('Ошибка определения позы: $error');
     } finally {

@@ -58,6 +58,25 @@ class SellerWarning {
       );
 }
 
+/// Магазин продавца для администратора: сколько товаров и нарушений.
+class SellerSummary {
+  const SellerSummary({
+    required this.userId,
+    required this.shopName,
+    required this.email,
+    required this.products,
+    required this.blocked,
+    required this.warnings,
+  });
+
+  final int userId;
+  final String shopName;
+  final String email;
+  final int products;
+  final int blocked;
+  final int warnings;
+}
+
 /// Модерация: администратор снимает товары с продажи и предупреждает
 /// продавцов, продавец читает свои предупреждения.
 abstract class ModerationRepository {
@@ -80,6 +99,9 @@ abstract class ModerationRepository {
   Future<int> unreadCount(int sellerId);
 
   Future<void> markRead(int sellerId);
+
+  /// Все продавцы — для вкладки администратора «Продавцы».
+  Future<List<SellerSummary>> sellers();
 }
 
 class LocalModerationRepository implements ModerationRepository {
@@ -167,5 +189,29 @@ class LocalModerationRepository implements ModerationRepository {
       where: 'seller_id = ?',
       whereArgs: [sellerId],
     );
+  }
+
+  @override
+  Future<List<SellerSummary>> sellers() async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      'SELECT s.user_id, s.shop_name, u.email, '
+      '(SELECT COUNT(*) FROM ${DatabaseSchema.products} p WHERE p.seller_id = s.user_id) AS products, '
+      "(SELECT COUNT(*) FROM ${DatabaseSchema.products} p WHERE p.seller_id = s.user_id AND p.status = 'blocked') AS blocked, "
+      '(SELECT COUNT(*) FROM ${DatabaseSchema.sellerWarnings} w WHERE w.seller_id = s.user_id) AS warnings '
+      'FROM ${DatabaseSchema.sellers} s JOIN ${DatabaseSchema.users} u ON u.id = s.user_id '
+      'ORDER BY s.shop_name',
+    );
+    return [
+      for (final Map<String, Object?> row in rows)
+        SellerSummary(
+          userId: row['user_id']! as int,
+          shopName: row['shop_name']! as String,
+          email: row['email']! as String,
+          products: row['products']! as int,
+          blocked: row['blocked']! as int,
+          warnings: row['warnings']! as int,
+        ),
+    ];
   }
 }

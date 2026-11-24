@@ -172,17 +172,20 @@ class ProfileScreen extends StatelessWidget {
             title: 'Избранное',
             onTap: () => Navigator.of(context).pushNamed(AppRoutes.favorites),
           ),
-          _MenuItem(
-            icon: Icons.auto_awesome_outlined,
-            title: 'ИИ-помощник',
-            onTap: onOpenAi,
-          ),
-          _MenuItem(
-            icon: Icons.inventory_2_outlined,
-            title: 'Мой комплект',
-            onTap: () => Navigator.of(context)
-                .pushNamed(AppRoutes.kits, arguments: sizes?.sportId),
-          ),
+          // Покупательские разделы продавцу и администратору не нужны.
+          if (!(authState.currentUser?.isSeller ?? false) && !authState.isAdmin) ...[
+            _MenuItem(
+              icon: Icons.auto_awesome_outlined,
+              title: 'ИИ-помощник',
+              onTap: onOpenAi,
+            ),
+            _MenuItem(
+              icon: Icons.inventory_2_outlined,
+              title: 'Мой комплект',
+              onTap: () => Navigator.of(context)
+                  .pushNamed(AppRoutes.kits, arguments: sizes?.sportId),
+            ),
+          ],
           _MenuItem(
             icon: Icons.emoji_events_outlined,
             title: 'Зал славы',

@@ -27,7 +27,10 @@ import '../admin/admin_product_screen.dart';
 /// Кабинет продавца: свои товары, заказы с ними («где товар»), вопросы
 /// покупателей и предупреждения администратора.
 class SellerScreen extends StatelessWidget {
-  const SellerScreen({super.key});
+  const SellerScreen({super.key, this.embedded = false});
+
+  /// Внутри нижней вкладки «Кабинет» — без своей шапки и навигации.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -43,12 +46,7 @@ class SellerScreen extends StatelessWidget {
         ),
       );
     }
-    return DefaultTabController(
-      length: 4,
-      child: AppScaffold(
-        title: user.shopName ?? 'Кабинет продавца',
-        navTab: MainTab.profile,
-        body: Column(
+    final Widget content = Column(
           children: [
             const Material(
               color: AppColors.surface,
@@ -76,8 +74,16 @@ class SellerScreen extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
+        );
+    return DefaultTabController(
+      length: 4,
+      child: embedded
+          ? content
+          : AppScaffold(
+              title: user.shopName ?? 'Кабинет продавца',
+              navTab: MainTab.profile,
+              body: content,
+            ),
     );
   }
 }

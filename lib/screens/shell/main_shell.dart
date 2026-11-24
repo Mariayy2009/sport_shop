@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/routes/main_tab.dart';
+import '../../models/enums.dart';
 import '../../state/auth_state.dart';
 import '../../state/cart_state.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/bottom_navigation.dart';
 import '../../widgets/guest_prompt.dart';
+import '../admin/admin_screen.dart';
+import '../admin/admin_sellers_screen.dart';
 import '../assistant/assistant_screen.dart';
 import '../cart/cart_screen.dart';
 import '../catalog/catalog_screen.dart';
 import '../home/home_screen.dart';
 import '../profile/profile_screen.dart';
+import '../seller/seller_scan_screen.dart';
+import '../seller/seller_screen.dart';
 
 /// Основная часть приложения: шапка + вкладки + нижняя навигация.
 /// IndexedStack сохраняет состояние вкладок при переключении.
@@ -36,6 +41,8 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final bool isLoggedIn = context.watch<AuthState>().isLoggedIn;
+    final UserRole role =
+        context.watch<AuthState>().currentUser?.role ?? UserRole.guest;
     final int basketCount = context.watch<CartState>().totalQuantity;
 
     return Scaffold(
@@ -43,7 +50,8 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(
         index: _currentTab.index,
         children: [
-          for (final MainTab tab in MainTab.values) _buildTab(tab, isLoggedIn),
+          for (final MainTab tab in MainTab.values)
+            _buildTab(tab, isLoggedIn, role),
         ],
       ),
       bottomNavigationBar: AppBottomNavigation(
@@ -54,7 +62,17 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget _buildTab(MainTab tab, bool isLoggedIn) {
+  Widget _buildTab(MainTab tab, bool isLoggedIn, UserRole role) {
+    // У продавца и администратора на месте «Помощника» и «Корзины» —
+    // свои разделы.
+    if (role == UserRole.seller) {
+      if (tab == MainTab.ai) return const SellerScanScreen(embedded: true);
+      if (tab == MainTab.basket) return const SellerScreen(embedded: true);
+    }
+    if (role == UserRole.admin) {
+      if (tab == MainTab.ai) return const AdminScreen(embedded: true);
+      if (tab == MainTab.basket) return const AdminSellersScreen();
+    }
     return switch (tab) {
       MainTab.home => HomeScreen(
           onOpenCatalog: () => _selectTab(MainTab.catalog),

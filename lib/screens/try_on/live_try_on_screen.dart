@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -13,12 +14,14 @@ import '../../core/errors/app_exception.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/cart_actions.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../data/repositories/try_on_scan_repository.dart';
 import '../../models/product.dart';
 import '../../models/try_on.dart';
 import '../../services/try_on/body_pose.dart';
 import '../../services/size_advisor.dart';
 import '../../services/try_on/body_shading.dart';
 import '../../services/try_on/garment_cutout.dart';
+import '../../services/try_on/garment_scan.dart';
 import '../../services/try_on/garment_color.dart';
 import '../../services/try_on/garment_mesh.dart';
 import '../../services/try_on/live_try_on_service.dart';
@@ -76,6 +79,12 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
   /// Вещь, вырезанная из фото товара (режим «Фото вещи»). null — фото
   /// не подходит (вещь снята на человеке или фон не однотонный).
   GarmentCutout? _cutout;
+
+  /// Вещь сзади — если продавец отсканировал примерку с поворотом.
+  GarmentCutout? _backCutout;
+
+  /// Примерка снята продавцом на человеке (а не из фото каталога).
+  bool _scanned = false;
 
   /// true — накладывать фото вещи, false — 3D-модель.
   bool _photoMode = true;
@@ -170,11 +179,34 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       final GarmentMesh mesh = GarmentMesh.fromGlb(data.buffer.asUint8List());
       Color color = GarmentColor.fallback;
       GarmentCutout? cutout;
+      GarmentCutout? backCutout;
+      bool scanned = false;
+      final TryOnScanRepository scans = context.read<TryOnScanRepository>();
+      try {
+        // Примерка, снятая продавцом на человеке, — лучше фото каталога.
+        final ScanRecord? scan = await scans.forProduct(product.id!);
+        if (scan != null) {
+          cutout = await GarmentCutout.fromScan(
+            await File(scan.frontPath).readAsBytes(),
+            scan.front,
+          );
+          if (scan.backPath != null && scan.back != null) {
+            backCutout = await GarmentCutout.fromScan(
+              await File(scan.backPath!).readAsBytes(),
+              scan.back!,
+            );
+          }
+          scanned = cutout != null;
+        }
+      } on Exception catch (error) {
+        debugPrint('Отсканированная примерка не открылась: $error');
+      }
       try {
         final Uint8List bytes = await _images.loadProductImage(product);
         color = await GarmentColor.forProduct(product.imageUrl, bytes);
         // Вещь на фото надета на человека — вырезать её нельзя.
-        if (!PhotoTryOnService.modelPhotos.contains(product.imageUrl)) {
+        if (cutout == null &&
+            !PhotoTryOnService.modelPhotos.contains(product.imageUrl)) {
           cutout = await GarmentCutout.fromImage(
             bytes,
             isBottom: shape == GarmentShape.shorts || shape == GarmentShape.pants,
@@ -192,6 +224,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
         _mesh = mesh;
         _color = color;
         _cutout = cutout;
+        _backCutout = backCutout;
+        _scanned = scanned;
         _advice = advice;
         // Сначала — рекомендуемый размер, без анкеты — средний.
         _size = advice?.size ??
@@ -261,6 +295,17 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizes.m),
                     child: _Hint(text: _statusText!),
+                  ),
+                if (_scanned && _usePhoto)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizes.xs),
+                    child: Text(
+                      'Примерка снята продавцом на человеке',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 if (product != null)
                   _FitPanel(
@@ -387,6 +432,7 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                 shading: _shading,
                 skin: _skin,
                 cutout: _usePhoto ? _cutout : null,
+                backCutout: _usePhoto ? _backCutout : null,
                 shape: _product == null ? null : TryOnSupport.of(_product!).shape,
                 sizeScale: _sizeScale,
               ),
@@ -431,6 +477,7 @@ class _StagePainter extends CustomPainter {
     required this.showJoints,
     this.shading,
     this.cutout,
+    this.backCutout,
     this.shape,
     this.sizeScale = 1,
     this.skin,
@@ -438,6 +485,7 @@ class _StagePainter extends CustomPainter {
 
   final GarmentMesh? mesh;
   final GarmentCutout? cutout;
+  final GarmentCutout? backCutout;
   final GarmentShape? shape;
   final double sizeScale;
   final Color? skin;
@@ -469,11 +517,13 @@ class _StagePainter extends CustomPainter {
     final GarmentCutout? cutout = this.cutout;
     final GarmentShape? shape = this.shape;
     if (cutout != null && shape != null) {
+      // Человек повернулся спиной (лица не видно) — показываем спинку вещи.
+      final bool facingAway = (pose.joints[BodyJoint.nose]?.confidence ?? 1) < 0.3;
       FittedGarmentPainter.paint(
         canvas,
         size,
         pose,
-        cutout,
+        facingAway && backCutout != null ? backCutout! : cutout,
         shape: shape,
         sizeScale: sizeScale,
         shading: shading,
