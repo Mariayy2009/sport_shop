@@ -69,6 +69,11 @@ void main() {
     final Map<String, Object?> uniform = products
         .firstWhere((row) => row['name'] == 'Форма волейбольная женская');
     expect((uniform['gallery']! as String).split('\n'), hasLength(7));
+
+    // v11: у товаров основного каталога появились фото.
+    final Map<String, Object?> kimono = products.firstWhere(
+        (row) => row['image_url'] == 'assets/images/products/karate_kimono.jpg');
+    expect(kimono['brand'], 'Budo Pro');
     await db.close();
     await deleteDatabase(path);
   });

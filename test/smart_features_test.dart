@@ -16,6 +16,7 @@ import 'package:sport_shop/services/assistant/gemini_assistant_engine.dart';
 import 'package:sport_shop/services/assistant/local_assistant_engine.dart';
 import 'package:sport_shop/models/chat_message.dart';
 import 'package:sport_shop/models/enums.dart';
+import 'package:sport_shop/data/repositories/preferences_repository.dart';
 import 'package:sport_shop/models/exhibit.dart';
 import 'package:sport_shop/models/product.dart';
 import 'package:sport_shop/models/product_filter.dart';
@@ -49,6 +50,7 @@ void main() {
       database,
       sessionStorage: InMemorySessionStorage(),
       aiKeyStore: InMemoryAiKeyStore(),
+      preferencesRepository: InMemoryPreferencesRepository(),
     );
     await database.database;
   });

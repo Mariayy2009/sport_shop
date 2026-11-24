@@ -158,6 +158,11 @@ class ProfileScreen extends StatelessWidget {
           ],
           const SizedBox(height: AppSizes.l),
           _MenuItem(
+            icon: Icons.tune,
+            title: 'Анкета для подбора',
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.preferences),
+          ),
+          _MenuItem(
             icon: Icons.receipt_long_outlined,
             title: 'История заказов',
             onTap: () => Navigator.of(context).pushNamed(AppRoutes.orderHistory),

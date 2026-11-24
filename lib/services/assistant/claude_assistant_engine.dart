@@ -6,8 +6,10 @@ import 'package:http/http.dart' as http;
 
 import '../../models/chat_message.dart';
 import '../../models/product.dart';
+import '../../models/shopping_preferences.dart';
 import '../../models/sport.dart';
 import '../../models/user_sizes.dart';
+import '../preferences/style_catalog.dart';
 import '../size_advisor.dart';
 import 'assistant_engine.dart';
 
@@ -203,7 +205,31 @@ class ClaudeAssistantEngine implements AssistantEngine {
         '- рост: ${orUnknown(sizes?.height, ' см')}\n'
         '- вес: ${orUnknown(sizes?.weight, ' кг')}\n'
         '- размер одежды: ${orUnknown(sizes?.clothingSize)}\n'
-        '- размер обуви (EU): ${orUnknown(sizes?.shoeSize)}';
+        '- размер обуви (EU): ${orUnknown(sizes?.shoeSize)}'
+        '${preferencesText(context, sport?.name)}';
+  }
+
+  /// Анкета покупателя для модели: подбирай вещи нужные для позиции,
+  /// в любимых цветах и материалах — и говори об этом.
+  static String preferencesText(AssistantContext context, String? sportName) {
+    final ShoppingPreferences? preferences = context.preferences;
+    if (preferences == null || preferences.isEmpty) return '';
+    final SportPosition? position =
+        StyleCatalog.position(sportName, preferences.position);
+    final List<String> colors = [
+      for (final String key in preferences.colors)
+        if (StyleCatalog.colorByKey(key) case final ColorChoice color)
+          color.name.toLowerCase(),
+    ];
+    final List<String> materials = [
+      for (final String key in preferences.materials)
+        if (StyleCatalog.materialByKey(key) case final MaterialChoice material)
+          material.name.toLowerCase(),
+    ];
+    return '\nАнкета покупателя (учитывай в подборе и упоминай):\n'
+        '${position == null ? '' : '- позиция: ${position.title} — ${position.about}\n'}'
+        '${colors.isEmpty ? '' : '- любимые цвета: ${colors.join(', ')}\n'}'
+        '${materials.isEmpty ? '' : '- предпочитает материалы: ${materials.join(', ')}\n'}';
   }
 
   /// Диалог в формате API: начинается с сообщения пользователя.

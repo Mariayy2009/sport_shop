@@ -1,5 +1,6 @@
 import '../../models/chat_message.dart';
 import '../../models/product.dart';
+import '../../models/shopping_preferences.dart';
 import '../../models/sport.dart';
 import '../../models/user.dart';
 import '../../models/user_sizes.dart';
@@ -11,6 +12,7 @@ class AssistantContext {
     required this.sports,
     this.user,
     this.sizes,
+    this.preferences,
   });
 
   /// Реальный каталог: помощник советует только товары отсюда.
@@ -18,6 +20,9 @@ class AssistantContext {
   final List<Sport> sports;
   final User? user;
   final UserSizes? sizes;
+
+  /// Анкета покупателя (цвета, позиция, материалы).
+  final ShoppingPreferences? preferences;
 
   Sport? sportById(int? id) {
     for (final Sport sport in sports) {

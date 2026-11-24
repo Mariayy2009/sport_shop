@@ -368,9 +368,11 @@ class _ForYouSectionState extends State<_ForYouSection> {
               title: widget.sportName == null
                   ? 'Выбор покупателей'
                   : 'Для тебя · ${widget.sportName}',
-              actionText: widget.sportId == null ? null : 'Комплект',
-              onAction: () => Navigator.of(context)
-                  .pushNamed(AppRoutes.kits, arguments: widget.sportId),
+              // Подбор по анкете — здесь, а не отдельной плиткой:
+              // главная не превращается в мешанину кнопок.
+              actionText: 'По анкете',
+              onAction: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.preferenceResults),
             ),
             const SizedBox(height: AppSizes.s),
             SizedBox(

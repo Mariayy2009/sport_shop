@@ -18,6 +18,7 @@ import '../../data/repositories/local_product_repository.dart';
 import '../../data/repositories/local_recommendation_repository.dart';
 import '../../data/repositories/local_user_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/preferences_repository.dart';
 import '../../data/datasources/local/shop_server_storage.dart';
 import '../../data/repositories/switchable_product_repository.dart';
 import '../../data/repositories/try_on_repository.dart';
@@ -52,6 +53,7 @@ class AppDependencies {
     required this.feedbackRepository,
     required this.exhibitRepository,
     required this.tryOnRepository,
+    required this.preferencesRepository,
     required this.mediaStorage,
     required this.photoTryOnService,
     required this.authService,
@@ -70,6 +72,7 @@ class AppDependencies {
     TryOnRepository? tryOnRepository,
     PhotoTryOnService? photoTryOnService,
     ShopServerStorage? shopServerStorage,
+    PreferencesRepository? preferencesRepository,
   }) {
     final UserRepository userRepository =
         LocalUserRepository(UserLocalDataSource(database));
@@ -77,6 +80,8 @@ class AppDependencies {
         LocalRecommendationRepository(RecommendationLocalDataSource(database));
 
     // Каталог: SQLite на телефоне или сервер магазина (PostgreSQL).
+    final PreferencesRepository preferences =
+        preferencesRepository ?? LocalPreferencesRepository();
     final SwitchableProductRepository productRepository =
         SwitchableProductRepository(
       LocalProductRepository(ProductLocalDataSource(database)),
@@ -105,6 +110,7 @@ class AppDependencies {
       feedbackRepository: LocalFeedbackRepository(database),
       exhibitRepository: LocalExhibitRepository(database),
       tryOnRepository: tryOnRepository ?? LocalTryOnRepository(),
+      preferencesRepository: preferences,
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
       photoTryOnService: photoTryOnService ?? PhotoTryOnService(),
       authService: AuthService(
@@ -115,7 +121,8 @@ class AppDependencies {
         LocalRecommendationEngine(recommendationRepository),
       ),
       kitService: KitService(recommendationRepository),
-      assistantService: AssistantService(assistantEngine, productRepository),
+      assistantService:
+          AssistantService(assistantEngine, productRepository, preferences),
       assistantEngine: assistantEngine,
     );
   }
@@ -132,6 +139,9 @@ class AppDependencies {
   final FeedbackRepository feedbackRepository;
   final ExhibitRepository exhibitRepository;
   final TryOnRepository tryOnRepository;
+
+  /// Анкета покупателя: цвета, позиция, материалы.
+  final PreferencesRepository preferencesRepository;
   final MediaStorage mediaStorage;
   final PhotoTryOnService photoTryOnService;
   final AuthService authService;

@@ -68,6 +68,7 @@ class AppDatabase {
         );
         await SeedData.insertExtraProducts(db);
       }
+      if (oldVersion < 11) await SeedData.applyGalleries(db);
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {
