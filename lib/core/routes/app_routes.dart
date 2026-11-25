@@ -29,6 +29,7 @@ class AppRoutes {
   static const String hallOfFame = '/hall-of-fame';
   static const String preferences = '/profile/preferences';
   static const String seller = '/seller';
+  static const String notifications = '/profile/notifications';
   static const String preferenceResults = '/recommendation/preferences';
   static const String ballGame = '/game/ball'; // аргумент: BallGameMode (необязателен)
   static const String exhibit = '/hall-of-fame/exhibit'; // аргумент: id экспоната

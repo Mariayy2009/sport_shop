@@ -20,7 +20,7 @@ void main() {
   });
 
   test('у всех товаров есть фото, и все фото есть в приложении', () {
-    expect(all.length, 54);
+    expect(all.length, 57);
     // Фото вратарских перчаток пока не найдено — в приложении заглушка.
     const Set<String> waitingForPhoto = {'Вратарские перчатки'};
     for (final Product product in all) {

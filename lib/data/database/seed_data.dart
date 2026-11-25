@@ -423,6 +423,109 @@ class SeedData {
 
   static const String nutritionCategory = 'Спортивное питание';
 
+  /// Демо-отзывы: две трети — от подтверждённых покупателей.
+  static Future<void> markVerifiedReviews(DatabaseExecutor db) => db.rawUpdate(
+        'UPDATE ${DatabaseSchema.reviews} SET verified = 1 WHERE id % 3 != 0',
+      );
+
+  /// Спортивное питание магазина Sportlife — «для всех видов спорта».
+  static const List<(String, String, int, String, String, int, String)> _nutrition = [
+    (
+      'Протеин сывороточный 900 г',
+      'Сывороточный протеин со вкусом шоколада для восстановления после тренировок',
+      15990,
+      'Концентрат сывороточного белка (80%), какао-порошок, ароматизатор, '
+          'подсластитель сукралоза. В порции 30 г — 24 г белка.',
+      'sugar_free',
+      25,
+      'assets/images/products/whey_protein.jpg',
+    ),
+    (
+      'Протеин растительный гороховый 750 г',
+      'Белок из гороха и риса — для веганов и тех, кому не подходит молочный белок',
+      13490,
+      'Изолят горохового белка, рисовый белок, какао, стевия. '
+          'В порции 30 г — 22 г белка.',
+      'vegan,lactose_free,sugar_free',
+      3,
+      'assets/images/products/plant_protein.jpg',
+    ),
+    (
+      'Изотоник порошок 500 г',
+      'Напиток для долгих тренировок и забегов: вода, соли и быстрые углеводы',
+      5490,
+      'Декстроза, мальтодекстрин, цитрат натрия, хлорид калия, магний, '
+          'витамин C, натуральный лимонный ароматизатор.',
+      'vegan,lactose_free',
+      40,
+      'assets/images/products/isotonic.jpg',
+    ),
+  ];
+
+  /// Демо-рекорды игры с мячом — таблица рекордов не пустая.
+  static Future<void> insertGameScores(DatabaseExecutor db) async {
+    const Map<String, List<int>> scores = {
+      'football': [14, 9, 7, 5, 3],
+      'volleyballLow': [11, 8, 6, 4],
+      'volleyballHigh': [9, 7, 5],
+      'basketball': [23, 17, 12, 8],
+    };
+    final List<String> emails = [
+      for (final (_, _, email) in SeedReviews.reviewers) email,
+    ];
+    final List<Map<String, Object?>> users = await db.query(
+      DatabaseSchema.users,
+      columns: ['id'],
+      where: 'email IN (${List.filled(emails.length, '?').join(', ')})',
+      whereArgs: emails,
+      orderBy: 'id',
+    );
+    if (users.isEmpty) return;
+    for (final MapEntry<String, List<int>> mode in scores.entries) {
+      for (int i = 0; i < mode.value.length; i++) {
+        await db.insert(DatabaseSchema.gameScores, {
+          'user_id': users[(i * 3 + mode.key.length) % users.length]['id'],
+          'mode': mode.key,
+          'score': mode.value[i],
+          'created_at': DateTime(2026, 11, 1 + i).toIso8601String(),
+        });
+      }
+    }
+  }
+
+  static Future<void> insertNutrition(DatabaseExecutor db) async {
+    Future<int?> idOf(String table, String column, String value) async {
+      final List<Map<String, Object?>> rows = await db.query(table,
+          columns: [table == DatabaseSchema.sellers ? 'user_id' : 'id'],
+          where: '$column = ?', whereArgs: [value]);
+      return rows.isEmpty ? null : rows.first.values.first as int?;
+    }
+
+    final int? sport = await idOf(DatabaseSchema.sports, 'name', Sport.universalName);
+    final int? category =
+        await idOf(DatabaseSchema.categories, 'name', nutritionCategory);
+    if (sport == null || category == null) return;
+    final int? seller = await idOf(DatabaseSchema.sellers, 'shop_name', 'Sportlife');
+    for (final (name, description, price, composition, diet, stock, image)
+        in _nutrition) {
+      if (await idOf(DatabaseSchema.products, 'name', name) != null) continue;
+      await db.insert(DatabaseSchema.products, {
+        'name': name,
+        'description': description,
+        'price': price,
+        'category_id': category,
+        'sport_id': sport,
+        'stock': stock,
+        'brand': 'Sportlife',
+        'image_url': image,
+        'composition': composition,
+        'diet': diet,
+        'seller_id': seller,
+        'rating': 4.7,
+      });
+    }
+  }
+
   static Future<void> insertAll(DatabaseExecutor db) async {
     final Map<String, int> sportIds = {};
     for (final (key, name, description) in _sports) {
@@ -485,7 +588,10 @@ class SeedData {
     await insertSellers(db);
     await applyVariants(db);
     await insertReviews(db);
+    await markVerifiedReviews(db);
     await insertUniversal(db);
+    await insertNutrition(db);
+    await insertGameScores(db);
   }
 
   /// Экспонаты «Зала славы» (экспозиция КНУС).

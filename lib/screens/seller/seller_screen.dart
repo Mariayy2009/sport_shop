@@ -61,6 +61,7 @@ class SellerScreen extends StatelessWidget {
                 labelColor: AppColors.textPrimary,
                 indicatorColor: AppColors.black,
                 tabs: [
+                  const Tab(text: 'Статистика'),
                   const Tab(text: 'Мои товары'),
                   const Tab(text: 'Заказы'),
                   _BadgeTab(text: 'Вопросы', count: badges.questions),
@@ -71,6 +72,7 @@ class SellerScreen extends StatelessWidget {
             Expanded(
               child: TabBarView(
                 children: [
+                  _StatsTab(sellerId: user.id!),
                   _ProductsTab(sellerId: user.id!),
                   _OrdersTab(sellerId: user.id!),
                   _QuestionsTab(sellerId: user.id!),
@@ -81,7 +83,7 @@ class SellerScreen extends StatelessWidget {
           ],
         );
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: embedded
           ? content
           : AppScaffold(
@@ -163,6 +165,16 @@ class _ProductsTabState extends State<_ProductsTab> {
                               '${Formatters.price(product.price)} · ${product.stock} шт.',
                               style: AppTextStyles.caption,
                             ),
+                            if (product.stock <= Product.lowStock && !product.isBlocked)
+                              Text(
+                                product.stock == 0
+                                    ? 'Закончился — пополните остаток'
+                                    : 'Заканчивается: осталось ${product.stock} шт.',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: const Color(0xFFB45F06),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             if (product.isBlocked)
                               Text(
                                 'Снят администратором: ${product.blockReason ?? ''}',
@@ -182,6 +194,128 @@ class _ProductsTabState extends State<_ProductsTab> {
           ],
         );
       },
+    );
+  }
+}
+
+/// Сколько продано и на какую сумму: всё время и текущий месяц.
+class _StatsTab extends StatefulWidget {
+  const _StatsTab({required this.sellerId});
+
+  final int sellerId;
+
+  @override
+  State<_StatsTab> createState() => _StatsTabState();
+}
+
+class _StatsTabState extends State<_StatsTab> {
+  late Future<SellerStats> _future =
+      context.read<OrderRepository>().sellerStats(widget.sellerId);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<SellerStats>(
+      future: _future,
+      builder: (context, snapshot) {
+        final SellerStats? stats = snapshot.data;
+        if (stats == null) {
+          return snapshot.hasError
+              ? const EmptyState(
+                  icon: Icons.bar_chart,
+                  title: 'Статистика недоступна',
+                  message: 'Попробуйте открыть вкладку ещё раз',
+                )
+              : const Center(child: CircularProgressIndicator());
+        }
+        return RefreshIndicator(
+          onRefresh: () async {
+            final Future<SellerStats> next =
+                context.read<OrderRepository>().sellerStats(widget.sellerId);
+            setState(() => _future = next);
+            await next;
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(AppSizes.screenPadding),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatTile(
+                      title: 'Выручка за месяц',
+                      value: Formatters.price(stats.monthRevenue),
+                      caption: '${stats.monthSold} шт.',
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.s),
+                  Expanded(
+                    child: _StatTile(
+                      title: 'Выручка всего',
+                      value: Formatters.price(stats.revenue),
+                      caption: '${stats.sold} шт. · ${stats.orders} заказов',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.m),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Популярные товары', style: AppTextStyles.sectionTitle),
+                    const SizedBox(height: AppSizes.s),
+                    if (stats.top.isEmpty)
+                      const Text(
+                        'Продаж пока нет — они появятся здесь после первых заказов',
+                        style: AppTextStyles.bodySecondary,
+                      ),
+                    for (final (int i, (String name, int sold, double revenue))
+                        in stats.top.indexed)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSizes.xxs),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              child: Text('${i + 1}.', style: AppTextStyles.bodySecondary),
+                            ),
+                            Expanded(child: Text(name, style: AppTextStyles.body)),
+                            Text(
+                              '$sold шт. · ${Formatters.price(revenue)}',
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.title, required this.value, required this.caption});
+
+  final String title;
+  final String value;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.caption),
+          const SizedBox(height: AppSizes.xxs),
+          Text(value, style: AppTextStyles.price),
+          Text(caption, style: AppTextStyles.caption),
+        ],
+      ),
     );
   }
 }

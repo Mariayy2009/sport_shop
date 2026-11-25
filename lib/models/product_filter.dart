@@ -10,7 +10,11 @@ class ProductFilter {
     this.onlyAvailable = false,
     this.includeBlocked = false,
     this.sellerId,
+    this.diet = const {},
   });
+
+  /// Спортпит: все выбранные отметки ([DietTag]) должны быть у товара.
+  final Set<String> diet;
 
   /// Показывать и снятые с продажи (панели администратора и продавца).
   final bool includeBlocked;
@@ -31,7 +35,7 @@ class ProductFilter {
     final int filled = <Object?>[sportId, categoryId, size, minPrice, maxPrice]
         .where((value) => value != null)
         .length;
-    return filled + (onlyAvailable ? 1 : 0);
+    return filled + (onlyAvailable ? 1 : 0) + diet.length;
   }
 
   bool get hasActiveFilters => activeCount > 0;
@@ -50,6 +54,7 @@ class ProductFilter {
     double? minPrice,
     double? maxPrice,
     bool? onlyAvailable,
+    Set<String>? diet,
     bool clearSport = false,
     bool clearCategory = false,
     bool clearSize = false,
@@ -63,6 +68,7 @@ class ProductFilter {
       minPrice: clearPrice ? null : (minPrice ?? this.minPrice),
       maxPrice: clearPrice ? null : (maxPrice ?? this.maxPrice),
       onlyAvailable: onlyAvailable ?? this.onlyAvailable,
+      diet: diet ?? this.diet,
     );
   }
 }

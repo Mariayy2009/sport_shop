@@ -9,6 +9,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/category.dart';
+import '../../models/product.dart';
 import '../../models/product_filter.dart';
 import '../../models/sport.dart';
 import '../../state/product_state.dart';
@@ -38,6 +39,7 @@ class _FilterScreenState extends State<FilterScreen> {
   int? _categoryId;
   String? _size;
   bool _onlyAvailable = false;
+  Set<String> _diet = {};
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _FilterScreenState extends State<FilterScreen> {
     _categoryId = filter.categoryId;
     _size = filter.size;
     _onlyAvailable = filter.onlyAvailable;
+    _diet = {...filter.diet};
   }
 
   @override
@@ -91,6 +94,7 @@ class _FilterScreenState extends State<FilterScreen> {
       _categoryId = null;
       _size = null;
       _onlyAvailable = false;
+      _diet = {};
     });
   }
 
@@ -109,6 +113,7 @@ class _FilterScreenState extends State<FilterScreen> {
       minPrice: double.tryParse(_minPriceController.text.trim()),
       maxPrice: double.tryParse(_maxPriceController.text.trim()),
       onlyAvailable: _onlyAvailable,
+      diet: _diet,
     ));
     if (!mounted) return;
     AppMessages.showInfo(
@@ -240,6 +245,33 @@ class _FilterScreenState extends State<FilterScreen> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: AppSizes.m),
+            const Padding(
+              padding: EdgeInsets.only(left: AppSizes.s, bottom: AppSizes.xs),
+              child: Text('Спортивное питание', style: AppTextStyles.fieldLabel),
+            ),
+            Wrap(
+              spacing: AppSizes.s,
+              runSpacing: AppSizes.s,
+              children: [
+                for (final MapEntry<String, String> tag in DietTag.labels.entries)
+                  FilterChip(
+                    label: Text(tag.value),
+                    selected: _diet.contains(tag.key),
+                    showCheckmark: true,
+                    checkmarkColor: AppColors.white,
+                    selectedColor: AppColors.black,
+                    labelStyle: AppTextStyles.body.copyWith(
+                      color: _diet.contains(tag.key)
+                          ? AppColors.white
+                          : AppColors.textPrimary,
+                    ),
+                    onSelected: (on) => setState(() {
+                      _diet = on ? {..._diet, tag.key} : ({..._diet}..remove(tag.key));
+                    }),
+                  ),
+              ],
             ),
             const SizedBox(height: AppSizes.xl),
             CustomButton(text: 'Применить', onPressed: _apply),

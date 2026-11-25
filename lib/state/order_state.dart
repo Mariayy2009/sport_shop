@@ -4,6 +4,7 @@ import '../core/constants/app_constants.dart';
 import '../core/errors/app_exception.dart';
 import '../data/repositories/order_repository.dart';
 import '../models/cart_item.dart';
+import '../models/coupon.dart';
 import '../models/enums.dart';
 import '../models/order.dart';
 import '../models/order_item.dart';
@@ -56,6 +57,16 @@ class OrderState extends ChangeNotifier {
 
   Future<Order?> getOrder(int orderId) => _repository.getOrderById(orderId);
 
+  /// Скидка по промокоду: процент от товаров, на которые он действует
+  /// (у промокода за игру — только мячи), с округлением до тенге.
+  static double discountFor(List<CartItem> items, Coupon? coupon) {
+    if (coupon == null) return 0;
+    final double base = items
+        .where((item) => coupon.appliesTo(item.product.name))
+        .fold(0, (sum, item) => sum + item.total);
+    return (base * coupon.percent / 100).roundToDouble();
+  }
+
   Future<Order> placeOrder({
     required int userId,
     required List<CartItem> items,
@@ -63,6 +74,7 @@ class OrderState extends ChangeNotifier {
     required String phone,
     required DeliveryMethod deliveryMethod,
     String? address,
+    Coupon? coupon,
   }) async {
     if (items.isEmpty) throw const AppException('Корзина пуста');
 
@@ -70,10 +82,12 @@ class OrderState extends ChangeNotifier {
     notifyListeners();
     try {
       final double itemsTotal = items.fold(0, (sum, item) => sum + item.total);
+      final double discount = discountFor(items, coupon);
       final Order order = Order(
         userId: userId,
         status: OrderStatus.newOrder,
-        totalPrice: itemsTotal + deliveryPrice(deliveryMethod),
+        totalPrice: itemsTotal - discount + deliveryPrice(deliveryMethod),
+        discount: discount,
         createdAt: DateTime.now(),
         customerName: customerName.trim(),
         phone: phone.trim(),

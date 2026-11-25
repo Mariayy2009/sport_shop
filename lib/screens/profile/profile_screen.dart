@@ -16,6 +16,7 @@ import '../../core/utils/formatters.dart';
 import '../../models/user.dart';
 import '../../models/user_sizes.dart';
 import '../../state/auth_state.dart';
+import '../../state/notification_state.dart';
 import '../../state/profile_state.dart';
 import '../../widgets/app_card.dart';
 
@@ -157,6 +158,12 @@ class ProfileScreen extends StatelessWidget {
             _ParametersCard(sizes: sizes),
           ],
           const SizedBox(height: AppSizes.l),
+          _MenuItem(
+            icon: Icons.notifications_none,
+            title: 'Уведомления',
+            badge: context.watch<NotificationState>().unread,
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.notifications),
+          ),
           _MenuItem(
             icon: Icons.tune,
             title: 'Анкета для подбора',
@@ -327,8 +334,11 @@ class _MenuItem extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.isDestructive = false,
+    this.badge = 0,
   });
 
+  /// Красный кружок с числом новых — например, непрочитанных уведомлений.
+  final int badge;
   final IconData icon;
   final String title;
   final VoidCallback onTap;
@@ -348,6 +358,11 @@ class _MenuItem extends StatelessWidget {
             Expanded(
               child: Text(title, style: AppTextStyles.body.copyWith(color: color)),
             ),
+            if (badge > 0)
+              Badge(
+                backgroundColor: AppColors.logoRed,
+                label: Text('$badge'),
+              ),
             Icon(Icons.chevron_right, color: color),
           ],
         ),

@@ -4,7 +4,10 @@ import '../../../core/errors/app_exception.dart';
 import '../../../models/enums.dart';
 import '../../../models/order.dart';
 import '../../../models/order_item.dart';
+import '../../../models/product.dart';
 import '../../database/app_database.dart';
+import '../../repositories/notification_repository.dart';
+import '../../repositories/order_repository.dart';
 import '../../database/database_schema.dart';
 
 /// SQL-запросы к таблицам orders и order_items.
@@ -34,6 +37,8 @@ class OrderLocalDataSource {
           final String name = item.productName ?? 'товар №${item.productId}';
           throw AppException('Недостаточно товара на складе: «$name»');
         }
+
+        await _warnLowStock(txn, item.productId);
 
         final OrderItem itemWithOrder = item.copyWith(orderId: orderId);
         final int itemId = await txn.insert(
@@ -93,23 +98,130 @@ class OrderLocalDataSource {
     return _withItems(db, rows);
   }
 
+  /// Продажи продавца: всё время, текущий месяц и лучшие товары.
+  Future<SellerStats> sellerStats(int sellerId, {DateTime? now}) async {
+    final Database db = await _appDatabase.database;
+    final DateTime today = now ?? DateTime.now();
+    final String monthStart = DateTime(today.year, today.month).toIso8601String();
+    const String from =
+        'FROM ${DatabaseSchema.orderItems} oi '
+        'JOIN ${DatabaseSchema.orders} o ON o.id = oi.order_id '
+        'JOIN ${DatabaseSchema.products} p ON p.id = oi.product_id '
+        'WHERE p.seller_id = ?';
+    final Map<String, Object?> all = (await db.rawQuery(
+      'SELECT COUNT(DISTINCT o.id) AS orders, COALESCE(SUM(oi.quantity), 0) AS sold, '
+      'COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue $from',
+      [sellerId],
+    ))
+        .first;
+    final Map<String, Object?> month = (await db.rawQuery(
+      'SELECT COALESCE(SUM(oi.quantity), 0) AS sold, '
+      'COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue $from AND o.created_at >= ?',
+      [sellerId, monthStart],
+    ))
+        .first;
+    final List<Map<String, Object?>> top = await db.rawQuery(
+      'SELECT p.name, SUM(oi.quantity) AS sold, SUM(oi.quantity * oi.price) AS revenue '
+      '$from GROUP BY p.id ORDER BY sold DESC, revenue DESC LIMIT 5',
+      [sellerId],
+    );
+    return SellerStats(
+      orders: all['orders']! as int,
+      sold: (all['sold']! as num).toInt(),
+      revenue: (all['revenue']! as num).toDouble(),
+      monthSold: (month['sold']! as num).toInt(),
+      monthRevenue: (month['revenue']! as num).toDouble(),
+      topProduct: top.isEmpty ? null : top.first['name'] as String?,
+      topSold: top.isEmpty ? 0 : (top.first['sold']! as num).toInt(),
+      top: [
+        for (final Map<String, Object?> row in top)
+          (
+            row['name']! as String,
+            (row['sold']! as num).toInt(),
+            (row['revenue']! as num).toDouble(),
+          ),
+      ],
+    );
+  }
+
+  /// Продавцу: товар заканчивается — пора пополнить склад.
+  static Future<void> _warnLowStock(Transaction txn, int productId) async {
+    final List<Map<String, Object?>> rows = await txn.query(
+      DatabaseSchema.products,
+      columns: ['name', 'stock', 'seller_id'],
+      where: 'id = ?',
+      whereArgs: [productId],
+    );
+    if (rows.isEmpty) return;
+    final int stock = rows.first['stock']! as int;
+    final int? seller = rows.first['seller_id'] as int?;
+    if (seller == null || stock > Product.lowStock) return;
+    await LocalNotificationRepository.push(
+      txn,
+      userId: seller,
+      title: stock == 0 ? 'Товар закончился' : 'Товар заканчивается',
+      body: '«${rows.first['name']}»: ${stock == 0 ? 'на складе 0 шт.' : 'осталось $stock шт.'} '
+          'Пополните остаток в кабинете',
+      productId: productId,
+    );
+  }
+
   Future<void> updateTracking(int orderId, String? note) async {
     final Database db = await _appDatabase.database;
-    await db.update(
-      DatabaseSchema.orders,
-      {'tracking_note': note},
-      where: 'id = ?',
-      whereArgs: [orderId],
-    );
+    await db.transaction((txn) async {
+      await txn.update(
+        DatabaseSchema.orders,
+        {'tracking_note': note},
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+      if (note != null && note.trim().isNotEmpty) {
+        await _notifyBuyer(txn, orderId, 'Заказ №$orderId: где товар', note);
+      }
+    });
   }
 
   Future<void> updateStatus(int orderId, OrderStatus status) async {
     final Database db = await _appDatabase.database;
-    await db.update(
+    await db.transaction((txn) async {
+      await txn.update(
+        DatabaseSchema.orders,
+        {'status': status.value},
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+      await _notifyBuyer(
+        txn,
+        orderId,
+        'Заказ №$orderId: ${status.label.toLowerCase()}',
+        switch (status) {
+          OrderStatus.inTransit => 'Заказ отправлен и уже едет к вам',
+          OrderStatus.delivered => 'Заказ доставлен. Оцените покупку — оставьте отзыв',
+          _ => null,
+        },
+      );
+    });
+  }
+
+  Future<void> _notifyBuyer(
+    Transaction txn,
+    int orderId,
+    String title,
+    String? body,
+  ) async {
+    final List<Map<String, Object?>> rows = await txn.query(
       DatabaseSchema.orders,
-      {'status': status.value},
+      columns: ['user_id'],
       where: 'id = ?',
       whereArgs: [orderId],
+    );
+    if (rows.isEmpty) return;
+    await LocalNotificationRepository.push(
+      txn,
+      userId: rows.first['user_id']! as int,
+      title: title,
+      body: body,
+      orderId: orderId,
     );
   }
 

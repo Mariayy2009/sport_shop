@@ -35,6 +35,7 @@ def product_json(product: Product) -> dict:
         "brand": product.brand,
         "material": product.material,
         "composition": product.composition,
+        "diet": product.diet,
         "rating": float(product.rating) if product.rating is not None else None,
         "reviews_count": product.reviews_count,
         "category_name": product.category.name,

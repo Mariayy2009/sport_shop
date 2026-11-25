@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/utils/app_messages.dart';
@@ -125,6 +127,39 @@ class CartScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
             children: [
+              if (cart.unavailable.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.s),
+                  child: AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: AppColors.error),
+                            const SizedBox(width: AppSizes.s),
+                            Expanded(
+                              child: Text(
+                                'Часть товаров сейчас нельзя купить: их сняли '
+                                'с продажи или раскупили',
+                                style: AppTextStyles.body
+                                    .copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            for (final CartItem item in cart.unavailable) {
+                              await cart.remove(item);
+                            }
+                          },
+                          child: const Text('Убрать недоступные товары'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               for (final CartItem item in items)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSizes.s),
@@ -179,7 +214,17 @@ class CartScreen extends StatelessWidget {
           ),
           child: CustomButton(
             text: 'Оформить заказ',
-            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.checkout),
+            onPressed: () {
+              if (cart.unavailable.isNotEmpty) {
+                AppMessages.showWarning(
+                  context,
+                  'Сначала уберите из корзины товары, которые сняли с продажи '
+                  'или раскупили',
+                );
+                return;
+              }
+              Navigator.of(context).pushNamed(AppRoutes.checkout);
+            },
           ),
         ),
       ],

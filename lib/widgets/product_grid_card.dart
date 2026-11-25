@@ -13,6 +13,7 @@ import '../state/cart_state.dart';
 import '../state/compare_state.dart';
 import '../state/favorites_state.dart';
 import 'app_card.dart';
+import 'low_stock_chip.dart';
 import 'product_image.dart';
 import 'rating_badge.dart';
 
@@ -47,6 +48,11 @@ class ProductGridCard extends StatelessWidget {
                     imageUrl: product.imageUrl,
                     borderRadius: AppSizes.radiusS,
                   ),
+                ),
+                Positioned(
+                  left: AppSizes.xs,
+                  bottom: AppSizes.xs,
+                  child: LowStockChip(product: product),
                 ),
                 Positioned(
                   top: AppSizes.xs,

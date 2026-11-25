@@ -153,7 +153,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
         final double itemsTotal =
             order.items.fold(0, (sum, item) => sum + item.total);
-        final double delivery = order.totalPrice - itemsTotal;
+        final double delivery = order.totalPrice + order.discount - itemsTotal;
 
         return AppScaffold(
           title: title,
@@ -256,6 +256,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       label: 'Товары (${order.itemsCount})',
                       value: Formatters.price(itemsTotal),
                     ),
+                    if (order.discount > 0)
+                      SummaryRow(
+                        label: 'Скидка по промокоду',
+                        value: '−${Formatters.price(order.discount)}',
+                      ),
                     SummaryRow(
                       label: 'Доставка',
                       value: delivery <= 0

@@ -105,7 +105,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 2,
@@ -128,7 +129,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 3,
@@ -151,7 +153,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 4,
@@ -174,7 +177,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 5,
@@ -197,7 +201,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 6,
@@ -220,7 +225,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 7,
@@ -243,7 +249,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 8,
@@ -266,7 +273,8 @@
       "variants": "[{\"name\":\"Чёрные\",\"image\":\"assets/images/products/running_shoes_1.jpg\"},{\"name\":\"Белые\",\"image\":\"assets/images/products/running_shoes_3.jpg\"},{\"name\":\"Серые с полосками\",\"image\":\"assets/images/products/running_shoes_4.jpg\"},{\"name\":\"Чёрно-белые\",\"image\":\"assets/images/products/running_shoes_5.jpg\"},{\"name\":\"Тёмно-серые\",\"image\":\"assets/images/products/running_shoes_7.jpg\"},{\"name\":\"Чёрно-розовые\",\"image\":\"assets/images/products/running_shoes_8.jpg\"},{\"name\":\"Чёрные с салатовой подошвой\",\"image\":\"assets/images/products/running_shoes_9.jpg\"},{\"name\":\"Белые на воздушной подошве\",\"image\":\"assets/images/products/running_shoes_10.jpg\"},{\"name\":\"Серо-красные\",\"image\":\"assets/images/products/running_shoes_12.jpg\"},{\"name\":\"Сине-белые\",\"image\":\"assets/images/products/running_shoes_16.jpg\"},{\"name\":\"Розово-синие\",\"image\":\"assets/images/products/running_shoes_17.jpg\"},{\"name\":\"Чёрные трейловые\",\"image\":\"assets/images/products/running_shoes_18.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 9,
@@ -289,7 +297,8 @@
       "variants": "[{\"name\":\"Синяя\",\"image\":\"assets/images/products/running_tshirt.jpg\"},{\"name\":\"Салатовая\",\"image\":\"assets/images/products/running_tshirt_1.jpg\"},{\"name\":\"Ярко-синяя\",\"image\":\"assets/images/products/running_tshirt_2.jpg\"},{\"name\":\"Мятная\",\"image\":\"assets/images/products/running_tshirt_3.jpg\"},{\"name\":\"Белая с принтом\",\"image\":\"assets/images/products/running_tshirt_4.jpg\"},{\"name\":\"Тёмно-зелёная\",\"image\":\"assets/images/products/running_tshirt_5.jpg\"},{\"name\":\"Чёрная\",\"image\":\"assets/images/products/running_tshirt_6.jpg\"},{\"name\":\"Голубая\",\"image\":\"assets/images/products/running_tshirt_7.jpg\"},{\"name\":\"Бело-синяя\",\"image\":\"assets/images/products/running_tshirt_8.jpg\"},{\"name\":\"Оливковая\",\"image\":\"assets/images/products/running_tshirt_9.jpg\"},{\"name\":\"Белая\",\"image\":\"assets/images/products/running_tshirt_10.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 10,
@@ -312,7 +321,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 11,
@@ -335,7 +345,8 @@
       "variants": "[{\"name\":\"Чёрный\",\"image\":\"assets/images/products/running_belt_2.jpg\"},{\"name\":\"Салатовый\",\"image\":\"assets/images/products/running_belt_1.jpg\"},{\"name\":\"Розовый\",\"image\":\"assets/images/products/running_belt_3.jpg\"},{\"name\":\"Голубой\",\"image\":\"assets/images/products/running_belt_3.jpg\"},{\"name\":\"Чёрный с карманом для карт\",\"image\":\"assets/images/products/running_belt_4.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 12,
@@ -358,7 +369,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 13,
@@ -381,7 +393,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 14,
@@ -404,7 +417,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 15,
@@ -427,7 +441,8 @@
       "variants": "[{\"name\":\"Чёрные с полосами\",\"image\":\"assets/images/products/football_socks_2.jpg\"},{\"name\":\"Красные\",\"image\":\"assets/images/products/football_socks_3.jpg\"},{\"name\":\"Салатовые\",\"image\":\"assets/images/products/football_socks_4.jpg\"},{\"name\":\"Белые\",\"image\":\"assets/images/products/football_socks_5.jpg\"},{\"name\":\"Голубые\",\"image\":\"assets/images/products/football_socks_8.jpg\"},{\"name\":\"Фиолетовые\",\"image\":\"assets/images/products/football_socks_11.jpg\"},{\"name\":\"Синие\",\"image\":\"assets/images/products/football_socks_13.jpg\"},{\"name\":\"Оранжевые\",\"image\":\"assets/images/products/football_socks_14.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 16,
@@ -450,7 +465,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 17,
@@ -473,7 +489,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 18,
@@ -496,7 +513,8 @@
       "variants": "[{\"name\":\"Бело-жёлтые\",\"image\":\"assets/images/products/goalkeeper_gloves.jpg\"},{\"name\":\"Чёрные GK1\",\"image\":\"assets/images/products/goalkeeper_gloves_1.jpg\"},{\"name\":\"Салатовые\",\"image\":\"assets/images/products/goalkeeper_gloves_2.jpg\"},{\"name\":\"Красно-чёрные\",\"image\":\"assets/images/products/goalkeeper_gloves_3.jpg\"},{\"name\":\"Бело-красные\",\"image\":\"assets/images/products/goalkeeper_gloves_4.jpg\"},{\"name\":\"Чёрно-золотые\",\"image\":\"assets/images/products/goalkeeper_gloves_5.jpg\"},{\"name\":\"Белые\",\"image\":\"assets/images/products/goalkeeper_gloves_6.jpg\"},{\"name\":\"Синие\",\"image\":\"assets/images/products/goalkeeper_gloves_7.jpg\"},{\"name\":\"Салатово-чёрные\",\"image\":\"assets/images/products/goalkeeper_gloves_8.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 19,
@@ -519,7 +537,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 20,
@@ -542,7 +561,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 21,
@@ -565,7 +585,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 22,
@@ -588,7 +609,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 23,
@@ -611,7 +633,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 24,
@@ -634,7 +657,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 25,
@@ -657,7 +681,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 26,
@@ -680,7 +705,8 @@
       "variants": "[{\"name\":\"Бирюзовые\",\"image\":\"assets/images/products/basketball_shoes.jpg\"},{\"name\":\"Розово-белые\",\"image\":\"assets/images/products/basketball_shoes_2.jpg\"},{\"name\":\"Сиреневые\",\"image\":\"assets/images/products/basketball_shoes_3.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 27,
@@ -703,7 +729,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 28,
@@ -726,7 +753,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 29,
@@ -749,7 +777,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 30,
@@ -772,7 +801,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 31,
@@ -795,7 +825,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 32,
@@ -818,7 +849,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 33,
@@ -841,7 +873,8 @@
       "variants": "[{\"name\":\"Зелёная\",\"image\":\"assets/images/products/mouth_guard_2.jpg\"},{\"name\":\"Чёрно-белая\",\"image\":\"assets/images/products/mouth_guard_3.jpg\"},{\"name\":\"Зелёная NUMRU\",\"image\":\"assets/images/products/mouth_guard_4.jpg\"},{\"name\":\"Красно-чёрная «Клыки»\",\"image\":\"assets/images/products/mouth_guard_5.jpg\"},{\"name\":\"Синяя\",\"image\":\"assets/images/products/mouth_guard_6.jpg\"},{\"name\":\"Прозрачная\",\"image\":\"assets/images/products/mouth_guard_7.jpg\"},{\"name\":\"Чёрная NUMRU\",\"image\":\"assets/images/products/mouth_guard_9.jpg\"},{\"name\":\"Жёлтая\",\"image\":\"assets/images/products/mouth_guard_11.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 34,
@@ -864,7 +897,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 35,
@@ -887,7 +921,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 36,
@@ -910,7 +945,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 37,
@@ -933,7 +969,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 38,
@@ -956,7 +993,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 39,
@@ -979,7 +1017,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 40,
@@ -1002,7 +1041,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 41,
@@ -1025,7 +1065,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 42,
@@ -1048,7 +1089,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 43,
@@ -1071,7 +1113,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 44,
@@ -1094,7 +1137,8 @@
       "variants": "[{\"name\":\"Синяя\",\"image\":\"assets/images/products/volleyball_uniform_women_1.jpg\"},{\"name\":\"Голубая\",\"image\":\"assets/images/products/volleyball_uniform_women_2.jpg\"},{\"name\":\"Жёлто-чёрная\",\"image\":\"assets/images/products/volleyball_uniform_women_3.jpg\"},{\"name\":\"Красно-чёрная\",\"image\":\"assets/images/products/volleyball_uniform_women_4.jpg\"},{\"name\":\"Розовая\",\"image\":\"assets/images/products/volleyball_uniform_women_5.jpg\"},{\"name\":\"Красная\",\"image\":\"assets/images/products/volleyball_uniform_women_6.jpg\"},{\"name\":\"Ярко-синяя\",\"image\":\"assets/images/products/volleyball_uniform_women_7.jpg\"},{\"name\":\"Чёрно-золотая\",\"image\":\"assets/images/products/volleyball_uniform_women_8.jpg\"}]",
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 45,
@@ -1117,7 +1161,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 46,
@@ -1140,7 +1185,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 47,
@@ -1163,7 +1209,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 48,
@@ -1186,7 +1233,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 49,
@@ -1209,7 +1257,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 50,
@@ -1232,7 +1281,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 51,
@@ -1255,7 +1305,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 52,
@@ -1278,7 +1329,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 53,
@@ -1301,7 +1353,8 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
     },
     {
       "id": 54,
@@ -1324,7 +1377,80 @@
       "variants": null,
       "try_on_image": null,
       "try_on_meta": null,
-      "composition": null
+      "composition": null,
+      "diet": null
+    },
+    {
+      "id": 55,
+      "name": "Протеин сывороточный 900 г",
+      "description": "Сывороточный протеин со вкусом шоколада для восстановления после тренировок",
+      "price": 15990.0,
+      "category_id": 6,
+      "sport_id": 10,
+      "size": null,
+      "stock": 25,
+      "image_url": "assets/images/products/whey_protein.jpg",
+      "gallery": null,
+      "brand": "Sportlife",
+      "material": null,
+      "rating": 4.7,
+      "reviews_count": 0,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null,
+      "composition": "Концентрат сывороточного белка (80%), какао-порошок, ароматизатор, подсластитель сукралоза. В порции 30 г — 24 г белка.",
+      "diet": "sugar_free"
+    },
+    {
+      "id": 56,
+      "name": "Протеин растительный гороховый 750 г",
+      "description": "Белок из гороха и риса — для веганов и тех, кому не подходит молочный белок",
+      "price": 13490.0,
+      "category_id": 6,
+      "sport_id": 10,
+      "size": null,
+      "stock": 3,
+      "image_url": "assets/images/products/plant_protein.jpg",
+      "gallery": null,
+      "brand": "Sportlife",
+      "material": null,
+      "rating": 4.7,
+      "reviews_count": 0,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null,
+      "composition": "Изолят горохового белка, рисовый белок, какао, стевия. В порции 30 г — 22 г белка.",
+      "diet": "vegan,lactose_free,sugar_free"
+    },
+    {
+      "id": 57,
+      "name": "Изотоник порошок 500 г",
+      "description": "Напиток для долгих тренировок и забегов: вода, соли и быстрые углеводы",
+      "price": 5490.0,
+      "category_id": 6,
+      "sport_id": 10,
+      "size": null,
+      "stock": 40,
+      "image_url": "assets/images/products/isotonic.jpg",
+      "gallery": null,
+      "brand": "Sportlife",
+      "material": null,
+      "rating": 4.7,
+      "reviews_count": 0,
+      "seller_id": 5,
+      "status": "active",
+      "block_reason": null,
+      "variants": null,
+      "try_on_image": null,
+      "try_on_meta": null,
+      "composition": "Декстроза, мальтодекстрин, цитрат натрия, хлорид калия, магний, витамин C, натуральный лимонный ароматизатор.",
+      "diet": "vegan,lactose_free"
     }
   ]
 }

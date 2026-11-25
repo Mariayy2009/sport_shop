@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/routes/main_tab.dart';
 import '../../models/enums.dart';
 import '../../state/auth_state.dart';
+import '../../state/notification_state.dart';
 import '../../state/cart_state.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/bottom_navigation.dart';
@@ -35,6 +38,12 @@ class _MainShellState extends State<MainShell> {
 
   void _selectTab(MainTab tab) {
     if (tab == _currentTab) return;
+    // Корзина и уведомления перечитываются при открытии: товар могли
+    // снять с продажи, продавец мог ответить.
+    if (tab == MainTab.basket) unawaited(context.read<CartState>().refresh());
+    if (tab == MainTab.profile) {
+      unawaited(context.read<NotificationState>().refresh());
+    }
     setState(() => _currentTab = tab);
   }
 

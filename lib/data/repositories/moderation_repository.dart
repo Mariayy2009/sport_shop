@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/product.dart';
 import '../database/app_database.dart';
 import '../database/database_schema.dart';
+import 'notification_repository.dart';
 
 /// Причины для предупреждения продавцу.
 enum WarningReason {
@@ -118,6 +119,20 @@ class LocalModerationRepository implements ModerationRepository {
       where: 'id = ?',
       whereArgs: [product.id],
     );
+    // Покупатели, у которых товар в корзине, узнают сразу.
+    final List<Map<String, Object?>> carts = await db.rawQuery(
+      'SELECT DISTINCT user_id FROM ${DatabaseSchema.cartItems} WHERE product_id = ?',
+      [product.id],
+    );
+    for (final Map<String, Object?> row in carts) {
+      await LocalNotificationRepository.push(
+        db,
+        userId: row['user_id']! as int,
+        title: 'Товар из корзины сняли с продажи',
+        body: '«${product.name}» больше нельзя купить — уберите его из корзины',
+        productId: product.id,
+      );
+    }
     if (product.sellerId != null) {
       await warnSeller(
         sellerId: product.sellerId!,

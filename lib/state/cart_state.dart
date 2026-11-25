@@ -110,6 +110,16 @@ class CartState extends ChangeNotifier {
     return userId;
   }
 
+  /// Перечитать корзину: товар могли снять с продажи или раскупить.
+  Future<void> refresh() => _reload();
+
+  /// Позиции, которые нельзя купить: сняты с продажи или не хватает
+  /// на складе.
+  List<CartItem> get unavailable => [
+        for (final CartItem item in _items)
+          if (item.product.isBlocked || item.product.stock < item.quantity) item,
+      ];
+
   Future<void> _reload() async {
     final int? userId = _userId;
     _items = userId == null ? [] : await _repository.getItems(userId);

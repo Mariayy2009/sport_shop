@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../data/repositories/game_repository.dart';
+import '../../models/coupon.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/routes/main_tab.dart';
@@ -47,6 +49,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   DeliveryMethod _deliveryMethod = DeliveryMethod.courier;
   bool _wasSubmitted = false;
 
+  /// Применённый промокод (например, за рекорд в игре с мячом).
+  Coupon? _coupon;
+  final TextEditingController _code = TextEditingController();
+
+  Future<void> _applyCoupon() async {
+    final String code = _code.text.trim();
+    if (code.isEmpty) return;
+    final int userId = context.read<AuthState>().currentUser!.id!;
+    final List<CartItem> items = context.read<CartState>().items;
+    final Coupon? coupon = await context.read<GameRepository>().findCoupon(userId, code);
+    if (!mounted) return;
+    if (coupon == null) {
+      AppMessages.showError(context, 'Промокод не найден или уже использован');
+      return;
+    }
+    if (OrderState.discountFor(items, coupon) == 0) {
+      AppMessages.showWarning(
+        context,
+        'Промокод действует ${coupon.scopeLabel} — добавьте подходящий товар',
+      );
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() => _coupon = coupon);
+    AppMessages.showSuccess(context, 'Промокод применён: −${coupon.percent}%');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +91,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _phone.dispose();
     _email.dispose();
     _address.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -84,8 +114,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final CartState cart = context.read<CartState>();
     final OrderState orders = context.read<OrderState>();
     final User user = context.read<AuthState>().currentUser!;
-    final double total =
-        cart.itemsTotal + OrderState.deliveryPrice(_deliveryMethod);
+    final GameRepository games = context.read<GameRepository>();
+    final Coupon? coupon = _coupon;
+    final double total = cart.itemsTotal -
+        OrderState.discountFor(cart.items, coupon) +
+        OrderState.deliveryPrice(_deliveryMethod);
 
     final bool confirmed = await AppMessages.showConfirmDialog(
       context,
@@ -104,7 +137,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         phone: _phone.text,
         deliveryMethod: _deliveryMethod,
         address: _address.text,
+        coupon: coupon,
       );
+      if (coupon != null) await games.useCoupon(coupon.id);
       await cart.clear();
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(
@@ -127,6 +162,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final CartState cart = context.watch<CartState>();
     final bool isPlacing = context.watch<OrderState>().isPlacing;
     final double delivery = OrderState.deliveryPrice(_deliveryMethod);
+    final double discount = OrderState.discountFor(cart.items, _coupon);
 
     if (cart.isEmpty) {
       return AppScaffold(
@@ -224,6 +260,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             const SizedBox(height: AppSizes.l),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    label: 'Промокод',
+                    hint: 'Например, МЯЧ-1234-5',
+                    controller: _code,
+                    textCapitalization: TextCapitalization.characters,
+                    enabled: _coupon == null,
+                    onFieldSubmitted: (_) => _applyCoupon(),
+                  ),
+                ),
+                const SizedBox(width: AppSizes.s),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSizes.l),
+                  child: _coupon == null
+                      ? OutlinedButton(
+                          onPressed: _applyCoupon,
+                          child: const Text('Применить'),
+                        )
+                      : TextButton(
+                          onPressed: () => setState(() {
+                            _coupon = null;
+                            _code.clear();
+                          }),
+                          child: const Text('Убрать'),
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSizes.l),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,13 +310,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     label: 'Товары',
                     value: Formatters.price(cart.itemsTotal),
                   ),
+                  if (discount > 0)
+                    SummaryRow(
+                      label: 'Скидка по промокоду ${_coupon!.code}',
+                      value: '−${Formatters.price(discount)}',
+                    ),
                   SummaryRow(
                     label: 'Доставка',
                     value: delivery == 0 ? 'Бесплатно' : Formatters.price(delivery),
                   ),
                   SummaryRow(
                     label: 'Итого',
-                    value: Formatters.price(cart.itemsTotal + delivery),
+                    value: Formatters.price(cart.itemsTotal - discount + delivery),
                     isTotal: true,
                   ),
                   const SizedBox(height: AppSizes.xs),

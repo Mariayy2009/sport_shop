@@ -19,6 +19,7 @@ class Order {
     this.deliveryMethod = DeliveryMethod.courier,
     this.items = const [],
     this.trackingNote,
+    this.discount = 0,
   });
 
   final int? id;
@@ -34,6 +35,9 @@ class Order {
   /// Где сейчас товар — пишет продавец или магазин: «Отправлен из Алматы,
   /// привезём 27 ноября».
   final String? trackingNote;
+
+  /// Скидка по промокоду, ₸ (уже вычтена из [totalPrice]).
+  final double discount;
 
   /// Позиции заказа — загружаются отдельным запросом к order_items.
   final List<OrderItem> items;
@@ -55,6 +59,7 @@ class Order {
       deliveryAddress: map['delivery_address'] as String?,
       deliveryMethod: DeliveryMethod.fromValue(map['delivery_method'] as String?),
       trackingNote: map['tracking_note'] as String?,
+      discount: (map['discount'] as num?)?.toDouble() ?? 0,
       items: items,
     );
   }
@@ -71,6 +76,7 @@ class Order {
       'phone': phone,
       'delivery_address': deliveryAddress,
       'delivery_method': deliveryMethod.value,
+      'discount': discount,
     };
   }
 
@@ -106,6 +112,7 @@ class Order {
       deliveryMethod: deliveryMethod,
       items: items ?? this.items,
       trackingNote: trackingNote,
+      discount: discount,
     );
   }
 }

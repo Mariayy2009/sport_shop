@@ -11,6 +11,7 @@ class Review {
     this.authorName,
     this.authorAvatarPath,
     this.photos = const [],
+    this.verified = false,
   });
 
   static const int minRating = 1;
@@ -29,6 +30,9 @@ class Review {
   /// Фото покупателя к отзыву (пути к файлам).
   final List<String> photos;
 
+  /// Автор купил и получил товар — «Покупатель подтверждён».
+  final bool verified;
+
   // Заполняются через JOIN с users.
   final String? authorName;
   final String? authorAvatarPath;
@@ -45,6 +49,7 @@ class Review {
         for (final String line in ((map['photos'] as String?) ?? '').split('\n'))
           if (line.trim().isNotEmpty) line.trim(),
       ],
+      verified: (map['verified'] as int? ?? 0) == 1,
       authorName: map['author_name'] as String?,
       authorAvatarPath: map['author_avatar_path'] as String?,
     );
@@ -58,6 +63,7 @@ class Review {
       'rating': rating,
       'text': text,
       'photos': photos.isEmpty ? null : photos.join('\n'),
+      'verified': verified ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
     };
   }

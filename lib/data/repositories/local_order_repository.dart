@@ -30,6 +30,9 @@ class LocalOrderRepository implements OrderRepository {
       _dataSource.getOrdersForSeller(sellerId);
 
   @override
+  Future<SellerStats> sellerStats(int sellerId) => _dataSource.sellerStats(sellerId);
+
+  @override
   Future<void> updateTracking(int orderId, String? note) =>
       _dataSource.updateTracking(orderId, note);
 }

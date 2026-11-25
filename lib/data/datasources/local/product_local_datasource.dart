@@ -58,6 +58,10 @@ class ProductLocalDataSource {
     if (filter.onlyAvailable) {
       conditions.add('p.stock > 0');
     }
+    for (final String tag in filter.diet) {
+      conditions.add("(',' || COALESCE(p.diet, '') || ',') LIKE ?");
+      args.add('%,$tag,%');
+    }
     if (filter.size != null) {
       // Размеры хранятся строкой «S,M,L» — ищем «,M,» внутри «,S,M,L,».
       conditions.add("(',' || REPLACE(p.size, ' ', '') || ',') LIKE ?");

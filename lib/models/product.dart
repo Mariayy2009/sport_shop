@@ -19,6 +19,7 @@ class Product {
     this.brand,
     this.material,
     this.composition,
+    this.diet = const [],
     this.rating,
     this.reviewsCount = 0,
     this.categoryName,
@@ -88,6 +89,21 @@ class Product {
   /// ткань подробно. Заполняет продавец.
   final String? composition;
 
+  /// Отметки спортпита: [DietTag.lactoseFree], [DietTag.vegan],
+  /// [DietTag.sugarFree].
+  final List<String> diet;
+
+  /// Товар заканчивается — показываем «Осталось N шт.».
+  static const int lowStock = 3;
+  bool get isLowStock => stock > 0 && stock <= lowStock;
+
+  /// Белок в порции из состава: «В порции 30 г — 24 г белка» → (30, 24).
+  (int, int)? get proteinPortion {
+    final RegExpMatch? m = RegExp(r'порции\s*(\d+)\s*г\s*[—-]\s*(\d+)\s*г\s*белка')
+        .firstMatch(composition ?? '');
+    return m == null ? null : (int.parse(m.group(1)!), int.parse(m.group(2)!));
+  }
+
   /// Средняя оценка покупателей от 0 до 5.
   final double? rating;
 
@@ -144,6 +160,10 @@ class Product {
       brand: map['brand'] as String?,
       material: map['material'] as String?,
       composition: map['composition'] as String?,
+      diet: [
+        for (final String tag in ((map['diet'] as String?) ?? '').split(','))
+          if (tag.trim().isNotEmpty) tag.trim(),
+      ],
       rating: (map['rating'] as num?)?.toDouble(),
       reviewsCount: (map['reviews_count'] as int?) ?? 0,
       categoryName: map['category_name'] as String?,
@@ -173,6 +193,7 @@ class Product {
       'brand': brand,
       'material': material,
       'composition': composition,
+      'diet': diet.isEmpty ? null : diet.join(','),
       'rating': rating,
       'seller_id': sellerId,
       'status': isBlocked ? 'blocked' : 'active',
@@ -245,6 +266,7 @@ class Product {
       brand: brand ?? this.brand,
       material: material ?? this.material,
       composition: composition ?? this.composition,
+      diet: diet,
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount,
       categoryName: categoryName ?? this.categoryName,
@@ -261,4 +283,20 @@ class Product {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// Отметки спортивного питания — продавец ставит их в форме товара,
+/// покупатель фильтрует каталог.
+class DietTag {
+  DietTag._();
+
+  static const String lactoseFree = 'lactose_free';
+  static const String vegan = 'vegan';
+  static const String sugarFree = 'sugar_free';
+
+  static const Map<String, String> labels = {
+    lactoseFree: 'Без лактозы',
+    vegan: 'Веган',
+    sugarFree: 'Без сахара',
+  };
 }

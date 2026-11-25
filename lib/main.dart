@@ -12,6 +12,7 @@ import 'data/database/app_database.dart';
 import 'data/database/database_helper.dart';
 import 'data/repositories/exhibit_repository.dart';
 import 'data/repositories/feedback_repository.dart';
+import 'data/repositories/game_repository.dart';
 import 'data/repositories/moderation_repository.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/preferences_repository.dart';
@@ -34,6 +35,7 @@ import 'state/order_state.dart';
 import 'state/product_state.dart';
 import 'state/profile_state.dart';
 import 'state/recommendation_state.dart';
+import 'state/notification_state.dart';
 import 'state/seller_badge_state.dart';
 
 Future<void> main() async {
@@ -84,6 +86,7 @@ class SportShopApp extends StatelessWidget {
         Provider<TryOnScanRepository>.value(
           value: dependencies.tryOnScanRepository,
         ),
+        Provider<GameRepository>.value(value: dependencies.gameRepository),
         Provider<ModerationRepository>.value(
           value: dependencies.moderationRepository,
         ),
@@ -110,6 +113,9 @@ class SportShopApp extends StatelessWidget {
         ChangeNotifierProvider<AssistantState>.value(value: states.assistant),
         ChangeNotifierProvider<TryOnController>.value(value: states.tryOn),
         ChangeNotifierProvider<DataSourceState>.value(value: states.dataSource),
+        ChangeNotifierProvider<NotificationState>.value(
+          value: states.notifications,
+        ),
         ChangeNotifierProvider<SellerBadgeState>.value(
           value: states.sellerBadges,
         ),

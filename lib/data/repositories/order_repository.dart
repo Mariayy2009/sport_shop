@@ -20,4 +20,35 @@ abstract class OrderRepository {
 
   /// «Где товар» — пишет продавец или магазин. null — убрать.
   Future<void> updateTracking(int orderId, String? note);
+
+  /// Продажи товаров продавца: штуки, выручка, самый популярный товар.
+  Future<SellerStats> sellerStats(int sellerId);
+}
+
+/// Статистика продавца для вкладки «Статистика».
+class SellerStats {
+  const SellerStats({
+    required this.orders,
+    required this.sold,
+    required this.revenue,
+    required this.monthSold,
+    required this.monthRevenue,
+    this.topProduct,
+    this.topSold = 0,
+    this.top = const [],
+  });
+
+  /// Заказов, в которых есть товары продавца.
+  final int orders;
+  final int sold;
+  final double revenue;
+
+  /// За текущий месяц.
+  final int monthSold;
+  final double monthRevenue;
+  final String? topProduct;
+  final int topSold;
+
+  /// Лучшие товары: название → продано штук.
+  final List<(String, int, double)> top;
 }

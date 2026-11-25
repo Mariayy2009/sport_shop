@@ -7,6 +7,7 @@ import '../core/routes/main_tab.dart';
 import '../core/theme/app_text_styles.dart';
 import '../models/enums.dart';
 import '../state/auth_state.dart';
+import '../state/notification_state.dart';
 import '../state/seller_badge_state.dart';
 
 /// Нижняя навигация из Figma: Home / Catalog / AI / Basket / Profile.
@@ -29,9 +30,10 @@ class AppBottomNavigation extends StatelessWidget {
     final UserRole role =
         context.watch<AuthState>().currentUser?.role ?? UserRole.guest;
     // У продавца на «Кабинете» — новые предупреждения и вопросы.
-    final int sellerCount = role == UserRole.seller
-        ? context.watch<SellerBadgeState>().total
-        : 0;
+    final int sellerCount =
+        role == UserRole.seller ? context.watch<SellerBadgeState>().total : 0;
+    final int notifications =
+        role == UserRole.guest ? 0 : context.watch<NotificationState>().unread;
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -49,13 +51,15 @@ class AppBottomNavigation extends StatelessWidget {
                   role: role,
                   isSelected: tab == currentTab,
                   // Бейдж корзины — только у покупателя.
-                  badgeCount: tab != MainTab.basket
-                      ? 0
-                      : role == UserRole.seller
-                          ? sellerCount
-                          : role == UserRole.admin
-                              ? 0
-                              : basketCount,
+                  badgeCount: tab == MainTab.profile
+                      ? notifications
+                      : tab != MainTab.basket
+                          ? 0
+                          : role == UserRole.seller
+                              ? sellerCount
+                              : role == UserRole.admin
+                                  ? 0
+                                  : basketCount,
                   onTap: () => onTabSelected(tab),
                 ),
             ],
@@ -83,7 +87,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = isSelected ? AppColors.navActive : AppColors.navInactive;
+    final Color color =
+        isSelected ? AppColors.navActive : AppColors.navInactive;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -101,7 +106,8 @@ class _NavItem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSizes.xxs),
-            Text(tab.labelFor(role), style: AppTextStyles.navLabel.copyWith(color: color)),
+            Text(tab.labelFor(role),
+                style: AppTextStyles.navLabel.copyWith(color: color)),
           ],
         ),
       ),

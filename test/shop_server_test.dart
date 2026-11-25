@@ -158,7 +158,7 @@ void main() {
       final DataSourceState source = state(catalog);
       await source.restore();
       await catalog.init();
-      expect(catalog.products.length, 54); // SQLite на телефоне
+      expect(catalog.products.length, 57); // SQLite на телефоне
 
       expect(await source.connect('192.168.1.5'), isNull);
       expect(source.usesServer, isTrue);
@@ -169,7 +169,7 @@ void main() {
       await source.useLocal();
       expect(source.usesServer, isFalse);
       expect(storage.url, isNull);
-      expect(catalog.products.length, 54);
+      expect(catalog.products.length, 57);
     });
 
     test('сохранённый сервер не отвечает — работает каталог телефона', () async {
@@ -180,7 +180,7 @@ void main() {
       await catalog.init();
       expect(source.usesServer, isFalse);
       expect(source.serverUnavailable, isTrue);
-      expect(catalog.products.length, 54);
+      expect(catalog.products.length, 57);
       // Адрес не теряется: можно повторить позже.
       expect(source.serverUrl, 'http://192.168.1.5:8080');
       expect(await source.retry(), contains('Нет связи'));

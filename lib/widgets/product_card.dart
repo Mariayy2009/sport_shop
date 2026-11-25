@@ -6,6 +6,7 @@ import '../core/theme/app_text_styles.dart';
 import '../core/utils/formatters.dart';
 import '../models/product.dart';
 import 'app_card.dart';
+import 'low_stock_chip.dart';
 import 'product_image.dart';
 
 /// Компактная вертикальная карточка для горизонтальных лент
@@ -39,11 +40,20 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ProductImage(
-              imageUrl: product.imageUrl,
-              width: double.infinity,
-              height: 96,
-              borderRadius: AppSizes.radiusS,
+            Stack(
+              children: [
+                ProductImage(
+                  imageUrl: product.imageUrl,
+                  width: double.infinity,
+                  height: 96,
+                  borderRadius: AppSizes.radiusS,
+                ),
+                Positioned(
+                  left: AppSizes.xs,
+                  bottom: AppSizes.xs,
+                  child: LowStockChip(product: product),
+                ),
+              ],
             ),
             const SizedBox(height: AppSizes.s),
             Text(

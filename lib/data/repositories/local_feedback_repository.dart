@@ -6,6 +6,7 @@ import '../../models/review.dart';
 import '../database/app_database.dart';
 import '../database/database_schema.dart';
 import 'feedback_repository.dart';
+import 'notification_repository.dart';
 
 /// Отзывы и вопросы в SQLite (таблицы reviews и questions).
 class LocalFeedbackRepository implements FeedbackRepository {
@@ -67,7 +68,20 @@ class LocalFeedbackRepository implements FeedbackRepository {
         where: 'user_id = ? AND product_id = ?',
         whereArgs: [review.userId, review.productId],
       );
-      await txn.insert(DatabaseSchema.reviews, review.toMap()..remove('id'));
+      // Отзыв пишут только получившие товар — значит, покупатель подтверждён.
+      final bool bought = (await txn.rawQuery(
+        'SELECT 1 FROM ${DatabaseSchema.orderItems} oi '
+        'JOIN ${DatabaseSchema.orders} o ON o.id = oi.order_id '
+        'WHERE o.user_id = ? AND oi.product_id = ? LIMIT 1',
+        [review.userId, review.productId],
+      ))
+          .isNotEmpty;
+      await txn.insert(
+        DatabaseSchema.reviews,
+        review.toMap()
+          ..remove('id')
+          ..['verified'] = bought ? 1 : 0,
+      );
       await _recalculate(txn, review.productId);
     });
   }
@@ -157,12 +171,28 @@ class LocalFeedbackRepository implements FeedbackRepository {
   @override
   Future<void> answerQuestion(int questionId, String answer) async {
     final Database db = await _appDatabase.database;
-    await db.update(
-      DatabaseSchema.questions,
-      {'answer': answer, 'answered_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [questionId],
-    );
+    await db.transaction((txn) async {
+      await txn.update(
+        DatabaseSchema.questions,
+        {'answer': answer, 'answered_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [questionId],
+      );
+      // Покупатель, который спросил, получает уведомление.
+      final List<Map<String, Object?>> rows = await txn.rawQuery(
+        'SELECT q.user_id, q.product_id, p.name FROM ${DatabaseSchema.questions} q '
+        'JOIN ${DatabaseSchema.products} p ON p.id = q.product_id WHERE q.id = ?',
+        [questionId],
+      );
+      if (rows.isEmpty) return;
+      await LocalNotificationRepository.push(
+        txn,
+        userId: rows.first['user_id']! as int,
+        title: 'Продавец ответил на ваш вопрос',
+        body: '«${rows.first['name']}»: $answer',
+        productId: rows.first['product_id'] as int?,
+      );
+    });
   }
 
   @override

@@ -346,10 +346,22 @@ class _ReviewCard extends StatelessWidget {
                       isMine ? '$name (вы)' : name,
                       style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
                     ),
-                    Text(
-                      'Купил(а) этот товар · ${Formatters.date(review.createdAt)}',
-                      style: AppTextStyles.caption,
-                    ),
+                    if (review.verified)
+                      Row(
+                        children: [
+                          const Icon(Icons.verified, size: 14, color: AppColors.success),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Покупатель подтверждён · ${Formatters.date(review.createdAt)}',
+                              style: AppTextStyles.caption
+                                  .copyWith(color: AppColors.success),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(Formatters.date(review.createdAt), style: AppTextStyles.caption),
                   ],
                 ),
               ),

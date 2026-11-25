@@ -37,7 +37,13 @@ class DatabaseSchema {
   ///      (products.try_on_image, try_on_meta), демо-отзывы.
   /// v14: новые фото баскетбольных кроссовок (варианты), убраны первые
   ///      фото гетр и капы.
-  static const int version = 15;
+  /// v15: состав товара (products.composition), вид «Для всех видов
+  ///      спорта», категория «Спортивное питание».
+  /// v16: уведомления (notifications), рекорды игры (game_scores),
+  ///      промокоды (coupons), отметка «покупатель подтверждён»
+  ///      (reviews.verified), диета у спортпита (products.diet),
+  ///      скидка в заказе (orders.discount).
+  static const int version = 16;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -56,6 +62,9 @@ class DatabaseSchema {
   static const String exhibits = 'exhibits';
   static const String sellers = 'sellers';
   static const String sellerWarnings = 'seller_warnings';
+  static const String notifications = 'notifications';
+  static const String gameScores = 'game_scores';
+  static const String coupons = 'coupons';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
   static const List<String> tablesInCreateOrder = [
@@ -75,6 +84,9 @@ class DatabaseSchema {
     exhibits,
     sellers,
     sellerWarnings,
+    notifications,
+    gameScores,
+    coupons,
   ];
 
   /// Таблицы прежних версий: удаляются при обновлении схемы.
@@ -114,6 +126,51 @@ class DatabaseSchema {
       is_read INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (seller_id) REFERENCES $users(id) ON DELETE CASCADE,
       FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE SET NULL
+    )
+    ''';
+
+  /// Уведомления пользователю: ответ продавца, заказ в пути,
+  /// продавцу — товар заканчивается.
+  static const String createNotifications = '''
+    CREATE TABLE $notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      product_id INTEGER,
+      order_id INTEGER,
+      created_at TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE SET NULL,
+      FOREIGN KEY (order_id) REFERENCES $orders(id) ON DELETE SET NULL
+    )
+    ''';
+
+  /// Результаты игры с мячом — для таблицы рекордов.
+  static const String createGameScores = '''
+    CREATE TABLE $gameScores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      mode TEXT NOT NULL,
+      score INTEGER NOT NULL CHECK (score >= 0),
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
+    )
+    ''';
+
+  /// Промокоды покупателя (например, за рекорд в игре).
+  static const String createCoupons = '''
+    CREATE TABLE $coupons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      code TEXT NOT NULL UNIQUE,
+      percent INTEGER NOT NULL CHECK (percent BETWEEN 1 AND 50),
+      scope TEXT,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      used_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
     )
     ''';
 
@@ -182,6 +239,7 @@ class DatabaseSchema {
       try_on_image TEXT,
       try_on_meta TEXT,
       composition TEXT,
+      diet TEXT,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -223,6 +281,7 @@ class DatabaseSchema {
       delivery_method TEXT NOT NULL DEFAULT 'courier'
         CHECK (delivery_method IN ('courier', 'pickup')),
       tracking_note TEXT,
+      discount REAL NOT NULL DEFAULT 0,
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE RESTRICT
     )
     ''',
@@ -267,6 +326,7 @@ class DatabaseSchema {
       rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
       text TEXT,
       photos TEXT,
+      verified INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       UNIQUE (user_id, product_id),
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE,
@@ -305,6 +365,9 @@ class DatabaseSchema {
     ''',
     createSellers,
     createSellerWarnings,
+    createNotifications,
+    createGameScores,
+    createCoupons,
     // Индексы для частых выборок: каталог, подбор, история заказов
     'CREATE INDEX idx_products_sport ON $products(sport_id)',
     'CREATE INDEX idx_products_category ON $products(category_id)',

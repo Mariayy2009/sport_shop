@@ -17,7 +17,9 @@ import '../../data/repositories/local_order_repository.dart';
 import '../../data/repositories/local_product_repository.dart';
 import '../../data/repositories/local_recommendation_repository.dart';
 import '../../data/repositories/local_user_repository.dart';
+import '../../data/repositories/game_repository.dart';
 import '../../data/repositories/moderation_repository.dart';
+import '../../data/repositories/notification_repository.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/preferences_repository.dart';
 import '../../data/datasources/local/shop_server_storage.dart';
@@ -57,6 +59,8 @@ class AppDependencies {
     required this.tryOnRepository,
     required this.preferencesRepository,
     required this.moderationRepository,
+    required this.notificationRepository,
+    required this.gameRepository,
     required this.tryOnScanRepository,
     required this.mediaStorage,
     required this.photoTryOnService,
@@ -117,6 +121,8 @@ class AppDependencies {
       tryOnRepository: tryOnRepository ?? LocalTryOnRepository(),
       preferencesRepository: preferences,
       moderationRepository: LocalModerationRepository(database),
+      notificationRepository: LocalNotificationRepository(database),
+      gameRepository: LocalGameRepository(database),
       tryOnScanRepository: tryOnScanRepository ?? LocalTryOnScanRepository(database),
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
       photoTryOnService: photoTryOnService ?? PhotoTryOnService(),
@@ -152,6 +158,8 @@ class AppDependencies {
 
   /// Модерация: снятие товаров с продажи, предупреждения продавцам.
   final ModerationRepository moderationRepository;
+  final NotificationRepository notificationRepository;
+  final GameRepository gameRepository;
 
   /// Примерки, отсканированные продавцами.
   final TryOnScanRepository tryOnScanRepository;

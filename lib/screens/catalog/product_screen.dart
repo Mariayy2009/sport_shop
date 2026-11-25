@@ -27,6 +27,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/product_feedback_section.dart';
 import '../../widgets/photo_gallery.dart';
+import '../../widgets/protein_calculator_sheet.dart';
 import '../../widgets/product_image.dart';
 import '../../widgets/seller_products_section.dart';
 import '../../widgets/rating_badge.dart';
@@ -229,11 +230,15 @@ class _ProductScreenState extends State<ProductScreen> {
         Text(Formatters.price(product.price), style: AppTextStyles.priceLarge),
         const SizedBox(height: AppSizes.xs),
         Text(
-          product.isAvailable
-              ? 'В наличии: ${product.stock} шт.'
-              : 'Нет в наличии',
+          !product.isAvailable
+              ? 'Нет в наличии'
+              : product.isLowStock
+                  ? 'Мало осталось: ${product.stock} шт. — успейте купить'
+                  : 'В наличии: ${product.stock} шт.',
           style: AppTextStyles.bodySecondary.copyWith(
-            color: product.isAvailable ? AppColors.success : AppColors.error,
+            color: product.isAvailable && !product.isLowStock
+                ? AppColors.success
+                : AppColors.error,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -357,6 +362,30 @@ class _ProductScreenState extends State<ProductScreen> {
                 const Text('Состав', style: AppTextStyles.sectionTitle),
                 const SizedBox(height: AppSizes.xs),
                 Text(product.composition!, style: AppTextStyles.body),
+                if (product.diet.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.s),
+                  Wrap(
+                    spacing: AppSizes.xs,
+                    runSpacing: AppSizes.xs,
+                    children: [
+                      for (final String tag in product.diet)
+                        if (DietTag.labels[tag] case final String label)
+                          Chip(
+                            avatar: const Icon(Icons.check, size: 16, color: AppColors.success),
+                            label: Text(label),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                    ],
+                  ),
+                ],
+                if (product.proteinPortion != null) ...[
+                  const SizedBox(height: AppSizes.s),
+                  OutlinedButton.icon(
+                    onPressed: () => ProteinCalculatorSheet.show(context, product),
+                    icon: const Icon(Icons.calculate_outlined),
+                    label: const Text('Сколько порций нужно мне?'),
+                  ),
+                ],
               ],
             ),
           ),

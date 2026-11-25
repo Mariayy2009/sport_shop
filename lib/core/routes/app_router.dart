@@ -31,6 +31,7 @@ import '../../screens/orders/order_history_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
 import '../../screens/recommendation/recommendation_quiz_screen.dart';
 import '../../screens/recommendation/recommendation_result_screen.dart';
+import '../../screens/profile/notifications_screen.dart';
 import '../../screens/shell/main_shell.dart';
 import 'app_routes.dart';
 import 'main_tab.dart';
@@ -70,6 +71,7 @@ class AppRouter {
       AppRoutes.hallOfFame => const HallOfFameScreen(),
       AppRoutes.preferences => const PreferencesScreen(),
       AppRoutes.seller => const SellerScreen(),
+      AppRoutes.notifications => const NotificationsScreen(),
       AppRoutes.preferenceResults => const PreferenceResultsScreen(),
       AppRoutes.ballGame => BallGameScreen(
           initialMode: args is BallGameMode ? args : BallGameMode.football,

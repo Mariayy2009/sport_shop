@@ -16,7 +16,10 @@ void main() {
       // Схема версии 8: без колонок и таблиц, добавленных позже.
       for (final String statement in DatabaseSchema.createStatements) {
         if (statement == DatabaseSchema.createSellers ||
-            statement == DatabaseSchema.createSellerWarnings) {
+            statement == DatabaseSchema.createSellerWarnings ||
+            statement == DatabaseSchema.createNotifications ||
+            statement == DatabaseSchema.createGameScores ||
+            statement == DatabaseSchema.createCoupons) {
           continue;
         }
         await db.execute(statement
@@ -27,6 +30,9 @@ void main() {
             .replaceAll('try_on_image TEXT,', '')
             .replaceAll('try_on_meta TEXT,', '')
             .replaceAll('composition TEXT,', '')
+            .replaceAll('diet TEXT,', '')
+            .replaceAll('discount REAL NOT NULL DEFAULT 0,', '')
+            .replaceAll('verified INTEGER NOT NULL DEFAULT 0,', '')
             .replaceAll('photos TEXT,', ''));
       }
       for (final String sport in [
@@ -73,7 +79,7 @@ void main() {
 
     // v10: новые товары и варианты одного продавца.
     final List<Map<String, Object?>> products = await db.query('products');
-    expect(products.length, 17);
+    expect(products.length, 20); // + 3 товара спортпита (v16)
     final List<Map<String, Object?>> kimonos = products
         .where((row) => (row['name']! as String).startsWith('Кимоно'))
         .toList();

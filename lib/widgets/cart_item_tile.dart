@@ -6,6 +6,7 @@ import '../core/theme/app_text_styles.dart';
 import '../core/utils/formatters.dart';
 import '../models/cart_item.dart';
 import '../models/item_options.dart';
+import '../models/product.dart';
 import 'app_card.dart';
 import 'product_image.dart';
 import 'quantity_stepper.dart';
@@ -26,6 +27,16 @@ class CartItemTile extends StatelessWidget {
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
   final VoidCallback onRemove;
+
+  /// Почему позицию нельзя купить или о чём предупредить.
+  String? get _problem {
+    final Product product = item.product;
+    if (product.isBlocked) return 'Снят с продажи — удалите из корзины';
+    if (product.stock == 0) return 'Нет в наличии';
+    if (product.stock < item.quantity) return 'На складе только ${product.stock} шт.';
+    if (product.isLowStock) return 'Мало осталось: ${product.stock} шт.';
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +75,17 @@ class CartItemTile extends StatelessWidget {
                           '${Formatters.price(item.product.price)}',
                   style: AppTextStyles.caption,
                 ),
+                if (_problem case final String problem)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSizes.xxs),
+                    child: Text(
+                      problem,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: AppSizes.s),
                 Row(
                   children: [

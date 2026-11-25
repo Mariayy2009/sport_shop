@@ -106,6 +106,21 @@ class AppDatabase {
         );
         await SeedData.insertUniversal(db);
       }
+      if (oldVersion < 16) {
+        for (final String column in [
+          '${DatabaseSchema.products} ADD COLUMN diet TEXT',
+          '${DatabaseSchema.orders} ADD COLUMN discount REAL NOT NULL DEFAULT 0',
+          '${DatabaseSchema.reviews} ADD COLUMN verified INTEGER NOT NULL DEFAULT 0',
+        ]) {
+          await db.execute('ALTER TABLE $column');
+        }
+        await db.execute(DatabaseSchema.createNotifications);
+        await db.execute(DatabaseSchema.createGameScores);
+        await db.execute(DatabaseSchema.createCoupons);
+        await SeedData.markVerifiedReviews(db);
+        await SeedData.insertNutrition(db);
+        await SeedData.insertGameScores(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

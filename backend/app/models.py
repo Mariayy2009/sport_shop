@@ -62,6 +62,7 @@ class Product(Base):
     brand: Mapped[Optional[str]] = mapped_column(String(60))
     material: Mapped[Optional[str]] = mapped_column(String(120))
     composition: Mapped[Optional[str]] = mapped_column(Text)
+    diet: Mapped[Optional[str]] = mapped_column(Text)
     rating: Mapped[Optional[Decimal]] = mapped_column(Numeric(2, 1))
     reviews_count: Mapped[int] = mapped_column(default=0)
 

@@ -39,7 +39,7 @@ def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
     assert body["database"].startswith("PostgreSQL")
-    assert body["products"] == 54
+    assert body["products"] == 57
 
 
 def test_reference_data(client):
@@ -54,7 +54,7 @@ def test_product_matches_app_format(client):
     # Те же поля, что читает Product.fromJson в приложении.
     assert set(product) == {
         "id", "name", "description", "price", "category_id", "sport_id", "size",
-        "stock", "image_url", "gallery", "variants", "brand", "material", "composition", "rating", "reviews_count",
+        "stock", "image_url", "gallery", "variants", "brand", "material", "composition", "diet", "rating", "reviews_count",
         "category_name", "sport_name",
     }
     assert product["name"] == "Волейбольная форма"
@@ -71,9 +71,10 @@ def test_product_matches_app_format(client):
 
 
 def test_filters(client):
-    assert len(client.get("/products").json()) == 54
+    assert len(client.get("/products").json()) == 57
     volleyball = client.get("/products", params={"sport_id": 1}).json()
-    assert {p["sport_name"] for p in volleyball} == {"Волейбол"}
+    # Спортпит «Для всех видов спорта» виден в каталоге каждого спорта.
+    assert {p["sport_name"] for p in volleyball} == {"Волейбол", "Для всех видов спорта"}
     # Размер ищется целиком: «M» не совпадает с «XL» или «12oz».
     sized = client.get("/products", params={"size": "M"}).json()
     assert all("M" in p["size"].split(",") for p in sized)

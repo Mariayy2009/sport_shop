@@ -12,6 +12,7 @@ import 'order_state.dart';
 import 'product_state.dart';
 import 'profile_state.dart';
 import 'recommendation_state.dart';
+import 'notification_state.dart';
 import 'seller_badge_state.dart';
 
 /// Все состояния приложения и их связь между собой:
@@ -31,6 +32,7 @@ class AppStates {
     required this.tryOn,
     required this.dataSource,
     required this.sellerBadges,
+    required this.notifications,
   });
 
   factory AppStates.create(AppDependencies deps) {
@@ -59,6 +61,7 @@ class AppStates {
         deps.moderationRepository,
         deps.feedbackRepository,
       ),
+      notifications: NotificationState(deps.notificationRepository),
     );
     states.auth.addListener(states._onAuthChanged);
     return states;
@@ -76,6 +79,7 @@ class AppStates {
   final TryOnController tryOn;
   final DataSourceState dataSource;
   final SellerBadgeState sellerBadges;
+  final NotificationState notifications;
 
   /// Загрузка при старте: сессия «Запомнить меня» и каталог.
   Future<void> init() async {
@@ -95,5 +99,6 @@ class AppStates {
     unawaited(tryOn.setUser(userId));
     final bool seller = auth.currentUser?.isSeller ?? false;
     unawaited(sellerBadges.setSeller(seller ? userId : null));
+    unawaited(notifications.setUser(userId));
   }
 }

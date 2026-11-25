@@ -4,11 +4,16 @@ import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../data/repositories/game_repository.dart';
+import '../../models/coupon.dart';
+import '../../state/auth_state.dart';
+import '../../widgets/leaderboard_sheet.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -147,9 +152,36 @@ class _BallGameScreenState extends State<BallGameScreen>
     if (mounted) setState(() {});
   }
 
+  /// Промокод, выданный за эту игру.
+  Coupon? _coupon;
+
+  /// Хранилище рекордов и вошедший игрок. Без входа (или в тестах без
+  /// провайдеров) рекорд хранится только на телефоне.
+  (GameRepository, int)? _player() {
+    try {
+      final int? userId = context.read<AuthState>().currentUser?.id;
+      if (userId == null) return null;
+      return (context.read<GameRepository>(), userId);
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
+
   Future<void> _finish() async {
     HapticFeedback.mediumImpact();
     final BallGameMode mode = _game.mode;
+    final (GameRepository, int)? player = _player();
+    if (player != null) {
+      try {
+        final GameResult result =
+            await player.$1.saveScore(player.$2, mode.name, _game.score);
+        if (mounted && result.coupon != null) {
+          setState(() => _coupon = result.coupon);
+        }
+      } on Exception catch (error) {
+        debugPrint('Результат игры не сохранился: $error');
+      }
+    }
     if (_game.score > (_best[mode] ?? 0)) {
       _best = {..._best, mode: _game.score};
       _newRecord = true;
@@ -168,6 +200,7 @@ class _BallGameScreenState extends State<BallGameScreen>
 
   void _start() {
     _newRecord = false;
+    _coupon = null;
     _game.reset();
     setState(() => _countdown = 3);
     _countdownTimer?.cancel();
@@ -315,7 +348,16 @@ class _BallGameScreenState extends State<BallGameScreen>
                       phase: _game.phase,
                       score: _game.score,
                       newRecord: _newRecord,
+                      coupon: _coupon,
                       onStart: _isStarting ? null : _start,
+                      onLeaders: _player() == null
+                          ? null
+                          : () => LeaderboardSheet.show(
+                                context,
+                                _player()!.$1,
+                                _game.mode,
+                                _player()!.$2,
+                              ),
                     ),
                   ),
               ],
@@ -572,12 +614,18 @@ class _StartPanel extends StatelessWidget {
     required this.score,
     required this.newRecord,
     required this.onStart,
+    this.coupon,
+    this.onLeaders,
   });
 
   final BallGamePhase phase;
   final int score;
   final bool newRecord;
   final VoidCallback? onStart;
+  final Coupon? coupon;
+
+  /// null — игрок не вошёл, таблица рекордов недоступна.
+  final VoidCallback? onLeaders;
 
   @override
   Widget build(BuildContext context) {
@@ -598,6 +646,63 @@ class _StartPanel extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSizes.m),
+          ],
+          if (coupon != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSizes.m),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.logoRed, width: 1.5),
+                borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Промокод −${coupon!.percent}% ${coupon!.scopeLabel}',
+                    style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: AppSizes.xxs),
+                  SelectableText(
+                    coupon!.code,
+                    style: AppTextStyles.sectionTitle.copyWith(color: AppColors.logoRed),
+                  ),
+                  const Text(
+                    'Введите его при оформлении заказа. Он сохранён в «Уведомлениях»',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSizes.m),
+          ] else if (onLeaders == null) ...[
+            Text(
+              'Войдите в аккаунт: результат попадёт в таблицу рекордов, а за '
+              '${GameRepository.couponScore} касаний — промокод '
+              '${GameRepository.couponPercent}% на мяч',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: AppSizes.s),
+          ] else if (!over) ...[
+            Text(
+              'Набей ${GameRepository.couponScore} касаний — получишь промокод '
+              '${GameRepository.couponPercent}% на мяч',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: AppSizes.s),
+          ],
+          if (onLeaders != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onLeaders,
+                icon: const Icon(Icons.emoji_events_outlined),
+                label: const Text('Таблица рекордов'),
+              ),
+            ),
+            const SizedBox(height: AppSizes.s),
           ],
           SizedBox(
             width: double.infinity,

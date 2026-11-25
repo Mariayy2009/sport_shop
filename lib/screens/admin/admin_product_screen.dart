@@ -50,6 +50,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   late final TextEditingController _composition;
   int? _sportId;
   int? _categoryId;
+  Set<String> _diet = {};
   String? _imageUrl;
   bool _isSaving = false;
 
@@ -77,6 +78,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     _composition = TextEditingController(text: product?.composition ?? '');
     _sportId = product?.sportId;
     _categoryId = product?.categoryId;
+    _diet = {...?product?.diet};
     _imageUrl = product?.imageUrl;
   }
 
@@ -164,6 +166,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       brand: _nullIfEmpty(_brand),
       material: _nullIfEmpty(_material),
       composition: _nullIfEmpty(_composition),
+      diet: _diet.toList(),
       rating: widget.product?.rating,
       reviewsCount: widget.product?.reviewsCount ?? 0,
       // Продавец и статус модерации при правке не меняются. Новый товар
@@ -385,6 +388,28 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
               maxLength: 500,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
+            ),
+            const Padding(
+              padding: EdgeInsets.only(left: AppSizes.s, bottom: AppSizes.xs),
+              child: Text(
+                'Для спортивного питания — покупатели фильтруют по этим '
+                'отметкам. Белок в порции пишите в составе так: '
+                '«В порции 30 г — 24 г белка» — заработает калькулятор.',
+                style: AppTextStyles.caption,
+              ),
+            ),
+            Wrap(
+              spacing: AppSizes.s,
+              children: [
+                for (final MapEntry<String, String> tag in DietTag.labels.entries)
+                  FilterChip(
+                    label: Text(tag.value),
+                    selected: _diet.contains(tag.key),
+                    onSelected: (on) => setState(() {
+                      _diet = on ? {..._diet, tag.key} : ({..._diet}..remove(tag.key));
+                    }),
+                  ),
+              ],
             ),
           ],
         ),
