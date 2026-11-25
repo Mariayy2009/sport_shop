@@ -260,37 +260,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             const SizedBox(height: AppSizes.l),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: AppTextField(
-                    label: 'Промокод',
-                    hint: 'Например, МЯЧ-1234-5',
-                    controller: _code,
-                    textCapitalization: TextCapitalization.characters,
-                    enabled: _coupon == null,
-                    onFieldSubmitted: (_) => _applyCoupon(),
-                  ),
-                ),
-                const SizedBox(width: AppSizes.s),
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSizes.l),
-                  child: _coupon == null
-                      ? OutlinedButton(
-                          onPressed: _applyCoupon,
-                          child: const Text('Применить'),
-                        )
-                      : TextButton(
-                          onPressed: () => setState(() {
-                            _coupon = null;
-                            _code.clear();
-                          }),
-                          child: const Text('Убрать'),
-                        ),
-                ),
-              ],
+            // Кнопки приложения растягиваются на всю ширину, поэтому
+            // поле и кнопка — друг под другом, а не в одной строке.
+            AppTextField(
+              label: 'Промокод',
+              hint: 'Например, МЯЧ-1234-5',
+              controller: _code,
+              textCapitalization: TextCapitalization.characters,
+              enabled: _coupon == null,
+              onFieldSubmitted: (_) => _applyCoupon(),
             ),
+            const SizedBox(height: AppSizes.s),
+            if (_coupon == null)
+              OutlinedButton(
+                onPressed: _applyCoupon,
+                child: const Text('Применить промокод'),
+              )
+            else
+              OutlinedButton(
+                onPressed: () => setState(() {
+                  _coupon = null;
+                  _code.clear();
+                }),
+                child: Text('Убрать промокод ${_coupon!.code}'),
+              ),
             const SizedBox(height: AppSizes.l),
             AppCard(
               child: Column(
