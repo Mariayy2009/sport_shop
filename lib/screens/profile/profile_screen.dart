@@ -201,13 +201,17 @@ class ProfileScreen extends StatelessWidget {
             title: 'Редактировать профиль',
             onTap: () => _openEdit(context),
           ),
-          _MenuItem(
-            icon: Icons.storage_outlined,
-            title: context.watch<DataSourceState>().usesServer
-                ? 'Данные: сервер PostgreSQL'
-                : 'Данные: на телефоне',
-            onTap: () => ShopServerSheet.show(context),
-          ),
+          // Откуда берётся каталог: с телефона или с сервера магазина.
+          // Это настройка для администратора — покупателю и продавцу
+          // она ничего не даёт, поэтому им не показывается.
+          if (authState.isAdmin)
+            _MenuItem(
+              icon: Icons.storage_outlined,
+              title: context.watch<DataSourceState>().usesServer
+                  ? 'Данные: сервер PostgreSQL'
+                  : 'Данные: на телефоне',
+              onTap: () => ShopServerSheet.show(context),
+            ),
           if (authState.currentUser?.isSeller ?? false)
             _MenuItem(
               icon: Icons.storefront_outlined,

@@ -29,7 +29,7 @@ class FittedGarmentPainter {
 
   /// Сетка корпуса: чем гуще, тем плавнее изгиб.
   static const int columns = 8;
-  static const int rows = 28;
+  static const int rows = 18;
 
   static bool paint(
     Canvas canvas,
@@ -119,6 +119,46 @@ class FittedGarmentPainter {
     canvas.restore();
     canvas.restore();
     return true;
+  }
+
+  /// Пояс кимоно: полоса на талии вдоль линии бёдер, узел и два конца.
+  static void paintBelt(Canvas canvas, Size size, BodyPose pose, Color color) {
+    final _Body? body = _Body.of(pose, size);
+    if (body == null) return;
+    final Offset across = _unit(body.hipAcross);
+    final Offset down = body._down;
+    final double width = math.max(body.hipDistance * hipOutline * 1.05,
+        body.shoulderDistance * 1.2);
+    final double thick = body.shoulderDistance * 0.14;
+    final Offset center = body.hipMid - down * (body.hipDistance * 0.3);
+    final Paint fill = Paint()..color = color;
+    final Paint edge = Paint()
+      ..color = Color.lerp(color, const Color(0xFF000000), 0.35)!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, thick * 0.08);
+    Path band(Offset a, Offset b, double half) {
+      final Offset d = _unit(b - a);
+      final Offset n = Offset(-d.dy, d.dx) * half;
+      return Path()..addPolygon([a + n, b + n, b - n, a - n], true);
+    }
+
+    final Path belt = band(
+      center - across * (width / 2),
+      center + across * (width / 2),
+      thick / 2,
+    );
+    // Узел чуть сбоку и два свисающих конца.
+    final Offset knot = center + across * (thick * 0.4);
+    final double tail = body.shoulderDistance * 0.42;
+    final Path tails = band(knot, knot + down * tail + across * (thick * 0.9), thick * 0.42)
+      ..addPath(band(knot, knot + down * tail - across * (thick * 0.5), thick * 0.42),
+          Offset.zero);
+    final Path knotPath = Path()
+      ..addOval(Rect.fromCenter(center: knot, width: thick * 1.3, height: thick * 1.1));
+    for (final Path path in [belt, tails, knotPath]) {
+      canvas.drawPath(path, fill);
+      canvas.drawPath(path, edge);
+    }
   }
 
   /// Кожа по [cover], только там, где человек (маска в альфа-канале

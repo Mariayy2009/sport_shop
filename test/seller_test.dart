@@ -11,7 +11,9 @@ import 'package:sport_shop/models/product.dart';
 import 'package:sport_shop/models/product_filter.dart';
 import 'package:sport_shop/models/question.dart';
 import 'package:sport_shop/models/user.dart';
+import 'package:sport_shop/models/sport.dart';
 import 'package:sport_shop/services/assistant/ai_key_store.dart';
+import 'package:sport_shop/state/seller_badge_state.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -70,6 +72,53 @@ void main() {
 
     await moderation.unblockProduct(kimono.id!);
     expect((await deps.productRepository.getProducts()).any((p) => p.id == kimono.id), isTrue);
+  });
+
+  test('кружок у продавца: новое предупреждение видно, после чтения пропадает',
+      () async {
+    final User seller = await login('budo@sport.kz', 'Seller123');
+    final SellerBadgeState badges =
+        SellerBadgeState(deps.moderationRepository, deps.feedbackRepository);
+    await badges.setSeller(seller.id);
+    expect(badges.warnings, 0);
+    final Product kimono = (await deps.productRepository.getProducts())
+        .firstWhere((p) => p.name == 'Кимоно киокушинкай');
+    await deps.moderationRepository.blockProduct(kimono, WarningReason.fraud);
+    await badges.refresh();
+    expect(badges.warnings, 1);
+    expect(badges.total, greaterThanOrEqualTo(1));
+    await deps.moderationRepository.markRead(seller.id!);
+    await badges.refresh();
+    expect(badges.warnings, 0);
+    await badges.setSeller(null);
+    expect(badges.total, 0);
+    badges.dispose();
+    await deps.moderationRepository.unblockProduct(kimono.id!);
+  });
+
+  test('товар «Для всех видов спорта» с составом виден в каталоге любого спорта',
+      () async {
+    final User seller = await login('budo@sport.kz', 'Seller123');
+    final List<Sport> sports = await deps.productRepository.getSports();
+    final Sport universal = sports.firstWhere((s) => s.isUniversal);
+    final Sport boxing = sports.firstWhere((s) => s.name == 'Бокс');
+    final int nutrition = (await deps.productRepository.getCategories())
+        .firstWhere((c) => c.name == 'Спортивное питание')
+        .id!;
+    await deps.productRepository.createProduct(Product(
+      name: 'Протеин сывороточный',
+      price: 15990,
+      categoryId: nutrition,
+      sportId: universal.id!,
+      stock: 10,
+      composition: 'Сывороточный белок 80%, какао',
+      sellerId: seller.id,
+    ));
+    final List<Product> forBoxing =
+        await deps.productRepository.getProducts(ProductFilter(sportId: boxing.id));
+    final Product protein = forBoxing.firstWhere((p) => p.name == 'Протеин сывороточный');
+    expect(protein.composition, 'Сывороточный белок 80%, какао');
+    expect(protein.sportName, Sport.universalName);
   });
 
   test('продавец видит заказы и вопросы о своих товарах, пишет «где товар»', () async {

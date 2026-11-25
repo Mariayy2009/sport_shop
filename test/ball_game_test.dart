@@ -87,6 +87,22 @@ void main() {
     expect(hits.any((hit) => hit.part == HitPart.head), isFalse);
   });
 
+  test('верхний приём: запястья почти не видны, но локти подняты — засчитывается', () {
+    final BallGame game = BallGame(size: frame, mode: BallGameMode.volleyballHigh)
+      ..start();
+    BodyPoint p(double x, double y, [double c = 1]) => BodyPoint(x, y, 0, c);
+    game.updatePose(BodyPose({
+      BodyJoint.nose: p(0.5, 0.2),
+      BodyJoint.leftShoulder: p(0.4, 0.3),
+      BodyJoint.rightShoulder: p(0.6, 0.3),
+      BodyJoint.leftElbow: p(0.43, 0.2),
+      BodyJoint.rightElbow: p(0.57, 0.2),
+      BodyJoint.leftWrist: p(0.46, 0.12, 0.05), // камера не уверена
+      BodyJoint.rightWrist: p(0.54, 0.12, 0.05),
+    }));
+    expect(run(game, 1), isNotEmpty);
+  });
+
   test('верхний приём: ладони должны быть выше головы', () {
     final BallGame low = BallGame(size: frame, mode: BallGameMode.volleyballHigh)
       ..start();

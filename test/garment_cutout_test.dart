@@ -28,6 +28,32 @@ void main() {
     expect(mask.rgba[(50 * 100 + 50) * 4 + 3], 255);
   });
 
+  test('тёмный фон в вырезе горловины светлой вещи убирается', () {
+    final Uint8List rgba = photo();
+    // Светло-голубая форма, в горловине — чёрная изнанка манекена.
+    for (int y = 20; y < 80; y++) {
+      for (int x = 30; x < 70; x++) {
+        final bool neck = x >= 44 && x < 56 && y < 28;
+        rgba.setAll((y * 100 + x) * 4,
+            neck ? const [15, 15, 15, 255] : const [150, 200, 240, 255]);
+      }
+    }
+    final CutoutMask mask = GarmentCutout.cut(rgba, 100, 100, isBottom: false)!;
+    expect(mask.rgba[(22 * 100 + 50) * 4 + 3], 0);
+    expect(mask.rgba[(50 * 100 + 50) * 4 + 3], 255);
+  });
+
+  test('чёрная футболка остаётся целой', () {
+    final Uint8List rgba = photo();
+    for (int y = 20; y < 80; y++) {
+      for (int x = 30; x < 70; x++) {
+        rgba.setAll((y * 100 + x) * 4, const [15, 15, 15, 255]);
+      }
+    }
+    final CutoutMask mask = GarmentCutout.cut(rgba, 100, 100, isBottom: false)!;
+    expect(mask.rgba[(22 * 100 + 50) * 4 + 3], 255);
+  });
+
   test('вещь на весь кадр — вырезать нельзя', () {
     final Uint8List full = Uint8List(100 * 100 * 4)..fillRange(0, 40000, 120);
     expect(GarmentCutout.cut(full, 100, 100, isBottom: false), isNull);

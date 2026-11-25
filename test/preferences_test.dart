@@ -27,7 +27,10 @@ void main() {
       ProductLocalDataSource(AppDatabase.withPath(inMemoryDatabasePath)),
     );
     catalog = await repository.getProducts();
-    sports = await repository.getSports();
+    sports = [
+      for (final Sport s in await repository.getSports())
+        if (!s.isUniversal) s,
+    ];
   });
 
   test('названия цветов по цвету вещи', () {

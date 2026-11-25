@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -14,6 +16,7 @@ import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
+import '../../state/product_state.dart';
 import '../../models/product_filter.dart';
 import '../../models/question.dart';
 import '../../state/auth_state.dart';
@@ -119,22 +122,32 @@ class _ProductsTabState extends State<_ProductsTab>
       buttonText: 'Снять с продажи',
     );
     if (result == null) return;
+    final ProductState catalog = context.read<ProductState>();
     await moderation.blockProduct(product, result.$1, text: result.$2);
     if (!mounted) return;
     AppMessages.showSuccess(
       context,
       product.sellerId == null
-          ? 'Товар снят с продажи'
-          : 'Товар снят, продавец получил предупреждение',
+          ? 'Товар снят с продажи. Из каталога покупателей он пропадёт '
+              'в течение минуты'
+          : 'Товар снят, продавец получил предупреждение. Из каталога '
+              'покупателей он пропадёт в течение минуты',
     );
     _reload();
+    // Каталог «Товары» обновляем сразу, не дожидаясь перезапуска.
+    unawaited(catalog.loadProducts());
   }
 
   Future<void> _unblock(Product product) async {
+    final ProductState catalog = context.read<ProductState>();
     await context.read<ModerationRepository>().unblockProduct(product.id!);
     if (!mounted) return;
-    AppMessages.showSuccess(context, 'Товар снова в продаже');
+    AppMessages.showSuccess(
+      context,
+      'Товар снова в продаже — в каталоге появится в течение минуты',
+    );
     _reload();
+    unawaited(catalog.loadProducts());
   }
 
   Future<void> _warn(Product product) async {

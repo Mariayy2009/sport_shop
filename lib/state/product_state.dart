@@ -33,7 +33,13 @@ class ProductState extends ChangeNotifier {
   String? _error;
 
   List<Product> get products => _products;
-  List<Sport> get sports => _sports;
+  /// Виды спорта для витрины, фильтров и анкет — без пункта
+  /// «Для всех видов спорта» (он нужен только при добавлении товара).
+  List<Sport> get sports =>
+      [for (final Sport sport in _sports) if (!sport.isUniversal) sport];
+
+  /// Все виды спорта, включая «Для всех видов спорта», — для формы товара.
+  List<Sport> get productSports => _sports;
   List<ProductCategory> get categories => _categories;
   List<String> get allSizes => _allSizes;
   ProductFilter get filter => _filter;

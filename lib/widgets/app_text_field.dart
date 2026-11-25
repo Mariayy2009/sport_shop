@@ -26,6 +26,7 @@ class AppTextField extends StatelessWidget {
     this.inputFormatters,
     this.maxLength,
     this.enabled = true,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -46,6 +47,9 @@ class AppTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final bool enabled;
+
+  /// Больше 1 — многострочное поле (состав, описание).
+  final int maxLines;
 
   static OutlineInputBorder _border(Color color, {double width = 1}) {
     return OutlineInputBorder(
@@ -101,6 +105,8 @@ class AppTextField extends StatelessWidget {
           autofillHints: autofillHints,
           inputFormatters: inputFormatters,
           maxLength: maxLength,
+          maxLines: obscureText ? 1 : maxLines,
+          minLines: 1,
           enabled: enabled,
           style: AppTextStyles.body,
           cursorColor: AppColors.black,

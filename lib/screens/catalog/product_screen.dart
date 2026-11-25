@@ -348,6 +348,19 @@ class _ProductScreenState extends State<ProductScreen> {
             ],
           ),
         ),
+        if (product.composition != null) ...[
+          const SizedBox(height: AppSizes.m),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Состав', style: AppTextStyles.sectionTitle),
+                const SizedBox(height: AppSizes.xs),
+                Text(product.composition!, style: AppTextStyles.body),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: AppSizes.m),
         AppCard(
           child: Column(

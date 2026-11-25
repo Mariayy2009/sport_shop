@@ -252,9 +252,7 @@ class BallGame {
           put(HitPart.forearms, Offset.lerp((le + re) / 2, (lw + rw) / 2, 0.6));
         }
       case BallGameMode.volleyballHigh:
-        final Offset? lw = _at(pose, BodyJoint.leftWrist);
-        final Offset? rw = _at(pose, BodyJoint.rightWrist);
-        if (lw != null && rw != null) put(HitPart.hands, (lw + rw) / 2);
+        put(HitPart.hands, _raisedHands(pose));
       case BallGameMode.basketball:
         // Ведут одной рукой — берём ту ладонь, что ближе к мячу.
         final List<Offset> hands = [
@@ -328,6 +326,32 @@ class BallGame {
     return BallHit(HitPart.hands, hand);
   }
 
+  /// Ладони для верхнего приёма. Поднятые над головой запястья камера
+  /// часто видит неуверенно — берём их и при низкой уверенности, а если
+  /// их нет совсем — продолжаем руку от локтя.
+  Offset? _raisedHands(BodyPose pose) {
+    Offset? raw(BodyJoint joint) {
+      final BodyPoint? p = pose.joints[joint];
+      return p == null || p.confidence < 0.15
+          ? null
+          : Offset(p.x * size.width, p.y * _h);
+    }
+
+    Offset? hand(BodyJoint wrist, BodyJoint elbow, BodyJoint shoulder) {
+      final Offset? w = raw(wrist);
+      if (w != null) return w;
+      final Offset? e = raw(elbow), s = raw(shoulder);
+      return e == null || s == null ? null : e + (e - s) * 0.9;
+    }
+
+    final Offset? left =
+        hand(BodyJoint.leftWrist, BodyJoint.leftElbow, BodyJoint.leftShoulder);
+    final Offset? right =
+        hand(BodyJoint.rightWrist, BodyJoint.rightElbow, BodyJoint.rightShoulder);
+    if (left != null && right != null) return (left + right) / 2;
+    return left ?? right;
+  }
+
   /// Голова: нос, а если его не видно — над серединой плеч.
   Offset? _head(BodyPose pose) {
     final Offset? nose = _at(pose, BodyJoint.nose);
@@ -353,7 +377,7 @@ class BallGame {
         HitPart.knee => shoulders * 0.4,
         HitPart.head => shoulders * 0.4,
         HitPart.forearms => shoulders * 0.75,
-        HitPart.hands => shoulders * 0.6,
+        HitPart.hands => shoulders * 0.85,
         HitPart.finger => 0,
       };
       final Offset point = entry.value;
@@ -383,12 +407,13 @@ class BallGame {
             rw.dy > shouldersY &&
             together < (_shoulderWidth(pose) ?? size.width) * 0.9;
       case HitPart.hands:
-        // Верхний приём: обе ладони выше головы.
-        final Offset? lw = _at(pose, BodyJoint.leftWrist);
-        final Offset? rw = _at(pose, BodyJoint.rightWrist);
-        final Offset? head = _head(pose);
-        if (lw == null || rw == null || head == null) return false;
-        return lw.dy < head.dy && rw.dy < head.dy;
+        // Верхний приём: руки подняты — ладони выше подбородка.
+        final Offset? hands = _raisedHands(pose);
+        final Offset? ls = _at(pose, BodyJoint.leftShoulder);
+        final Offset? rs = _at(pose, BodyJoint.rightShoulder);
+        if (hands == null || ls == null || rs == null) return false;
+        final double chin = (ls.dy + rs.dy) / 2 - (ls - rs).distance * 0.25;
+        return hands.dy < chin;
       case HitPart.foot:
       case HitPart.knee:
       case HitPart.head:

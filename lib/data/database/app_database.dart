@@ -100,6 +100,12 @@ class AppDatabase {
         await SeedData.applyVariants(db);
         await SeedData.removePhotos(db);
       }
+      if (oldVersion < 15) {
+        await db.execute(
+          'ALTER TABLE ${DatabaseSchema.products} ADD COLUMN composition TEXT',
+        );
+        await SeedData.insertUniversal(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

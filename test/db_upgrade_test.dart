@@ -26,6 +26,7 @@ void main() {
             .replaceAll('variants TEXT,', '')
             .replaceAll('try_on_image TEXT,', '')
             .replaceAll('try_on_meta TEXT,', '')
+            .replaceAll('composition TEXT,', '')
             .replaceAll('photos TEXT,', ''));
       }
       for (final String sport in [

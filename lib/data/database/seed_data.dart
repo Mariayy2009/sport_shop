@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/password_hasher.dart';
 import '../../models/enums.dart';
+import '../../models/sport.dart';
 import 'database_schema.dart';
 import 'seed_athletes.dart';
 import 'seed_products_extra.dart';
@@ -396,6 +397,32 @@ class SeedData {
   // Запись в базу
   // ---------------------------------------------------------------------------
 
+  /// Вид «Для всех видов спорта» и категория «Спортивное питание» —
+  /// для товаров продавцов, которые не относятся к одному спорту.
+  static Future<void> insertUniversal(DatabaseExecutor db) async {
+    final List<Map<String, Object?>> sport = await db.query(
+      DatabaseSchema.sports,
+      where: 'name = ?',
+      whereArgs: [Sport.universalName],
+    );
+    if (sport.isEmpty) {
+      await db.insert(DatabaseSchema.sports, {
+        'name': Sport.universalName,
+        'description': 'Товар подходит для любого вида спорта',
+      });
+    }
+    final List<Map<String, Object?>> category = await db.query(
+      DatabaseSchema.categories,
+      where: 'name = ?',
+      whereArgs: [nutritionCategory],
+    );
+    if (category.isEmpty) {
+      await db.insert(DatabaseSchema.categories, {'name': nutritionCategory});
+    }
+  }
+
+  static const String nutritionCategory = 'Спортивное питание';
+
   static Future<void> insertAll(DatabaseExecutor db) async {
     final Map<String, int> sportIds = {};
     for (final (key, name, description) in _sports) {
@@ -458,6 +485,7 @@ class SeedData {
     await insertSellers(db);
     await applyVariants(db);
     await insertReviews(db);
+    await insertUniversal(db);
   }
 
   /// Экспонаты «Зала славы» (экспозиция КНУС).

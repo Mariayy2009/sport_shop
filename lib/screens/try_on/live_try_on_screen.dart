@@ -24,6 +24,7 @@ import '../../services/try_on/garment_cutout.dart';
 import '../../services/try_on/garment_scan.dart';
 import '../../services/try_on/garment_color.dart';
 import '../../services/try_on/garment_mesh.dart';
+import '../../services/try_on/kimono_outfit.dart';
 import '../../services/try_on/live_try_on_service.dart';
 import '../../services/try_on/photo_try_on_service.dart';
 import '../../state/profile_state.dart';
@@ -70,6 +71,10 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
   List<Product> _products = const [];
   Product? _product;
   GarmentMesh? _mesh;
+
+  /// Для кимоно: штаны (3D) и пояс. null — не кимоно.
+  KimonoOutfit? _kimono;
+  GarmentMesh? _pantsMesh;
   Color _color = GarmentColor.fallback;
   BodyPose? _pose;
   String? _error;
@@ -181,6 +186,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       GarmentCutout? cutout;
       GarmentCutout? backCutout;
       bool scanned = false;
+      final KimonoOutfit? kimono =
+          KimonoOutfit.isKimono(product) ? KimonoOutfit.of(product) : null;
       final TryOnScanRepository scans = context.read<TryOnScanRepository>();
       try {
         // Примерка, снятая продавцом на человеке, — лучше фото каталога.
@@ -206,7 +213,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
         color = await GarmentColor.forProduct(product.imageUrl, bytes);
         // Вещь на фото надета на человека — вырезать её нельзя.
         if (cutout == null &&
-            !PhotoTryOnService.modelPhotos.contains(product.imageUrl)) {
+            !PhotoTryOnService.modelPhotos.contains(product.imageUrl) &&
+            (kimono?.photoUsable ?? true)) {
           cutout = await GarmentCutout.fromImage(
             bytes,
             isBottom: shape == GarmentShape.shorts || shape == GarmentShape.pants,
@@ -215,6 +223,12 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       } on AppException {
         // У товара нет фото — оставляем цвет по умолчанию.
       }
+      // Кимоно: штаны надеваются 3D-моделью, если их нет на фото.
+      GarmentMesh? pantsMesh;
+      if (kimono != null && !(kimono.photoHasPants && cutout != null && !scanned)) {
+        final ByteData pants = await rootBundle.load(GarmentShape.pants.assetPath);
+        pantsMesh = GarmentMesh.fromGlb(pants.buffer.asUint8List());
+      }
       if (!mounted) return;
       final SizeAdvice? advice =
           _sizeAdvisor.advise(product, context.read<ProfileState>().sizes);
@@ -222,6 +236,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
       setState(() {
         _product = product;
         _mesh = mesh;
+        _kimono = kimono;
+        _pantsMesh = pantsMesh;
         _color = color;
         _cutout = cutout;
         _backCutout = backCutout;
@@ -378,6 +394,16 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
     return null;
   }
 
+  /// Пояс рисуется отдельно, если его нет на вырезанном фото
+  /// (у кимоно, снятого целиком, пояс уже на фото).
+  Color? get _beltColor {
+    final KimonoOutfit? kimono = _kimono;
+    if (kimono == null) return null;
+    final bool photoBelt =
+        _usePhoto && _cutout != null && !_scanned && kimono.photoHasPants;
+    return photoBelt ? null : kimono.belt;
+  }
+
   Widget _buildStage() {
     final GarmentMesh? mesh = _mesh;
     if (!_live) {
@@ -397,6 +423,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                   cutout: _usePhoto ? _cutout : null,
                   shape: _product == null ? null : TryOnSupport.of(_product!).shape,
                   sizeScale: _sizeScale,
+                  pantsMesh: _pantsMesh,
+                  belt: _beltColor,
                 ),
                 size: constraints.biggest,
               );
@@ -435,6 +463,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
                 backCutout: _usePhoto ? _backCutout : null,
                 shape: _product == null ? null : TryOnSupport.of(_product!).shape,
                 sizeScale: _sizeScale,
+                pantsMesh: _pantsMesh,
+                belt: _beltColor,
               ),
             ),
           ],
@@ -481,9 +511,13 @@ class _StagePainter extends CustomPainter {
     this.shape,
     this.sizeScale = 1,
     this.skin,
+    this.pantsMesh,
+    this.belt,
   });
 
   final GarmentMesh? mesh;
+  final GarmentMesh? pantsMesh;
+  final Color? belt;
   final GarmentCutout? cutout;
   final GarmentCutout? backCutout;
   final GarmentShape? shape;
@@ -514,6 +548,22 @@ class _StagePainter extends CustomPainter {
     final BodyPose? pose = this.pose;
     if (pose == null) return;
     if (showJoints) _paintSkeleton(canvas, size, pose);
+    // Штаны кимоно — под курткой.
+    final GarmentMesh? pants = pantsMesh;
+    if (pants != null) {
+      Garment3DPainter(
+        mesh: pants,
+        frames: BodyRig.frames(pose, size.width, size.height),
+        color: color,
+        shading: shading,
+      ).paint(canvas, size);
+    }
+    _paintTop(canvas, size, pose);
+    final Color? belt = this.belt;
+    if (belt != null) FittedGarmentPainter.paintBelt(canvas, size, pose, belt);
+  }
+
+  void _paintTop(Canvas canvas, Size size, BodyPose pose) {
     final GarmentCutout? cutout = this.cutout;
     final GarmentShape? shape = this.shape;
     if (cutout != null && shape != null) {
@@ -579,6 +629,8 @@ class _StagePainter extends CustomPainter {
   bool shouldRepaint(_StagePainter oldDelegate) =>
       oldDelegate.pose != pose ||
       oldDelegate.mesh != mesh ||
+      oldDelegate.pantsMesh != pantsMesh ||
+      oldDelegate.belt != belt ||
       oldDelegate.color != color ||
       oldDelegate.shading != shading ||
       oldDelegate.cutout != cutout ||

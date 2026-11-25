@@ -34,6 +34,7 @@ import 'state/order_state.dart';
 import 'state/product_state.dart';
 import 'state/profile_state.dart';
 import 'state/recommendation_state.dart';
+import 'state/seller_badge_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,6 +110,9 @@ class SportShopApp extends StatelessWidget {
         ChangeNotifierProvider<AssistantState>.value(value: states.assistant),
         ChangeNotifierProvider<TryOnController>.value(value: states.tryOn),
         ChangeNotifierProvider<DataSourceState>.value(value: states.dataSource),
+        ChangeNotifierProvider<SellerBadgeState>.value(
+          value: states.sellerBadges,
+        ),
       ],
       child: MaterialApp(
         title: AppStrings.appName,

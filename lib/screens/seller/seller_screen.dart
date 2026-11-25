@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -5,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/routes/main_tab.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/app_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/repositories/feedback_repository.dart';
 import '../../data/repositories/moderation_repository.dart';
@@ -16,6 +19,7 @@ import '../../models/product_filter.dart';
 import '../../models/question.dart';
 import '../../models/user.dart';
 import '../../state/auth_state.dart';
+import '../../state/seller_badge_state.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_scaffold.dart';
 import '../../widgets/empty_state.dart';
@@ -46,9 +50,10 @@ class SellerScreen extends StatelessWidget {
         ),
       );
     }
+    final SellerBadgeState badges = context.watch<SellerBadgeState>();
     final Widget content = Column(
           children: [
-            const Material(
+            Material(
               color: AppColors.surface,
               child: TabBar(
                 isScrollable: true,
@@ -56,10 +61,10 @@ class SellerScreen extends StatelessWidget {
                 labelColor: AppColors.textPrimary,
                 indicatorColor: AppColors.black,
                 tabs: [
-                  Tab(text: 'Мои товары'),
-                  Tab(text: 'Заказы'),
-                  Tab(text: 'Вопросы'),
-                  Tab(text: 'Предупреждения'),
+                  const Tab(text: 'Мои товары'),
+                  const Tab(text: 'Заказы'),
+                  _BadgeTab(text: 'Вопросы', count: badges.questions),
+                  _BadgeTab(text: 'Предупреждения', count: badges.warnings),
                 ],
               ),
             ),
@@ -262,7 +267,10 @@ class _QuestionsTabState extends State<_QuestionsTab> {
     );
     if (text == null) return;
     await repository.answerQuestion(question.id!, text);
-    if (mounted) setState(() => _future = _load());
+    if (!mounted) return;
+    AppMessages.showSuccess(context, 'Ответ отправлен — покупатель увидит его в карточке товара');
+    unawaited(context.read<SellerBadgeState>().refresh());
+    setState(() => _future = _load());
   }
 
   @override
@@ -321,6 +329,27 @@ class _QuestionsTabState extends State<_QuestionsTab> {
   }
 }
 
+/// Вкладка с красным кружком-счётчиком: там появилось новое.
+class _BadgeTab extends StatelessWidget {
+  const _BadgeTab({required this.text, required this.count});
+
+  final String text;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tab(
+      child: Badge(
+        isLabelVisible: count > 0,
+        backgroundColor: AppColors.logoRed,
+        offset: const Offset(14, -6),
+        label: Text('$count'),
+        child: Text(text),
+      ),
+    );
+  }
+}
+
 class _WarningsTab extends StatefulWidget {
   const _WarningsTab({required this.sellerId});
 
@@ -336,8 +365,10 @@ class _WarningsTabState extends State<_WarningsTab> {
   Future<List<SellerWarning>> _load() async {
     final ModerationRepository moderation = context.read<ModerationRepository>();
     final List<SellerWarning> warnings = await moderation.warningsFor(widget.sellerId);
-    // Открыл вкладку — значит, прочитал.
+    // Открыл вкладку — значит, прочитал: кружок пропадает.
+    final SellerBadgeState badges = context.read<SellerBadgeState>();
     await moderation.markRead(widget.sellerId);
+    await badges.refresh();
     return warnings;
   }
 

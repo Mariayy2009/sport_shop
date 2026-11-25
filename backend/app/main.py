@@ -34,6 +34,7 @@ def product_json(product: Product) -> dict:
         "variants": json.loads(product.variants) if product.variants else [],
         "brand": product.brand,
         "material": product.material,
+        "composition": product.composition,
         "rating": float(product.rating) if product.rating is not None else None,
         "reviews_count": product.reviews_count,
         "category_name": product.category.name,
@@ -50,6 +51,9 @@ def health(session: Session = Depends(get_session)) -> dict:
     except Exception as error:  # noqa: BLE001 — причину видно в приложении
         raise HTTPException(503, f"Нет связи с PostgreSQL: {error.__class__.__name__}") from None
     return {"status": "ok", "database": f"PostgreSQL {version}", "products": len(products)}
+
+
+UNIVERSAL_SPORT = "Для всех видов спорта"
 
 
 @app.get("/sports")
@@ -78,7 +82,11 @@ def products(
     """Каталог с теми же фильтрами, что экран «Фильтры» в приложении."""
     statement = select(Product).order_by(Product.name)
     if sport_id is not None:
-        statement = statement.where(Product.sport_id == sport_id)
+        # Товары «Для всех видов спорта» видны в каталоге каждого спорта.
+        universal = select(Sport.id).where(Sport.name == UNIVERSAL_SPORT)
+        statement = statement.where(
+            (Product.sport_id == sport_id) | Product.sport_id.in_(universal)
+        )
     if category_id is not None:
         statement = statement.where(Product.category_id == category_id)
     if min_price is not None:

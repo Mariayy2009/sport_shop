@@ -18,6 +18,7 @@ class Product {
     this.variants = const [],
     this.brand,
     this.material,
+    this.composition,
     this.rating,
     this.reviewsCount = 0,
     this.categoryName,
@@ -83,6 +84,10 @@ class Product {
   /// Основной материал: «Полиэстер 100%».
   final String? material;
 
+  /// Состав: для спортивного питания — ингредиенты, для одежды —
+  /// ткань подробно. Заполняет продавец.
+  final String? composition;
+
   /// Средняя оценка покупателей от 0 до 5.
   final double? rating;
 
@@ -138,6 +143,7 @@ class Product {
       variants: _variants(map['variants']),
       brand: map['brand'] as String?,
       material: map['material'] as String?,
+      composition: map['composition'] as String?,
       rating: (map['rating'] as num?)?.toDouble(),
       reviewsCount: (map['reviews_count'] as int?) ?? 0,
       categoryName: map['category_name'] as String?,
@@ -166,6 +172,7 @@ class Product {
           : jsonEncode([for (final ProductVariant v in variants) v.toJson()]),
       'brand': brand,
       'material': material,
+      'composition': composition,
       'rating': rating,
       'seller_id': sellerId,
       'status': isBlocked ? 'blocked' : 'active',
@@ -218,6 +225,7 @@ class Product {
     List<String>? gallery,
     String? brand,
     String? material,
+    String? composition,
     double? rating,
     String? categoryName,
     String? sportName,
@@ -236,6 +244,7 @@ class Product {
       variants: variants,
       brand: brand ?? this.brand,
       material: material ?? this.material,
+      composition: composition ?? this.composition,
       rating: rating ?? this.rating,
       reviewsCount: reviewsCount,
       categoryName: categoryName ?? this.categoryName,

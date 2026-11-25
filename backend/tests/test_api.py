@@ -45,7 +45,8 @@ def test_health(client):
 def test_reference_data(client):
     sports = client.get("/sports").json()
     assert [s["name"] for s in sports][:2] == ["Волейбол", "Бег"]
-    assert len(client.get("/categories").json()) == 5
+    assert len(client.get("/categories").json()) == 6
+    assert sports[-1]["name"] == "Для всех видов спорта"
 
 
 def test_product_matches_app_format(client):
@@ -53,7 +54,7 @@ def test_product_matches_app_format(client):
     # Те же поля, что читает Product.fromJson в приложении.
     assert set(product) == {
         "id", "name", "description", "price", "category_id", "sport_id", "size",
-        "stock", "image_url", "gallery", "variants", "brand", "material", "rating", "reviews_count",
+        "stock", "image_url", "gallery", "variants", "brand", "material", "composition", "rating", "reviews_count",
         "category_name", "sport_name",
     }
     assert product["name"] == "Волейбольная форма"

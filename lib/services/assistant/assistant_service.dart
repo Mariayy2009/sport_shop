@@ -23,7 +23,10 @@ class AssistantService {
     UserSizes? sizes,
   }) async {
     final List<Product> catalog = await _productRepository.getProducts();
-    final List<Sport> sports = await _productRepository.getSports();
+    final List<Sport> sports = [
+      for (final Sport sport in await _productRepository.getSports())
+        if (!sport.isUniversal) sport,
+    ];
     return _engine.reply(
       AssistantContext(
         catalog: catalog,

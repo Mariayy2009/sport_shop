@@ -47,8 +47,8 @@ void main() {
 
   test('демо-данные записаны', () async {
     final Map<String, int> counts = await database.tableCounts();
-    expect(counts['sports'], 9);
-    expect(counts['categories'], 5);
+    expect(counts['sports'], 10); // 9 видов + «Для всех видов спорта»
+    expect(counts['categories'], 6); // + «Спортивное питание»
     expect(counts['products'], 54);
     expect(counts['users'], 17); // покупатели, администратор, 2 продавца, 12 авторов отзывов
     expect(counts['orders'], 4);

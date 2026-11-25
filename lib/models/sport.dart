@@ -6,6 +6,12 @@ class Sport {
     this.description,
   });
 
+  /// Товар подходит любому виду спорта (бутылка, рюкзак, протеин).
+  /// Такой товар показывается в каталоге каждого вида спорта.
+  static const String universalName = 'Для всех видов спорта';
+
+  bool get isUniversal => name == universalName;
+
   final int? id;
   final String name;
   final String? description;

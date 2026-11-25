@@ -12,6 +12,7 @@ import 'order_state.dart';
 import 'product_state.dart';
 import 'profile_state.dart';
 import 'recommendation_state.dart';
+import 'seller_badge_state.dart';
 
 /// Все состояния приложения и их связь между собой:
 /// при входе / выходе пользователя корзина, профиль и заказы
@@ -29,6 +30,7 @@ class AppStates {
     required this.assistant,
     required this.tryOn,
     required this.dataSource,
+    required this.sellerBadges,
   });
 
   factory AppStates.create(AppDependencies deps) {
@@ -53,6 +55,10 @@ class AppStates {
         storage: deps.shopServerStorage,
         catalog: products,
       ),
+      sellerBadges: SellerBadgeState(
+        deps.moderationRepository,
+        deps.feedbackRepository,
+      ),
     );
     states.auth.addListener(states._onAuthChanged);
     return states;
@@ -69,6 +75,7 @@ class AppStates {
   final AssistantState assistant;
   final TryOnController tryOn;
   final DataSourceState dataSource;
+  final SellerBadgeState sellerBadges;
 
   /// Загрузка при старте: сессия «Запомнить меня» и каталог.
   Future<void> init() async {
@@ -86,5 +93,7 @@ class AppStates {
     unawaited(favorites.setUser(userId));
     assistant.setUser(userId);
     unawaited(tryOn.setUser(userId));
+    final bool seller = auth.currentUser?.isSeller ?? false;
+    unawaited(sellerBadges.setSeller(seller ? userId : null));
   }
 }

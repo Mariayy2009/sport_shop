@@ -34,6 +34,14 @@ def main(reset: bool) -> None:
         if count and not reset:
             # Каталог уже есть: добавляем только новые товары из приложения
             # (с теми же номерами), ничего не удаляя.
+            # Новые виды спорта и категории (например, «Для всех видов
+            # спорта», «Спортивное питание») — до товаров.
+            sports = set(session.scalars(select(Sport.id)))
+            session.add_all(Sport(**row) for row in data["sports"] if row["id"] not in sports)
+            categories = set(session.scalars(select(Category.id)))
+            session.add_all(
+                Category(**row) for row in data["categories"] if row["id"] not in categories)
+            session.flush()
             existing = set(session.scalars(select(Product.id)))
             new = [row for row in data["products"] if row["id"] not in existing]
             session.add_all(Product(**product_row(row)) for row in new)
@@ -48,9 +56,10 @@ def main(reset: bool) -> None:
                          "r": row.get("rating"), "c": row.get("reviews_count", 0),
                          "id": row["id"]})
             session.flush()
-            session.execute(text(
-                "SELECT setval(pg_get_serial_sequence('products', 'id'), "
-                "(SELECT COALESCE(MAX(id), 1) FROM products))"))
+            for table in ("sports", "categories", "products"):
+                session.execute(text(
+                    f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                    f"(SELECT COALESCE(MAX(id), 1) FROM {table}))"))
             print(f"Каталог уже заполнен ({count} товаров), добавлено новых: {len(new)}. "
                   "Для полной перезаливки: python seed.py --reset")
             return

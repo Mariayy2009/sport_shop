@@ -7,6 +7,7 @@ import '../core/routes/main_tab.dart';
 import '../core/theme/app_text_styles.dart';
 import '../models/enums.dart';
 import '../state/auth_state.dart';
+import '../state/seller_badge_state.dart';
 
 /// Нижняя навигация из Figma: Home / Catalog / AI / Basket / Profile.
 class AppBottomNavigation extends StatelessWidget {
@@ -27,6 +28,10 @@ class AppBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final UserRole role =
         context.watch<AuthState>().currentUser?.role ?? UserRole.guest;
+    // У продавца на «Кабинете» — новые предупреждения и вопросы.
+    final int sellerCount = role == UserRole.seller
+        ? context.watch<SellerBadgeState>().total
+        : 0;
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -44,11 +49,13 @@ class AppBottomNavigation extends StatelessWidget {
                   role: role,
                   isSelected: tab == currentTab,
                   // Бейдж корзины — только у покупателя.
-                  badgeCount: tab == MainTab.basket &&
-                          role != UserRole.seller &&
-                          role != UserRole.admin
-                      ? basketCount
-                      : 0,
+                  badgeCount: tab != MainTab.basket
+                      ? 0
+                      : role == UserRole.seller
+                          ? sellerCount
+                          : role == UserRole.admin
+                              ? 0
+                              : basketCount,
                   onTap: () => onTabSelected(tab),
                 ),
             ],

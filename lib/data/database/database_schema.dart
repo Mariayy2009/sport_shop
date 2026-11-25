@@ -37,7 +37,7 @@ class DatabaseSchema {
   ///      (products.try_on_image, try_on_meta), демо-отзывы.
   /// v14: новые фото баскетбольных кроссовок (варианты), убраны первые
   ///      фото гетр и капы.
-  static const int version = 14;
+  static const int version = 15;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -181,6 +181,7 @@ class DatabaseSchema {
       variants TEXT,
       try_on_image TEXT,
       try_on_meta TEXT,
+      composition TEXT,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )

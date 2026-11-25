@@ -47,6 +47,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   late final TextEditingController _sizes;
   late final TextEditingController _brand;
   late final TextEditingController _material;
+  late final TextEditingController _composition;
   int? _sportId;
   int? _categoryId;
   String? _imageUrl;
@@ -73,6 +74,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
               : context.read<AuthState>().currentUser?.shopName ?? ''),
     );
     _material = TextEditingController(text: product?.material ?? '');
+    _composition = TextEditingController(text: product?.composition ?? '');
     _sportId = product?.sportId;
     _categoryId = product?.categoryId;
     _imageUrl = product?.imageUrl;
@@ -88,6 +90,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       _sizes,
       _brand,
       _material,
+      _composition,
     ]) {
       controller.dispose();
     }
@@ -160,6 +163,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       variants: widget.product?.variants ?? const [],
       brand: _nullIfEmpty(_brand),
       material: _nullIfEmpty(_material),
+      composition: _nullIfEmpty(_composition),
       rating: widget.product?.rating,
       reviewsCount: widget.product?.reviewsCount ?? 0,
       // Продавец и статус модерации при правке не меняются. Новый товар
@@ -176,7 +180,12 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       }
       await catalog.init();
       if (!mounted) return;
-      AppMessages.showSuccess(context, _isNew ? 'Товар добавлен' : 'Товар сохранён');
+      AppMessages.showSuccess(
+        context,
+        _isNew
+            ? 'Товар добавлен! Он появится в каталоге через несколько секунд'
+            : 'Изменения сохранены — в каталоге они обновятся через несколько секунд',
+      );
       navigator.pop(true);
     } on AppException catch (error) {
       if (!mounted) return;
@@ -334,7 +343,12 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
               hint: 'Выберите вид спорта',
               value: _sportId,
               items: [
-                for (final Sport sport in catalog.sports)
+                // «Для всех видов спорта» — первым: бутылки, рюкзаки,
+                // спортивное питание подходят любому спорту.
+                for (final Sport sport in [
+                  ...catalog.productSports.where((s) => s.isUniversal),
+                  ...catalog.sports,
+                ])
                   DropdownMenuItem(value: sport.id, child: Text(sport.name)),
               ],
               validator: (value) => value == null ? 'Выберите вид спорта' : null,
@@ -363,6 +377,15 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
             AppTextField(label: 'Бренд', controller: _brand, maxLength: 40),
             const SizedBox(height: AppSizes.m),
             AppTextField(label: 'Материал', controller: _material, maxLength: 60),
+            const SizedBox(height: AppSizes.m),
+            AppTextField(
+              label: 'Состав',
+              hint: 'Например: сывороточный белок 80%, какао, подсластитель',
+              controller: _composition,
+              maxLength: 500,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+            ),
           ],
         ),
       ),

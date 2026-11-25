@@ -36,8 +36,12 @@ class ProductLocalDataSource {
       args.add(filter.sellerId);
     }
     if (filter.sportId != null) {
-      conditions.add('p.sport_id = ?');
-      args.add(filter.sportId);
+      // Товары «для всех видов спорта» видны в каталоге каждого спорта.
+      conditions.add(
+        '(p.sport_id = ? OR p.sport_id IN '
+        '(SELECT id FROM ${DatabaseSchema.sports} WHERE name = ?))',
+      );
+      args.addAll([filter.sportId, Sport.universalName]);
     }
     if (filter.categoryId != null) {
       conditions.add('p.category_id = ?');

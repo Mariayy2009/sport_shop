@@ -132,6 +132,71 @@ class GarmentCutout {
     }
   }
 
+  /// Вырез горловины. Сквозь него на фото видна изнанка спинки или
+  /// чёрный манекен — на теле это выглядело бы как «чёрное горло».
+  /// Тёмное пятно у верхнего края по центру светлой вещи — это фон:
+  /// его делаем прозрачным, и в вырезе видна шея человека.
+  static void _clearCollar(
+    Uint8List rgba,
+    Uint8List background,
+    int w,
+    int minX,
+    int minY,
+    int maxX,
+    int maxY,
+  ) {
+    int luma(int p) =>
+        (rgba[p * 4] * 3 + rgba[p * 4 + 1] * 6 + rgba[p * 4 + 2]) ~/ 10;
+    int sum = 0, n = 0;
+    for (int y = minY; y <= maxY; y += 2) {
+      for (int x = minX; x <= maxX; x += 2) {
+        final int p = y * w + x;
+        if (background[p] == 1) continue;
+        sum += luma(p);
+        n++;
+      }
+    }
+    // Тёмную вещь не трогаем: у чёрной футболки тёмное всё.
+    if (n == 0 || sum / n < 85) return;
+    final int bw = maxX - minX + 1, bh = maxY - minY + 1;
+    final int cx = (minX + maxX) ~/ 2;
+    const int dark = 70;
+    final Uint8List hole = Uint8List(background.length);
+    final Queue<int> queue = Queue<int>();
+    // Ищем тёмные точки в верхней части по центру — там горловина.
+    for (int y = minY; y < minY + bh * 0.22; y++) {
+      for (int x = cx - bw ~/ 8; x <= cx + bw ~/ 8; x++) {
+        final int p = y * w + x;
+        if (background[p] == 1 || luma(p) >= dark) continue;
+        hole[p] = 1;
+        queue.add(p);
+      }
+    }
+    if (queue.isEmpty) return;
+    final int limit = (bw * bh * 0.08).round();
+    final int bottom = minY + (bh * 0.35).round();
+    final List<int> found = [];
+    while (queue.isNotEmpty) {
+      final int p = queue.removeFirst();
+      found.add(p);
+      if (found.length > limit) return; // слишком большое — это рисунок
+      final int x = p % w;
+      for (final int q in [p - 1, p + 1, p - w, p + w]) {
+        if (q < 0 || q >= hole.length || hole[q] == 1) continue;
+        final int qx = q % w, qy = q ~/ w;
+        if ((qx - x).abs() > 1 || qy > bottom || qy < minY) continue;
+        if (background[q] == 1 || luma(q) >= dark) continue;
+        hole[q] = 1;
+        queue.add(q);
+      }
+    }
+    // Маленькие пятна — пуговицы и логотипы, их оставляем.
+    if (found.length < bw * bh * 0.004) return;
+    for (final int p in found) {
+      background[p] = 1;
+    }
+  }
+
   /// Чистая часть без Flutter — для тестов: убирает фон заливкой от
   /// краёв кадра (фон каталожных фото однотонный и касается краёв)
   /// и меряет вещь. Возвращает null, если вещь не отделилась.
@@ -220,6 +285,10 @@ class GarmentCutout {
     final double share = count / (w * h);
     // Фон не однотонный (вещь «съела» весь кадр) или вещи почти нет.
     if (maxX < 0 || share < 0.08 || share > 0.85) return null;
+
+    if (!isBottom) {
+      _clearCollar(rgba, background, w, minX, minY, maxX, maxY);
+    }
 
     // Прозрачный фон; край вещи смягчён на пиксель. Цвет прозрачных
     // точек обнуляется: Flutter рисует пиксели как «умноженные на

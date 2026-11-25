@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:io' show Platform;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -41,6 +42,9 @@ class LiveTryOnService {
   final StreamController<BodyShading> _shading =
       StreamController<BodyShading>.broadcast();
   bool _busy = false;
+  bool _shadingBusy = false;
+  ui.Color? _skin;
+  int _skinFrame = 0;
   bool _running = false;
   BodyPose? _previous;
 
@@ -85,7 +89,7 @@ class LiveTryOnService {
 
   /// Силуэт тела обновляется через кадр: маска меняется медленнее позы,
   /// а так обе модели укладываются в частоту камеры.
-  static const int _maskEvery = 2;
+  static const int _maskEvery = 3;
 
   /// Размер кадра в вертикальной ориентации экрана.
   Size? get previewSize {
@@ -177,7 +181,15 @@ class LiveTryOnService {
           .smoothedFrom(_previous, _smoothing);
       _previous = pose;
       _poses.add(pose);
-      if (withShading) await _updateShading(image, input, pose);
+      // Свет и силуэт считаются отдельно и не задерживают позу:
+      // одежда следует за телом без рывков.
+      if (withShading && !_shadingBusy) {
+        _shadingBusy = true;
+        unawaited(
+          _updateShading(_FrameCopy.of(image), input, pose)
+              .whenComplete(() => _shadingBusy = false),
+        );
+      }
       final void Function(ScanFrame, BodyPose)? scan = onScanFrame;
       if (scan != null) {
         final SegmentationMask? mask = _mask;
@@ -208,7 +220,7 @@ class LiveTryOnService {
   /// Свет и силуэт для реалистичного режима. Ошибка модели силуэта
   /// не мешает примерке: одежда просто рисуется без обрезки по контуру.
   Future<void> _updateShading(
-    CameraImage image,
+    _FrameCopy frame,
     InputImage input,
     BodyPose pose,
   ) async {
@@ -222,34 +234,49 @@ class LiveTryOnService {
     }
     if (!_running || _shading.isClosed) return;
     final SegmentationMask? mask = _mask;
-    final bool bgra = image.format.group == ImageFormatGroup.bgra8888;
+    final int rotation = _current?.sensorOrientation ?? 0;
+    final bool mirror = isFrontCamera;
+    // Цвет кожи почти не меняется — достаточно уточнять раз в секунду.
     final BodyPoint? nose = pose[BodyJoint.nose];
-    final ui.Color? skin = nose == null
-        ? null
-        : BodyShading.skinColor(
-            planes: [for (final Plane plane in image.planes) plane.bytes],
-            bytesPerRow: [for (final Plane plane in image.planes) plane.bytesPerRow],
-            bytesPerPixel: [for (final Plane plane in image.planes) plane.bytesPerPixel],
-            frameWidth: image.width,
-            frameHeight: image.height,
-            rotation: _current?.sensorOrientation ?? 0,
-            mirror: isFrontCamera,
-            bgra: bgra,
+    if (nose != null && (_skin == null || _skinFrame++ % 10 == 0)) {
+      _skin = BodyShading.skinColor(
+            planes: frame.planes,
+            bytesPerRow: frame.bytesPerRow,
+            bytesPerPixel: frame.bytesPerPixel,
+            frameWidth: frame.width,
+            frameHeight: frame.height,
+            rotation: rotation,
+            mirror: mirror,
+            bgra: frame.bgra,
             noseX: nose.x,
             noseY: nose.y,
-          );
-    _shading.add(BodyShading.fromFrame(
-      luma: image.planes.first.bytes,
-      frameWidth: image.width,
-      frameHeight: image.height,
-      bytesPerRow: image.planes.first.bytesPerRow,
-      rotation: _current?.sensorOrientation ?? 0,
-      mirror: isFrontCamera,
-      bgra: image.format.group == ImageFormatGroup.bgra8888,
-      mask: mask?.confidences,
-      maskWidth: mask?.width ?? 0,
-      maskHeight: mask?.height ?? 0,
-    ).withSkin(skin));
+          ) ??
+          _skin;
+    }
+    final Uint8List luma = frame.planes.first;
+    final int width = frame.width, height = frame.height;
+    final int row = frame.bytesPerRow.first;
+    final bool bgra = frame.bgra;
+    final Float32List? confidences =
+        mask == null ? null : Float32List.fromList(mask.confidences);
+    final int maskWidth = mask?.width ?? 0, maskHeight = mask?.height ?? 0;
+    // Тяжёлый счёт — в отдельном потоке, экран не подтормаживает.
+    final BodyShading shading = await Isolate.run(
+      () => BodyShading.fromFrame(
+        luma: luma,
+        frameWidth: width,
+        frameHeight: height,
+        bytesPerRow: row,
+        rotation: rotation,
+        mirror: mirror,
+        bgra: bgra,
+        mask: confidences,
+        maskWidth: maskWidth,
+        maskHeight: maskHeight,
+      ),
+    );
+    if (!_running || _shading.isClosed) return;
+    _shading.add(shading.withSkin(_skin));
   }
 
   /// Кадр камеры → формат ML Kit с учётом поворота датчика.
@@ -338,4 +365,33 @@ class LiveTryOnService {
     await _poses.close();
     await _shading.close();
   }
+}
+
+/// Копия кадра камеры: буфер камеры переиспользуется сразу после
+/// обработчика, а свет считается позже, в отдельном потоке.
+class _FrameCopy {
+  _FrameCopy({
+    required this.planes,
+    required this.bytesPerRow,
+    required this.bytesPerPixel,
+    required this.width,
+    required this.height,
+    required this.bgra,
+  });
+
+  factory _FrameCopy.of(CameraImage image) => _FrameCopy(
+        planes: [for (final Plane p in image.planes) Uint8List.fromList(p.bytes)],
+        bytesPerRow: [for (final Plane p in image.planes) p.bytesPerRow],
+        bytesPerPixel: [for (final Plane p in image.planes) p.bytesPerPixel],
+        width: image.width,
+        height: image.height,
+        bgra: image.format.group == ImageFormatGroup.bgra8888,
+      );
+
+  final List<Uint8List> planes;
+  final List<int> bytesPerRow;
+  final List<int?> bytesPerPixel;
+  final int width;
+  final int height;
+  final bool bgra;
 }
