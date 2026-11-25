@@ -161,14 +161,36 @@ class _BallGameScreenState extends State<BallGameScreen>
     }
   }
 
+  /// Отсчёт перед подачей: человек успевает отойти от телефона и встать
+  /// так, чтобы руки и ноги были в кадре. null — отсчёта нет.
+  int? _countdown;
+  Timer? _countdownTimer;
+
   void _start() {
     _newRecord = false;
-    _game.start();
+    _game.reset();
+    setState(() => _countdown = 3);
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      final int next = (_countdown ?? 1) - 1;
+      if (next > 0) {
+        HapticFeedback.selectionClick();
+        setState(() => _countdown = next);
+      } else {
+        timer.cancel();
+        HapticFeedback.mediumImpact();
+        setState(() => _countdown = null);
+        _game.start();
+      }
+    });
   }
 
   void _setMode(BallGameMode mode) {
     if (_game.mode == mode) return;
+    _countdownTimer?.cancel();
     setState(() {
+      _countdown = null;
       _game.mode = mode;
       _game.reset();
       _game.updatePose(_pose);
@@ -191,6 +213,7 @@ class _BallGameScreenState extends State<BallGameScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _countdownTimer?.cancel();
     _ticker.dispose();
     _poses?.cancel();
     _service.dispose();
@@ -262,7 +285,25 @@ class _BallGameScreenState extends State<BallGameScreen>
                     padding: const EdgeInsets.only(bottom: AppSizes.m),
                     child: _Hint(text: _statusText!),
                   ),
-                if (_game.phase != BallGamePhase.playing)
+                if (_countdown != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizes.xl),
+                    child: Column(
+                      children: [
+                        Text(
+                          '$_countdown',
+                          style: AppTextStyles.screenTitle.copyWith(
+                            color: AppColors.white,
+                            fontSize: 120,
+                            height: 1,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.s),
+                        const _Hint(text: 'Отойди от телефона: руки и ноги — в кадр'),
+                      ],
+                    ),
+                  )
+                else if (_game.phase != BallGamePhase.playing)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
                       AppSizes.screenPadding,

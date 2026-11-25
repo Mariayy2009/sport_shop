@@ -519,17 +519,22 @@ class _StagePainter extends CustomPainter {
     if (cutout != null && shape != null) {
       // Человек повернулся спиной (лица не видно) — показываем спинку вещи.
       final bool facingAway = (pose.joints[BodyJoint.nose]?.confidence ?? 1) < 0.3;
-      FittedGarmentPainter.paint(
-        canvas,
-        size,
-        pose,
-        facingAway && backCutout != null ? backCutout! : cutout,
-        shape: shape,
-        sizeScale: sizeScale,
-        shading: shading,
-        skin: skin,
-      );
-      return;
+      try {
+        FittedGarmentPainter.paint(
+          canvas,
+          size,
+          pose,
+          facingAway && backCutout != null ? backCutout! : cutout,
+          shape: shape,
+          sizeScale: sizeScale,
+          shading: shading,
+          skin: skin,
+        );
+        return;
+      } on Object catch (error) {
+        // Фото вещи не нарисовалось — показываем 3D, а не роняем экран.
+        debugPrint('Примерка по фото вещи: $error');
+      }
     }
     final GarmentMesh? mesh = this.mesh;
     if (mesh == null) return;

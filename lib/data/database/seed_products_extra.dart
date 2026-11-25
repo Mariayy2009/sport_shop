@@ -299,12 +299,12 @@ class SeedProductsExtra {
     'hand_wraps': ['hand_wraps_1', 'hand_wraps_2', 'hand_wraps_3'],
     'yoga_block': ['yoga_block_1', 'yoga_block_2', 'yoga_block_3', 'yoga_block_4'],
     'mouth_guard': [
-      'mouth_guard_1', 'mouth_guard_2', 'mouth_guard_3', 'mouth_guard_4',
+      'mouth_guard_2', 'mouth_guard_3', 'mouth_guard_4',
       'mouth_guard_5', 'mouth_guard_6', 'mouth_guard_7', 'mouth_guard_8',
       'mouth_guard_9', 'mouth_guard_10', 'mouth_guard_11',
     ],
     'football_socks': [
-      'football_socks_1', 'football_socks_2', 'football_socks_3',
+      'football_socks_2', 'football_socks_3',
       'football_socks_4', 'football_socks_5', 'football_socks_6',
       'football_socks_7', 'football_socks_8', 'football_socks_9',
       'football_socks_10', 'football_socks_11', 'football_socks_12',
@@ -317,6 +317,7 @@ class SeedProductsExtra {
       'running_shoes_13', 'running_shoes_14', 'running_shoes_15', 'running_shoes_16',
       'running_shoes_17', 'running_shoes_18',
     ],
+    'basketball_shoes': ['basketball_shoes_2', 'basketball_shoes_3'],
     'goalkeeper_gloves': [
       'goalkeeper_gloves_1', 'goalkeeper_gloves_2', 'goalkeeper_gloves_3',
       'goalkeeper_gloves_4', 'goalkeeper_gloves_5', 'goalkeeper_gloves_6',
@@ -348,14 +349,14 @@ class SeedProductsExtra {
       ('Салатово-чёрные', 'goalkeeper_gloves_8'),
     ],
     'mouth_guard': [
-      ('Сине-прозрачная', 'mouth_guard_1'), ('Зелёная', 'mouth_guard_2'),
+      ('Зелёная', 'mouth_guard_2'),
       ('Чёрно-белая', 'mouth_guard_3'), ('Зелёная NUMRU', 'mouth_guard_4'),
       ('Красно-чёрная «Клыки»', 'mouth_guard_5'), ('Синяя', 'mouth_guard_6'),
       ('Прозрачная', 'mouth_guard_7'), ('Чёрная NUMRU', 'mouth_guard_9'),
       ('Жёлтая', 'mouth_guard_11'),
     ],
     'football_socks': [
-      ('Тёмно-синие', 'football_socks_1'), ('Чёрные с полосами', 'football_socks_2'),
+      ('Чёрные с полосами', 'football_socks_2'),
       ('Красные', 'football_socks_3'), ('Салатовые', 'football_socks_4'),
       ('Белые', 'football_socks_5'), ('Голубые', 'football_socks_8'),
       ('Фиолетовые', 'football_socks_11'), ('Синие', 'football_socks_13'),
@@ -370,6 +371,11 @@ class SeedProductsExtra {
       ('Серо-красные', 'running_shoes_12'), ('Сине-белые', 'running_shoes_16'),
       ('Розово-синие', 'running_shoes_17'), ('Чёрные трейловые', 'running_shoes_18'),
     ],
+    'basketball_shoes': [
+      ('Бирюзовые', 'basketball_shoes'),
+      ('Розово-белые', 'basketball_shoes_2'),
+      ('Сиреневые', 'basketball_shoes_3'),
+    ],
     'volleyball_uniform_women_1': [
       ('Синяя', 'volleyball_uniform_women_1'), ('Голубая', 'volleyball_uniform_women_2'),
       ('Жёлто-чёрная', 'volleyball_uniform_women_3'),
@@ -379,6 +385,10 @@ class SeedProductsExtra {
       ('Чёрно-золотая', 'volleyball_uniform_women_8'),
     ],
   };
+
+  /// Фото, убранные из каталога (не понравились автору) — их убирают
+  /// и из отзывов при обновлении базы.
+  static const List<String> removedPhotos = ['mouth_guard_1', 'football_socks_1'];
 
   static String path(String key) => '$imagesFolder/$key.jpg';
 }

@@ -25,7 +25,10 @@ void main() {
     await tester.tap(find.text('Волейбол: нижний приём'));
     await tester.pump();
     await tester.tap(find.text('Начать'));
-    for (int i = 0; i < 300; i++) {
+    await tester.pump();
+    // Сначала отсчёт 3-2-1, мяч ещё не падает.
+    expect(find.text('3'), findsOneWidget);
+    for (int i = 0; i < 500; i++) {
       await tester.pump(const Duration(milliseconds: 16));
     }
     // Никто не отбивал — мяч упал.

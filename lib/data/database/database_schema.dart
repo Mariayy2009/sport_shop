@@ -35,7 +35,9 @@ class DatabaseSchema {
   /// v13: варианты товара (products.variants), фото в отзывах
   ///      (reviews.photos), примерка, отсканированная продавцом
   ///      (products.try_on_image, try_on_meta), демо-отзывы.
-  static const int version = 13;
+  /// v14: новые фото баскетбольных кроссовок (варианты), убраны первые
+  ///      фото гетр и капы.
+  static const int version = 14;
 
   // Имена таблиц
   static const String sports = 'sports';

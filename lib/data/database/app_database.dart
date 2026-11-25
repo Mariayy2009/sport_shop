@@ -95,6 +95,11 @@ class AppDatabase {
         await SeedData.applyVariants(db);
         await SeedData.insertReviews(db);
       }
+      if (oldVersion < 14) {
+        await SeedData.applyGalleries(db);
+        await SeedData.applyVariants(db);
+        await SeedData.removePhotos(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

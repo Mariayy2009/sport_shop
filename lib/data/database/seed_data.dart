@@ -547,6 +547,18 @@ class SeedData {
     }
   }
 
+  /// Убирает из отзывов фото, которых больше нет в каталоге.
+  static Future<void> removePhotos(DatabaseExecutor db) async {
+    for (final String key in SeedProductsExtra.removedPhotos) {
+      await db.update(
+        DatabaseSchema.reviews,
+        {'photos': null},
+        where: 'photos = ?',
+        whereArgs: [SeedProductsExtra.path(key)],
+      );
+    }
+  }
+
   /// Варианты товаров (цвета и модели) с фото.
   static Future<void> applyVariants(DatabaseExecutor db) async {
     for (final MapEntry<String, List<(String, String)>> entry

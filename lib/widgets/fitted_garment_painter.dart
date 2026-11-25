@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -30,7 +29,7 @@ class FittedGarmentPainter {
 
   /// Сетка корпуса: чем гуще, тем плавнее изгиб.
   static const int columns = 8;
-  static const int rows = 16;
+  static const int rows = 28;
 
   static bool paint(
     Canvas canvas,
@@ -49,15 +48,8 @@ class FittedGarmentPainter {
     if (bottom && body.hipsLeft == null) return false;
 
     final Rect frame = Offset.zero & size;
-    final ImageShader texture = ImageShader(
-      cutout.image,
-      TileMode.decal,
-      TileMode.decal,
-      Matrix4.identity().storage,
-    );
-    final List<ui.Vertices> parts = [
-      bottom ? _bottom(body, cutout, sizeScale) : _top(body, cutout, sizeScale),
-    ];
+    final List<_Strip> strips =
+        bottom ? _bottom(body, cutout, sizeScale) : _top(body, cutout, sizeScale);
 
     // 1. Своя одежда, которой у новой вещи нет, — закрашиваем кожей.
     if (skin != null && shading != null) {
@@ -68,12 +60,23 @@ class FittedGarmentPainter {
     }
 
     // 2. Вещь; поверх — свет и складки кадра (только на вещи).
-    final Paint garment = Paint()
-      ..shader = texture
-      ..filterQuality = FilterQuality.medium;
+    // Вещь рисуется полосами: каждая полоса фото — со своим поворотом
+    // и шириной. Это обычное рисование картинки, оно надёжно работает
+    // на любом телефоне (текстурированные треугольники на части Android
+    // с Impeller приводили к вылету).
+    final Paint garment = Paint()..filterQuality = FilterQuality.medium;
     void drawGarment() {
-      for (final ui.Vertices part in parts) {
-        canvas.drawVertices(part, BlendMode.dst, garment);
+      for (final _Strip strip in strips) {
+        canvas.save();
+        canvas.translate(strip.center.dx, strip.center.dy);
+        canvas.rotate(strip.angle);
+        canvas.drawImageRect(
+          cutout.image,
+          strip.source,
+          Rect.fromCenter(center: Offset.zero, width: strip.width, height: strip.height),
+          garment,
+        );
+        canvas.restore();
       }
     }
 
@@ -156,7 +159,7 @@ class FittedGarmentPainter {
   /// строка плеч — на плечи, строка бёдер — на бёдра. Ширина строки
   /// растёт или уменьшается вместе с телом (плечи шире, талия уже),
   /// вещь поворачивается с корпусом.
-  static ui.Vertices _top(_Body body, GarmentCutout cutout, double sizeScale) {
+  static List<_Strip> _top(_Body body, GarmentCutout cutout, double sizeScale) {
     final double shoulderRow = cutout.topSpanY;
     final double hipRow = math.max(cutout.hipRow, shoulderRow + 1);
     // Размер меньше — вещь чуть уже и заметно короче; больше — шире
@@ -189,7 +192,7 @@ class FittedGarmentPainter {
   // ---------------------------------------------------------------------------
   // Шорты и штаны
 
-  static ui.Vertices _bottom(_Body body, GarmentCutout cutout, double sizeScale) {
+  static List<_Strip> _bottom(_Body body, GarmentCutout cutout, double sizeScale) {
     final double waist = body.hipDistance * hipOutline * sizeScale;
     final double scale = waist / cutout.topSpan;
     final double length = 1 + (sizeScale - 1) * 0.8;
@@ -209,45 +212,54 @@ class FittedGarmentPainter {
   // ---------------------------------------------------------------------------
   // Геометрия
 
-  /// Сетка треугольников по прямоугольнику фото [area]: каждая точка
-  /// переносится на тело функцией [map], текстура — само фото.
-  static ui.Vertices _grid(Rect area, Offset Function(double, double) map) {
-    const int c = columns, r = rows;
-    final Float32List positions = Float32List((c + 1) * (r + 1) * 2);
-    final Float32List texture = Float32List((c + 1) * (r + 1) * 2);
-    for (int j = 0; j <= r; j++) {
-      for (int i = 0; i <= c; i++) {
-        final double px = area.left + area.width * i / c;
-        final double py = area.top + area.height * j / r;
-        final Offset p = map(px, py);
-        final int k = (j * (c + 1) + i) * 2;
-        positions[k] = p.dx;
-        positions[k + 1] = p.dy;
-        texture[k] = px;
-        texture[k + 1] = py;
-      }
-    }
-    final Uint16List indices = Uint16List(c * r * 6);
-    int n = 0;
+  /// Фото [area] режется на горизонтальные полосы; для каждой полосы
+  /// функция [map] (точка фото → точка тела) даёт центр, ширину, высоту
+  /// и наклон на теле.
+  static List<_Strip> _grid(Rect area, Offset Function(double, double) map) {
+    const int r = rows;
+    final List<_Strip> strips = [];
     for (int j = 0; j < r; j++) {
-      for (int i = 0; i < c; i++) {
-        final int a = j * (c + 1) + i, b = a + 1, d = a + c + 1, e = d + 1;
-        indices.setAll(n, [a, b, d, b, e, d]);
-        n += 6;
-      }
+      final double y0 = area.top + area.height * j / r;
+      final double y1 = area.top + area.height * (j + 1) / r;
+      final double ym = (y0 + y1) / 2;
+      final Offset left = map(area.left, ym);
+      final Offset right = map(area.right, ym);
+      final Offset across = right - left;
+      final double height = (map(area.center.dx, y1) - map(area.center.dx, y0)).distance;
+      if (across.distance < 1 || height <= 0) continue;
+      strips.add(_Strip(
+        source: Rect.fromLTRB(area.left, y0, area.right, y1),
+        center: (left + right) / 2,
+        angle: math.atan2(across.dy, across.dx),
+        width: across.distance,
+        // Полосы чуть внахлёст — без щелей между ними.
+        height: height + 1,
+      ));
     }
-    return ui.Vertices.raw(
-      ui.VertexMode.triangles,
-      positions,
-      textureCoordinates: texture,
-      indices: indices,
-    );
+    return strips;
   }
 
   static Offset _unit(Offset v) {
     final double d = v.distance;
     return d == 0 ? const Offset(1, 0) : v / d;
   }
+}
+
+/// Полоса фото вещи и где она на теле.
+class _Strip {
+  const _Strip({
+    required this.source,
+    required this.center,
+    required this.angle,
+    required this.width,
+    required this.height,
+  });
+
+  final Rect source;
+  final Offset center;
+  final double angle;
+  final double width;
+  final double height;
 }
 
 /// Тело в кадре: суставы слева и справа по экрану (с зеркалом фронтальной
