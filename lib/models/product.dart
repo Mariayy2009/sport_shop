@@ -28,7 +28,11 @@ class Product {
     this.sellerName,
     this.isBlocked = false,
     this.blockReason,
+    this.sellerInactive = false,
   });
+
+  /// Магазин продавца заморожен или удалён — купить товар нельзя.
+  final bool sellerInactive;
 
   /// Продавец (пользователь с магазином). null — продаёт сам магазин SPORT.
   final int? sellerId;
@@ -171,6 +175,7 @@ class Product {
       sellerId: map['seller_id'] as int?,
       sellerName: map['seller_name'] as String?,
       isBlocked: map['status'] == 'blocked',
+      sellerInactive: map['seller_status'] != null && map['seller_status'] != 'active',
       blockReason: map['block_reason'] as String?,
     );
   }

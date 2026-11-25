@@ -121,6 +121,24 @@ class AppDatabase {
         await SeedData.insertNutrition(db);
         await SeedData.insertGameScores(db);
       }
+      if (oldVersion < 17) {
+        // Если таблица продавцов создана только что (база старше v12),
+        // колонки статуса в ней уже есть.
+        final Set<String> existing = {
+          for (final Map<String, Object?> row
+              in await db.rawQuery('PRAGMA table_info(${DatabaseSchema.sellers})'))
+            row['name']! as String,
+        };
+        for (final String column
+            in DatabaseSchema.sellerStatusColumns.split(',\n')) {
+          final String definition = column.trim();
+          if (existing.contains(definition.split(' ').first)) continue;
+          await db.execute(
+            'ALTER TABLE ${DatabaseSchema.sellers} ADD COLUMN $definition',
+          );
+        }
+        await db.execute(DatabaseSchema.createSellerAppeals);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

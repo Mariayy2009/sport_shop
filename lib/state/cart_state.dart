@@ -117,7 +117,10 @@ class CartState extends ChangeNotifier {
   /// на складе.
   List<CartItem> get unavailable => [
         for (final CartItem item in _items)
-          if (item.product.isBlocked || item.product.stock < item.quantity) item,
+          if (item.product.isBlocked ||
+              item.product.sellerInactive ||
+              item.product.stock < item.quantity)
+            item,
       ];
 
   Future<void> _reload() async {

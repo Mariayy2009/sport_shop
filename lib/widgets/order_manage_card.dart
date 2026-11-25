@@ -25,7 +25,12 @@ class OrderManageCard extends StatelessWidget {
     required this.order,
     required this.onChanged,
     this.onlyProductIds,
+    this.readOnly = false,
   });
+
+  /// Только просмотр: заказ ведёт продавец, администратор видит его,
+  /// чтобы разбирать жалобы покупателей.
+  final bool readOnly;
 
   final Order order;
 
@@ -81,7 +86,8 @@ class OrderManageCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Заказ ${Formatters.orderNumber(order.id!)}',
-                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                  style:
+                      AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               StatusChip(status: order.status),
@@ -98,48 +104,74 @@ class OrderManageCard extends StatelessWidget {
           for (final String item in items)
             Text(item, style: AppTextStyles.bodySecondary),
           const SizedBox(height: AppSizes.s),
-          SegmentedButton<OrderStatus>(
-            showSelectedIcon: false,
-            style: SegmentedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              backgroundColor: AppColors.surface,
-              selectedBackgroundColor: AppColors.black,
-              selectedForegroundColor: AppColors.white,
-              foregroundColor: AppColors.textPrimary,
-              side: const BorderSide(color: AppColors.border),
-              textStyle:
-                  AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
-            ),
-            segments: [
-              for (final OrderStatus status in OrderStatus.values)
-                ButtonSegment(value: status, label: Text(status.label)),
-            ],
-            selected: {order.status},
-            onSelectionChanged: (value) => _setStatus(context, value.first),
-          ),
-          const SizedBox(height: AppSizes.xs),
-          InkWell(
-            onTap: () => _editTracking(context),
-            borderRadius: BorderRadius.circular(AppSizes.radiusS),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSizes.xs),
-              child: Row(
-                children: [
-                  const Icon(Icons.local_shipping_outlined, size: 18),
-                  const SizedBox(width: AppSizes.xs),
-                  Expanded(
-                    child: Text(
-                      order.trackingNote ?? 'Где товар? Нажмите, чтобы написать',
-                      style: order.trackingNote == null
-                          ? AppTextStyles.caption
-                          : AppTextStyles.bodySecondary,
-                    ),
+          if (readOnly) ...[
+            Row(
+              children: [
+                const Icon(Icons.visibility_outlined,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: AppSizes.xs),
+                Expanded(
+                  child: Text(
+                    'Ведёт продавец «${{
+                      for (final OrderItem item in order.items)
+                        if (item.sellerName != null) item.sellerName!,
+                    }.join('», «')}». Вы видите заказ, чтобы разобрать жалобу',
+                    style: AppTextStyles.caption,
                   ),
-                  const Icon(Icons.edit_outlined, size: 16),
-                ],
+                ),
+              ],
+            ),
+            if (order.trackingNote != null)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSizes.xxs),
+                child: Text('Где товар: ${order.trackingNote}',
+                    style: AppTextStyles.bodySecondary),
+              ),
+          ] else ...[
+            SegmentedButton<OrderStatus>(
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                backgroundColor: AppColors.surface,
+                selectedBackgroundColor: AppColors.black,
+                selectedForegroundColor: AppColors.white,
+                foregroundColor: AppColors.textPrimary,
+                side: const BorderSide(color: AppColors.border),
+                textStyle:
+                    AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
+              ),
+              segments: [
+                for (final OrderStatus status in OrderStatus.values)
+                  ButtonSegment(value: status, label: Text(status.label)),
+              ],
+              selected: {order.status},
+              onSelectionChanged: (value) => _setStatus(context, value.first),
+            ),
+            const SizedBox(height: AppSizes.xs),
+            InkWell(
+              onTap: () => _editTracking(context),
+              borderRadius: BorderRadius.circular(AppSizes.radiusS),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSizes.xs),
+                child: Row(
+                  children: [
+                    const Icon(Icons.local_shipping_outlined, size: 18),
+                    const SizedBox(width: AppSizes.xs),
+                    Expanded(
+                      child: Text(
+                        order.trackingNote ??
+                            'Где товар? Нажмите, чтобы написать',
+                        style: order.trackingNote == null
+                            ? AppTextStyles.caption
+                            : AppTextStyles.bodySecondary,
+                      ),
+                    ),
+                    const Icon(Icons.edit_outlined, size: 16),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

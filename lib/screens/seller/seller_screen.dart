@@ -51,37 +51,53 @@ class SellerScreen extends StatelessWidget {
       );
     }
     final SellerBadgeState badges = context.watch<SellerBadgeState>();
-    final Widget content = Column(
-          children: [
-            Material(
-              color: AppColors.surface,
-              child: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                labelColor: AppColors.textPrimary,
-                indicatorColor: AppColors.black,
-                tabs: [
-                  const Tab(text: 'Статистика'),
-                  const Tab(text: 'Мои товары'),
-                  const Tab(text: 'Заказы'),
-                  _BadgeTab(text: 'Вопросы', count: badges.questions),
-                  _BadgeTab(text: 'Предупреждения', count: badges.warnings),
-                ],
+    final Widget content = badges.status == SellerStatus.deleted
+        // Удалённый магазин: только причина и апелляция.
+        ? ListView(
+            padding: const EdgeInsets.all(AppSizes.screenPadding),
+            children: [SellerStatusPanel(sellerId: user.id!, badges: badges)],
+          )
+        : Column(
+            children: [
+              if (badges.status == SellerStatus.frozen)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizes.screenPadding,
+                    AppSizes.s,
+                    AppSizes.screenPadding,
+                    0,
+                  ),
+                  child: SellerStatusPanel(sellerId: user.id!, badges: badges),
+                ),
+              Material(
+                color: AppColors.surface,
+                child: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelColor: AppColors.textPrimary,
+                  indicatorColor: AppColors.black,
+                  tabs: [
+                    const Tab(text: 'Статистика'),
+                    const Tab(text: 'Мои товары'),
+                    const Tab(text: 'Заказы'),
+                    _BadgeTab(text: 'Вопросы', count: badges.questions),
+                    _BadgeTab(text: 'Предупреждения', count: badges.warnings),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _StatsTab(sellerId: user.id!),
-                  _ProductsTab(sellerId: user.id!),
-                  _OrdersTab(sellerId: user.id!),
-                  _QuestionsTab(sellerId: user.id!),
-                  _WarningsTab(sellerId: user.id!),
-                ],
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _StatsTab(sellerId: user.id!),
+                    _ProductsTab(sellerId: user.id!),
+                    _OrdersTab(sellerId: user.id!),
+                    _QuestionsTab(sellerId: user.id!),
+                    _WarningsTab(sellerId: user.id!),
+                  ],
+                ),
               ),
-            ),
-          ],
-        );
+            ],
+          );
     return DefaultTabController(
       length: 5,
       child: embedded
@@ -107,13 +123,16 @@ class _ProductsTab extends StatefulWidget {
 class _ProductsTabState extends State<_ProductsTab> {
   late Future<List<Product>> _future = _load();
 
-  Future<List<Product>> _load() => context.read<ProductRepository>().getProducts(
-        ProductFilter(sellerId: widget.sellerId, includeBlocked: true),
-      );
+  Future<List<Product>> _load() =>
+      context.read<ProductRepository>().getProducts(
+            ProductFilter(sellerId: widget.sellerId, includeBlocked: true),
+          );
 
   Future<void> _edit(Product? product) async {
-    final Object? changed = await Navigator.of(context).push<Object?>(MaterialPageRoute<Object?>(
-      builder: (_) => AdminProductScreen(product: product, sellerId: widget.sellerId),
+    final Object? changed =
+        await Navigator.of(context).push<Object?>(MaterialPageRoute<Object?>(
+      builder: (_) =>
+          AdminProductScreen(product: product, sellerId: widget.sellerId),
     ));
     if (changed == true && mounted) setState(() => _future = _load());
   }
@@ -131,13 +150,18 @@ class _ProductsTabState extends State<_ProductsTab> {
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           children: [
             OutlinedButton.icon(
-              onPressed: () => _edit(null),
+              // Замороженный магазин не может выставлять товары.
+              onPressed: context.watch<SellerBadgeState>().status ==
+                      SellerStatus.active
+                  ? () => _edit(null)
+                  : null,
               icon: const Icon(Icons.add),
               label: const Text('Выставить товар'),
             ),
             const SizedBox(height: AppSizes.m),
             if (products.isEmpty)
-              const Text('Товаров пока нет', style: AppTextStyles.bodySecondary),
+              const Text('Товаров пока нет',
+                  style: AppTextStyles.bodySecondary),
             for (final Product product in products)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSizes.s),
@@ -159,13 +183,15 @@ class _ProductsTabState extends State<_ProductsTab> {
                           children: [
                             Text(
                               product.name,
-                              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                              style: AppTextStyles.body
+                                  .copyWith(fontWeight: FontWeight.w600),
                             ),
                             Text(
                               '${Formatters.price(product.price)} · ${product.stock} шт.',
                               style: AppTextStyles.caption,
                             ),
-                            if (product.stock <= Product.lowStock && !product.isBlocked)
+                            if (product.stock <= Product.lowStock &&
+                                !product.isBlocked)
                               Text(
                                 product.stock == 0
                                     ? 'Закончился — пополните остаток'
@@ -261,7 +287,8 @@ class _StatsTabState extends State<_StatsTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Популярные товары', style: AppTextStyles.sectionTitle),
+                    const Text('Популярные товары',
+                        style: AppTextStyles.sectionTitle),
                     const SizedBox(height: AppSizes.s),
                     if (stats.top.isEmpty)
                       const Text(
@@ -271,14 +298,17 @@ class _StatsTabState extends State<_StatsTab> {
                     for (final (int i, (String name, int sold, double revenue))
                         in stats.top.indexed)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: AppSizes.xxs),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSizes.xxs),
                         child: Row(
                           children: [
                             SizedBox(
                               width: 24,
-                              child: Text('${i + 1}.', style: AppTextStyles.bodySecondary),
+                              child: Text('${i + 1}.',
+                                  style: AppTextStyles.bodySecondary),
                             ),
-                            Expanded(child: Text(name, style: AppTextStyles.body)),
+                            Expanded(
+                                child: Text(name, style: AppTextStyles.body)),
                             Text(
                               '$sold шт. · ${Formatters.price(revenue)}',
                               style: AppTextStyles.caption,
@@ -298,7 +328,8 @@ class _StatsTabState extends State<_StatsTab> {
 }
 
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.title, required this.value, required this.caption});
+  const _StatTile(
+      {required this.title, required this.value, required this.caption});
 
   final String title;
   final String value;
@@ -333,11 +364,13 @@ class _OrdersTabState extends State<_OrdersTab> {
   late Future<(List<Order>, Set<int>)> _future = _load();
 
   Future<(List<Order>, Set<int>)> _load() async {
-    final List<Order> orders =
-        await context.read<OrderRepository>().getOrdersForSeller(widget.sellerId);
-    final List<Product> mine = await context.read<ProductRepository>().getProducts(
-          ProductFilter(sellerId: widget.sellerId, includeBlocked: true),
-        );
+    final List<Order> orders = await context
+        .read<OrderRepository>()
+        .getOrdersForSeller(widget.sellerId);
+    final List<Product> mine =
+        await context.read<ProductRepository>().getProducts(
+              ProductFilter(sellerId: widget.sellerId, includeBlocked: true),
+            );
     return (orders, {for (final Product p in mine) p.id!});
   }
 
@@ -361,7 +394,8 @@ class _OrdersTabState extends State<_OrdersTab> {
         return ListView.separated(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           itemCount: orders.length,
-          separatorBuilder: (context, index) => const SizedBox(height: AppSizes.s),
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSizes.s),
           itemBuilder: (context, index) => OrderManageCard(
             order: orders[index],
             onlyProductIds: mine,
@@ -402,7 +436,8 @@ class _QuestionsTabState extends State<_QuestionsTab> {
     if (text == null) return;
     await repository.answerQuestion(question.id!, text);
     if (!mounted) return;
-    AppMessages.showSuccess(context, 'Ответ отправлен — покупатель увидит его в карточке товара');
+    AppMessages.showSuccess(
+        context, 'Ответ отправлен — покупатель увидит его в карточке товара');
     unawaited(context.read<SellerBadgeState>().refresh());
     setState(() => _future = _load());
   }
@@ -426,7 +461,8 @@ class _QuestionsTabState extends State<_QuestionsTab> {
         return ListView.separated(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           itemCount: questions.length,
-          separatorBuilder: (context, index) => const SizedBox(height: AppSizes.s),
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSizes.s),
           itemBuilder: (context, index) {
             final Question question = questions[index];
             return AppCard(
@@ -442,7 +478,8 @@ class _QuestionsTabState extends State<_QuestionsTab> {
                   const SizedBox(height: AppSizes.xxs),
                   Text(
                     question.text,
-                    style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                    style: AppTextStyles.body
+                        .copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: AppSizes.xs),
                   Text(
@@ -450,7 +487,8 @@ class _QuestionsTabState extends State<_QuestionsTab> {
                         ? 'Нет ответа — нажмите, чтобы ответить'
                         : 'Ваш ответ: ${question.answer}',
                     style: question.answer == null
-                        ? AppTextStyles.bodySecondary.copyWith(color: AppColors.error)
+                        ? AppTextStyles.bodySecondary
+                            .copyWith(color: AppColors.error)
                         : AppTextStyles.bodySecondary,
                   ),
                 ],
@@ -497,8 +535,10 @@ class _WarningsTabState extends State<_WarningsTab> {
   late Future<List<SellerWarning>> _future = _load();
 
   Future<List<SellerWarning>> _load() async {
-    final ModerationRepository moderation = context.read<ModerationRepository>();
-    final List<SellerWarning> warnings = await moderation.warningsFor(widget.sellerId);
+    final ModerationRepository moderation =
+        context.read<ModerationRepository>();
+    final List<SellerWarning> warnings =
+        await moderation.warningsFor(widget.sellerId);
     // Открыл вкладку — значит, прочитал: кружок пропадает.
     final SellerBadgeState badges = context.read<SellerBadgeState>();
     await moderation.markRead(widget.sellerId);
@@ -525,7 +565,8 @@ class _WarningsTabState extends State<_WarningsTab> {
         return ListView.separated(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           itemCount: warnings.length,
-          separatorBuilder: (context, index) => const SizedBox(height: AppSizes.s),
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSizes.s),
           itemBuilder: (context, index) {
             final SellerWarning warning = warnings[index];
             return AppCard(
@@ -534,7 +575,9 @@ class _WarningsTabState extends State<_WarningsTab> {
                 children: [
                   Icon(
                     Icons.report_gmailerrorred,
-                    color: warning.isRead ? AppColors.textSecondary : AppColors.error,
+                    color: warning.isRead
+                        ? AppColors.textSecondary
+                        : AppColors.error,
                   ),
                   const SizedBox(width: AppSizes.m),
                   Expanded(
@@ -543,7 +586,8 @@ class _WarningsTabState extends State<_WarningsTab> {
                       children: [
                         Text(
                           warning.reason.label,
-                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                          style: AppTextStyles.body
+                              .copyWith(fontWeight: FontWeight.w700),
                         ),
                         if (warning.productName != null)
                           Text('Товар: ${warning.productName}',
@@ -551,7 +595,8 @@ class _WarningsTabState extends State<_WarningsTab> {
                         if (warning.text != null)
                           Padding(
                             padding: const EdgeInsets.only(top: AppSizes.xxs),
-                            child: Text(warning.text!, style: AppTextStyles.body),
+                            child:
+                                Text(warning.text!, style: AppTextStyles.body),
                           ),
                         const SizedBox(height: AppSizes.xxs),
                         Text(Formatters.date(warning.createdAt),
@@ -565,6 +610,135 @@ class _WarningsTabState extends State<_WarningsTab> {
           },
         );
       },
+    );
+  }
+}
+
+/// Плашка замороженного или удалённого магазина: причина, кнопка
+/// «Подать апелляцию» и история апелляций с ответами администратора.
+class SellerStatusPanel extends StatefulWidget {
+  const SellerStatusPanel(
+      {super.key, required this.sellerId, required this.badges});
+
+  final int sellerId;
+  final SellerBadgeState badges;
+
+  @override
+  State<SellerStatusPanel> createState() => _SellerStatusPanelState();
+}
+
+class _SellerStatusPanelState extends State<SellerStatusPanel> {
+  late Future<List<SellerAppeal>> _future = _load();
+  bool _showHistory = false;
+
+  Future<List<SellerAppeal>> _load() =>
+      context.read<ModerationRepository>().appealsFor(widget.sellerId);
+
+  Future<void> _appeal() async {
+    final ModerationRepository moderation =
+        context.read<ModerationRepository>();
+    final String? text = await TextInputSheet.show(
+      context,
+      title: 'Апелляция администратору',
+      subtitle:
+          'Объясните, что исправили, или спросите, за что ограничили магазин',
+      hint: 'Например: удалили спорные товары, прикладываем сертификаты',
+      buttonText: 'Отправить апелляцию',
+      maxLength: 600,
+    );
+    if (text == null) return;
+    await moderation.submitAppeal(widget.sellerId, text);
+    if (!mounted) return;
+    AppMessages.showSuccess(
+      context,
+      'Апелляция отправлена. Администратор ответит в «Уведомлениях»',
+    );
+    setState(() {
+      _future = _load();
+      _showHistory = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool deleted = widget.badges.status == SellerStatus.deleted;
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.m),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: FutureBuilder<List<SellerAppeal>>(
+        future: _future,
+        builder: (context, snapshot) {
+          final List<SellerAppeal> appeals = snapshot.data ?? const [];
+          final bool pending = appeals.any((a) => a.isPending);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(deleted ? Icons.block : Icons.ac_unit,
+                      color: AppColors.error),
+                  const SizedBox(width: AppSizes.s),
+                  Expanded(
+                    child: Text(
+                      deleted
+                          ? 'Магазин удалён администратором'
+                          : 'Магазин заморожен',
+                      style: AppTextStyles.body
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.xs),
+              if (widget.badges.statusReason != null)
+                Text('Причина: ${widget.badges.statusReason}',
+                    style: AppTextStyles.body),
+              Text(
+                deleted
+                    ? 'Товары не показываются покупателям. Вернуть магазин можно '
+                        'только через апелляцию.'
+                    : 'Товары скрыты из каталога, выставлять новые нельзя. Заказы '
+                        'и вопросы по-прежнему видны.',
+                style: AppTextStyles.caption,
+              ),
+              const SizedBox(height: AppSizes.s),
+              if (pending)
+                const Text(
+                  'Апелляция на рассмотрении — ответ придёт в «Уведомления»',
+                  style: AppTextStyles.bodySecondary,
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: _appeal,
+                  icon: const Icon(Icons.gavel_outlined),
+                  label: const Text('Подать апелляцию'),
+                ),
+              if (appeals.isNotEmpty)
+                TextButton(
+                  onPressed: () => setState(() => _showHistory = !_showHistory),
+                  child: Text(_showHistory
+                      ? 'Скрыть апелляции'
+                      : 'Мои апелляции (${appeals.length})'),
+                ),
+              if (_showHistory)
+                for (final SellerAppeal appeal in appeals)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSizes.xs),
+                    child: Text(
+                      '${Formatters.date(appeal.createdAt)} · ${appeal.statusLabel}\n'
+                      '«${appeal.text}»'
+                      '${appeal.reply == null ? '' : '\nОтвет: ${appeal.reply}'}',
+                      style: AppTextStyles.caption,
+                    ),
+                  ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

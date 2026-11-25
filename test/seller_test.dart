@@ -121,6 +121,62 @@ void main() {
     expect(protein.sportName, Sport.universalName);
   });
 
+  test('3 предупреждения — магазин заморожен, товары скрыты; апелляция '
+      'принята — магазин снова работает', () async {
+    final User seller = await login('budo@sport.kz', 'Seller123');
+    final User admin = await login('admin@sport.kz', 'Admin123');
+    final ModerationRepository moderation = deps.moderationRepository;
+    for (int i = 0; i < ModerationRepository.autoFreezeWarnings; i++) {
+      await moderation.warnSeller(sellerId: seller.id!, reason: WarningReason.misleading);
+    }
+    expect((await moderation.statusOf(seller.id!)).$1, SellerStatus.frozen);
+    final List<Product> catalog = await deps.productRepository.getProducts();
+    expect(catalog.any((p) => p.sellerName == 'Budo Pro'), isFalse);
+    // Продавец свои товары видит, покупатель купить не может.
+    final List<Product> mine = await deps.productRepository
+        .getProducts(ProductFilter(sellerId: seller.id, includeBlocked: true));
+    expect(mine, isNotEmpty);
+    expect(mine.first.sellerInactive, isTrue);
+
+    await moderation.submitAppeal(seller.id!, 'Исправили описания всех товаров');
+    final List<SellerAppeal> pending = await moderation.pendingAppeals();
+    expect(pending.single.shopName, 'Budo Pro');
+    expect(
+      (await deps.notificationRepository.forUser(admin.id!)).first.title,
+      'Апелляция от «Budo Pro»',
+    );
+    await moderation.resolveAppeal(pending.single.id, accept: true, reply: 'Проверили');
+    expect((await moderation.statusOf(seller.id!)).$1, SellerStatus.active);
+    expect((await deps.productRepository.getProducts()).any((p) => p.sellerName == 'Budo Pro'),
+        isTrue);
+    expect(await moderation.pendingAppeals(), isEmpty);
+    // После разморозки счёт предупреждений начинается заново.
+    await moderation.warnSeller(sellerId: seller.id!, reason: WarningReason.other);
+    expect((await moderation.statusOf(seller.id!)).$1, SellerStatus.active);
+  });
+
+  test('удалённый магазин: товары скрыты, отказ по апелляции приходит продавцу',
+      () async {
+    final User seller = await login('sportlife@sport.kz', 'Seller123');
+    final ModerationRepository moderation = deps.moderationRepository;
+    await moderation.deleteSeller(seller.id!, 'Мошенничество: продажа подделок');
+    expect((await moderation.statusOf(seller.id!)).$1, SellerStatus.deleted);
+    expect(
+      (await deps.productRepository.getProducts()).any((p) => p.sellerName == 'Sportlife'),
+      isFalse,
+    );
+    await moderation.submitAppeal(seller.id!, 'Верните магазин');
+    final SellerAppeal appeal = (await moderation.pendingAppeals()).single;
+    await moderation.resolveAppeal(appeal.id, accept: false, reply: 'Подделки подтверждены');
+    expect((await moderation.statusOf(seller.id!)).$1, SellerStatus.deleted);
+    expect((await moderation.appealsFor(seller.id!)).single.reply, 'Подделки подтверждены');
+    expect(
+      (await deps.notificationRepository.forUser(seller.id!)).first.title,
+      'Апелляция отклонена',
+    );
+    await moderation.restoreSeller(seller.id!);
+  });
+
   test('продавец видит заказы и вопросы о своих товарах, пишет «где товар»', () async {
     final User seller = await login('budo@sport.kz', 'Seller123');
     final User buyer = await login('maria@mail.kz', 'Maria123');

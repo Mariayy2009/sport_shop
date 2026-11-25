@@ -59,6 +59,63 @@ class SellerWarning {
       );
 }
 
+/// Состояние магазина продавца.
+enum SellerStatus {
+  active('active', 'Работает'),
+  frozen('frozen', 'Заморожен'),
+  deleted('deleted', 'Удалён');
+
+  const SellerStatus(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  static SellerStatus fromValue(String? value) => SellerStatus.values
+      .firstWhere((status) => status.value == value, orElse: () => active);
+}
+
+/// Апелляция продавца: просит объяснить заморозку или вернуть магазин.
+class SellerAppeal {
+  const SellerAppeal({
+    required this.id,
+    required this.sellerId,
+    this.shopName,
+    required this.text,
+    required this.createdAt,
+    required this.status,
+    this.reply,
+  });
+
+  final int id;
+  final int sellerId;
+  final String? shopName;
+  final String text;
+  final DateTime createdAt;
+
+  /// pending — ждёт решения, accepted — магазин восстановлен,
+  /// rejected — отказано (с ответом администратора).
+  final String status;
+  final String? reply;
+
+  bool get isPending => status == 'pending';
+
+  String get statusLabel => switch (status) {
+        'accepted' => 'Принята — магазин восстановлен',
+        'rejected' => 'Отклонена',
+        _ => 'На рассмотрении',
+      };
+
+  factory SellerAppeal.fromMap(Map<String, Object?> map) => SellerAppeal(
+        id: map['id']! as int,
+        sellerId: map['seller_id']! as int,
+        shopName: map['shop_name'] as String?,
+        text: map['text']! as String,
+        createdAt: DateTime.parse(map['created_at']! as String),
+        status: map['status']! as String,
+        reply: map['reply'] as String?,
+      );
+}
+
 /// Магазин продавца для администратора: сколько товаров и нарушений.
 class SellerSummary {
   const SellerSummary({
@@ -68,7 +125,14 @@ class SellerSummary {
     required this.products,
     required this.blocked,
     required this.warnings,
+    this.status = SellerStatus.active,
+    this.statusReason,
+    this.pendingAppeals = 0,
   });
+
+  final SellerStatus status;
+  final String? statusReason;
+  final int pendingAppeals;
 
   final int userId;
   final String shopName;
@@ -103,6 +167,31 @@ abstract class ModerationRepository {
 
   /// Все продавцы — для вкладки администратора «Продавцы».
   Future<List<SellerSummary>> sellers();
+
+  /// Столько предупреждений подряд — и магазин замораживается сам.
+  static const int autoFreezeWarnings = 3;
+
+  Future<(SellerStatus, String?)> statusOf(int sellerId);
+
+  /// Заморозить: товары скрыты из каталога, выставлять новые нельзя.
+  Future<void> freezeSeller(int sellerId, String reason);
+
+  /// Удалить магазин (крайняя мера). Данные не стираются: по апелляции
+  /// администратор может магазин восстановить.
+  Future<void> deleteSeller(int sellerId, String reason);
+
+  /// Разморозить или восстановить магазин.
+  Future<void> restoreSeller(int sellerId, {String? note});
+
+  Future<void> submitAppeal(int sellerId, String text);
+
+  Future<List<SellerAppeal>> appealsFor(int sellerId);
+
+  /// Апелляции, ждущие решения, — для администратора.
+  Future<List<SellerAppeal>> pendingAppeals();
+
+  /// Решение по апелляции: принять (магазин снова работает) или отказать.
+  Future<void> resolveAppeal(int appealId, {required bool accept, String? reply});
 }
 
 class LocalModerationRepository implements ModerationRepository {
@@ -169,6 +258,197 @@ class LocalModerationRepository implements ModerationRepository {
       'text': text,
       'created_at': DateTime.now().toIso8601String(),
     });
+    // Много нарушений подряд — магазин замораживается автоматически.
+    // Считаются предупреждения после последней разморозки.
+    final List<Map<String, Object?>> seller = await db.query(
+      DatabaseSchema.sellers,
+      columns: ['status', 'status_at'],
+      where: 'user_id = ?',
+      whereArgs: [sellerId],
+    );
+    if (seller.isEmpty || seller.first['status'] != SellerStatus.active.value) return;
+    final int count = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM ${DatabaseSchema.sellerWarnings} '
+          'WHERE seller_id = ? AND created_at > ?',
+          [sellerId, (seller.first['status_at'] as String?) ?? ''],
+        )) ??
+        0;
+    if (count >= ModerationRepository.autoFreezeWarnings) {
+      await freezeSeller(
+        sellerId,
+        'Автоматически: ${ModerationRepository.autoFreezeWarnings} предупреждения '
+        'подряд. Исправьте нарушения и подайте апелляцию',
+      );
+    }
+  }
+
+  Future<void> _setStatus(
+    DatabaseExecutor db,
+    int sellerId,
+    SellerStatus status,
+    String? reason,
+  ) =>
+      db.update(
+        DatabaseSchema.sellers,
+        {
+          'status': status.value,
+          'status_reason': reason,
+          'status_at': DateTime.now().toIso8601String(),
+        },
+        where: 'user_id = ?',
+        whereArgs: [sellerId],
+      );
+
+  @override
+  Future<(SellerStatus, String?)> statusOf(int sellerId) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.query(
+      DatabaseSchema.sellers,
+      columns: ['status', 'status_reason'],
+      where: 'user_id = ?',
+      whereArgs: [sellerId],
+    );
+    if (rows.isEmpty) return (SellerStatus.active, null);
+    return (
+      SellerStatus.fromValue(rows.first['status'] as String?),
+      rows.first['status_reason'] as String?,
+    );
+  }
+
+  @override
+  Future<void> freezeSeller(int sellerId, String reason) async {
+    final Database db = await _appDatabase.database;
+    await db.transaction((txn) async {
+      await _setStatus(txn, sellerId, SellerStatus.frozen, reason);
+      await LocalNotificationRepository.push(
+        txn,
+        userId: sellerId,
+        title: 'Магазин заморожен',
+        body: '$reason. Товары скрыты из каталога. Если не согласны — '
+            'подайте апелляцию в кабинете',
+      );
+    });
+  }
+
+  @override
+  Future<void> deleteSeller(int sellerId, String reason) async {
+    final Database db = await _appDatabase.database;
+    await db.transaction((txn) async {
+      await _setStatus(txn, sellerId, SellerStatus.deleted, reason);
+      await LocalNotificationRepository.push(
+        txn,
+        userId: sellerId,
+        title: 'Магазин удалён администратором',
+        body: '$reason. Восстановить магазин можно только через апелляцию',
+      );
+    });
+  }
+
+  @override
+  Future<void> restoreSeller(int sellerId, {String? note}) async {
+    final Database db = await _appDatabase.database;
+    await db.transaction((txn) async {
+      await _setStatus(txn, sellerId, SellerStatus.active, null);
+      await LocalNotificationRepository.push(
+        txn,
+        userId: sellerId,
+        title: 'Магазин снова работает',
+        body: note ?? 'Администратор восстановил ваш магазин, товары снова в каталоге',
+      );
+    });
+  }
+
+  @override
+  Future<void> submitAppeal(int sellerId, String text) async {
+    final Database db = await _appDatabase.database;
+    await db.transaction((txn) async {
+      await txn.insert(DatabaseSchema.sellerAppeals, {
+        'seller_id': sellerId,
+        'text': text,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      // Администраторы узнают об апелляции сразу.
+      final List<Map<String, Object?>> shop = await txn.query(
+        DatabaseSchema.sellers,
+        columns: ['shop_name'],
+        where: 'user_id = ?',
+        whereArgs: [sellerId],
+      );
+      final List<Map<String, Object?>> admins = await txn.query(
+        DatabaseSchema.users,
+        columns: ['id'],
+        where: 'role = ?',
+        whereArgs: ['admin'],
+      );
+      for (final Map<String, Object?> admin in admins) {
+        await LocalNotificationRepository.push(
+          txn,
+          userId: admin['id']! as int,
+          title: 'Апелляция от «${shop.isEmpty ? 'продавца' : shop.first['shop_name']}»',
+          body: text,
+        );
+      }
+    });
+  }
+
+  static const String _selectAppeals =
+      'SELECT a.*, s.shop_name FROM ${DatabaseSchema.sellerAppeals} a '
+      'LEFT JOIN ${DatabaseSchema.sellers} s ON s.user_id = a.seller_id';
+
+  @override
+  Future<List<SellerAppeal>> appealsFor(int sellerId) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      '$_selectAppeals WHERE a.seller_id = ? ORDER BY a.created_at DESC, a.id DESC',
+      [sellerId],
+    );
+    return rows.map(SellerAppeal.fromMap).toList();
+  }
+
+  @override
+  Future<List<SellerAppeal>> pendingAppeals() async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      "$_selectAppeals WHERE a.status = 'pending' ORDER BY a.created_at",
+    );
+    return rows.map(SellerAppeal.fromMap).toList();
+  }
+
+  @override
+  Future<void> resolveAppeal(int appealId, {required bool accept, String? reply}) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.query(
+      DatabaseSchema.sellerAppeals,
+      columns: ['seller_id'],
+      where: 'id = ?',
+      whereArgs: [appealId],
+    );
+    if (rows.isEmpty) return;
+    final int sellerId = rows.first['seller_id']! as int;
+    await db.update(
+      DatabaseSchema.sellerAppeals,
+      {
+        'status': accept ? 'accepted' : 'rejected',
+        'reply': reply,
+        'resolved_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [appealId],
+    );
+    if (accept) {
+      await restoreSeller(
+        sellerId,
+        note: 'Апелляция принята${reply == null || reply.isEmpty ? '' : ': $reply'}. '
+            'Магазин снова работает',
+      );
+    } else {
+      await LocalNotificationRepository.push(
+        db,
+        userId: sellerId,
+        title: 'Апелляция отклонена',
+        body: reply ?? 'Администратор не нашёл оснований снять ограничение',
+      );
+    }
   }
 
   @override
@@ -213,7 +493,9 @@ class LocalModerationRepository implements ModerationRepository {
       'SELECT s.user_id, s.shop_name, u.email, '
       '(SELECT COUNT(*) FROM ${DatabaseSchema.products} p WHERE p.seller_id = s.user_id) AS products, '
       "(SELECT COUNT(*) FROM ${DatabaseSchema.products} p WHERE p.seller_id = s.user_id AND p.status = 'blocked') AS blocked, "
-      '(SELECT COUNT(*) FROM ${DatabaseSchema.sellerWarnings} w WHERE w.seller_id = s.user_id) AS warnings '
+      '(SELECT COUNT(*) FROM ${DatabaseSchema.sellerWarnings} w WHERE w.seller_id = s.user_id) AS warnings, '
+      "(SELECT COUNT(*) FROM ${DatabaseSchema.sellerAppeals} a WHERE a.seller_id = s.user_id AND a.status = 'pending') AS appeals, "
+      's.status, s.status_reason '
       'FROM ${DatabaseSchema.sellers} s JOIN ${DatabaseSchema.users} u ON u.id = s.user_id '
       'ORDER BY s.shop_name',
     );
@@ -226,6 +508,9 @@ class LocalModerationRepository implements ModerationRepository {
           products: row['products']! as int,
           blocked: row['blocked']! as int,
           warnings: row['warnings']! as int,
+          status: SellerStatus.fromValue(row['status'] as String?),
+          statusReason: row['status_reason'] as String?,
+          pendingAppeals: row['appeals']! as int,
         ),
     ];
   }

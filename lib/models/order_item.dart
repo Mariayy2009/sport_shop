@@ -9,6 +9,8 @@ class OrderItem {
     this.size,
     this.productName,
     this.productImageUrl,
+    this.sellerName,
+    this.isOwnGoods = true,
   });
 
   final int? id;
@@ -28,6 +30,12 @@ class OrderItem {
   final String? productName;
   final String? productImageUrl;
 
+  /// Магазин продавца этого товара; null — товар самого магазина SPORT.
+  final String? sellerName;
+
+  /// Товар магазина SPORT (без продавца): заказ с ним ведёт администратор.
+  final bool isOwnGoods;
+
   double get total => price * quantity;
 
   factory OrderItem.fromMap(Map<String, Object?> map) {
@@ -40,6 +48,8 @@ class OrderItem {
       size: map['size'] as String?,
       productName: map['product_name'] as String?,
       productImageUrl: map['product_image_url'] as String?,
+      sellerName: map['seller_name'] as String?,
+      isOwnGoods: map['product_seller_id'] == null,
     );
   }
 
@@ -69,6 +79,8 @@ class OrderItem {
       size: size,
       productName: productName,
       productImageUrl: productImageUrl,
+      sellerName: sellerName,
+      isOwnGoods: isOwnGoods,
     );
   }
 }

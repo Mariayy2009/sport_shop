@@ -380,6 +380,9 @@ class _OrdersTabState extends State<_OrdersTab>
               const SizedBox(height: AppSizes.s),
           itemBuilder: (context, index) => OrderManageCard(
             order: orders[index],
+            // Администратор ведёт только заказы товаров самого магазина
+            // SPORT; заказы продавцов — их забота, здесь только просмотр.
+            readOnly: !orders[index].items.any((item) => item.isOwnGoods),
             onChanged: () async {
               // Если это заказ самого администратора — обновим и его историю.
               await context.read<OrderState>().load();

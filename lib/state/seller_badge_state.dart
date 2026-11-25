@@ -18,6 +18,8 @@ class SellerBadgeState extends ChangeNotifier {
   int? _sellerId;
   int _warnings = 0;
   int _questions = 0;
+  SellerStatus _status = SellerStatus.active;
+  String? _statusReason;
   Timer? _timer;
 
   /// Непрочитанные предупреждения.
@@ -28,12 +30,18 @@ class SellerBadgeState extends ChangeNotifier {
 
   int get total => _warnings + _questions;
 
+  /// Магазин работает, заморожен или удалён администратором.
+  SellerStatus get status => _status;
+  String? get statusReason => _statusReason;
+
   /// Вход продавца — начинаем проверять; покупатель или выход — сброс.
   Future<void> setSeller(int? sellerId) async {
     _timer?.cancel();
     _timer = null;
     _sellerId = sellerId;
     if (sellerId == null) {
+      _status = SellerStatus.active;
+      _statusReason = null;
       _set(0, 0);
       return;
     }
@@ -50,7 +58,13 @@ class SellerBadgeState extends ChangeNotifier {
       final int warnings = await _moderation.unreadCount(sellerId);
       final List<Question> questions =
           await _feedback.getQuestionsForSeller(sellerId);
+      final (SellerStatus status, String? reason) = await _moderation.statusOf(sellerId);
       if (_sellerId != sellerId) return;
+      if (status != _status || reason != _statusReason) {
+        _status = status;
+        _statusReason = reason;
+        notifyListeners();
+      }
       _set(warnings, questions.where((q) => q.answer == null).length);
     } on Exception catch (error) {
       debugPrint('Не удалось обновить уведомления продавца: $error');

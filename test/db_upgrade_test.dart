@@ -19,7 +19,8 @@ void main() {
             statement == DatabaseSchema.createSellerWarnings ||
             statement == DatabaseSchema.createNotifications ||
             statement == DatabaseSchema.createGameScores ||
-            statement == DatabaseSchema.createCoupons) {
+            statement == DatabaseSchema.createCoupons ||
+            statement == DatabaseSchema.createSellerAppeals) {
           continue;
         }
         await db.execute(statement

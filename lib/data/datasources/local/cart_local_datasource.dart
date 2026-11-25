@@ -16,9 +16,11 @@ class CartLocalDataSource {
     final Database db = await _appDatabase.database;
     final List<Map<String, Object?>> rows = await db.rawQuery(
       'SELECT p.*, c.name AS category_name, s.name AS sport_name, '
-      'ci.quantity AS cart_quantity, ci.size AS cart_size '
+      'ci.quantity AS cart_quantity, ci.size AS cart_size, '
+      'sl.shop_name AS seller_name, sl.status AS seller_status '
       'FROM ${DatabaseSchema.cartItems} ci '
       'JOIN ${DatabaseSchema.products} p ON p.id = ci.product_id '
+      'LEFT JOIN ${DatabaseSchema.sellers} sl ON sl.user_id = p.seller_id '
       'JOIN ${DatabaseSchema.categories} c ON c.id = p.category_id '
       'JOIN ${DatabaseSchema.sports} s ON s.id = p.sport_id '
       'WHERE ci.user_id = ? ORDER BY ci.id',

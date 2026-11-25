@@ -18,7 +18,7 @@ class ProductLocalDataSource {
   /// Товар вместе с названиями категории и вида спорта (JOIN).
   static const String _selectProducts =
       'SELECT p.*, c.name AS category_name, s.name AS sport_name, '
-      'sl.shop_name AS seller_name '
+      'sl.shop_name AS seller_name, sl.status AS seller_status '
       'FROM ${DatabaseSchema.products} p '
       'JOIN ${DatabaseSchema.categories} c ON c.id = p.category_id '
       'JOIN ${DatabaseSchema.sports} s ON s.id = p.sport_id '
@@ -30,7 +30,11 @@ class ProductLocalDataSource {
     final List<Object?> args = [];
 
     // Снятые с продажи товары видят только администратор и их продавец.
-    if (!filter.includeBlocked) conditions.add("p.status = 'active'");
+    // Товары замороженных и удалённых магазинов тоже скрыты.
+    if (!filter.includeBlocked) {
+      conditions.add("p.status = 'active'");
+      conditions.add("(sl.status IS NULL OR sl.status = 'active')");
+    }
     if (filter.sellerId != null) {
       conditions.add('p.seller_id = ?');
       args.add(filter.sellerId);

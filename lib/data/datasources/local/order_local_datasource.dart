@@ -232,9 +232,11 @@ class OrderLocalDataSource {
     final List<Order> orders = [];
     for (final Map<String, Object?> row in orderRows) {
       final List<Map<String, Object?>> itemRows = await db.rawQuery(
-        'SELECT oi.*, p.name AS product_name, p.image_url AS product_image_url '
+        'SELECT oi.*, p.name AS product_name, p.image_url AS product_image_url, '
+        'p.seller_id AS product_seller_id, s.shop_name AS seller_name '
         'FROM ${DatabaseSchema.orderItems} oi '
         'JOIN ${DatabaseSchema.products} p ON p.id = oi.product_id '
+        'LEFT JOIN ${DatabaseSchema.sellers} s ON s.user_id = p.seller_id '
         'WHERE oi.order_id = ? ORDER BY oi.id',
         [row['id']],
       );

@@ -75,6 +75,10 @@ class _ProductScreenState extends State<ProductScreen> {
   }
 
   Future<void> _addToCart(Product product) async {
+    if (product.isBlocked || product.sellerInactive) {
+      AppMessages.showWarning(context, 'Этот товар сейчас нельзя купить');
+      return;
+    }
     if (!product.isAvailable) {
       AppMessages.showWarning(context, 'Товар закончился и недоступен для заказа');
       return;
@@ -201,6 +205,20 @@ class _ProductScreenState extends State<ProductScreen> {
               ),
           ],
         ),
+        if (product.sellerInactive && !product.isBlocked) ...[
+          const SizedBox(height: AppSizes.s),
+          Container(
+            padding: const EdgeInsets.all(AppSizes.m),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppSizes.radiusM),
+            ),
+            child: Text(
+              'Магазин «${product.sellerTitle}» временно не работает — купить товар нельзя',
+              style: AppTextStyles.body.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
         if (product.isBlocked) ...[
           const SizedBox(height: AppSizes.s),
           Container(

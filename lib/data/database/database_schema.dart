@@ -43,7 +43,9 @@ class DatabaseSchema {
   ///      промокоды (coupons), отметка «покупатель подтверждён»
   ///      (reviews.verified), диета у спортпита (products.diet),
   ///      скидка в заказе (orders.discount).
-  static const int version = 16;
+  /// v17: заморозка и удаление продавцов (sellers.status, status_reason,
+  ///      status_at), апелляции продавцов (seller_appeals).
+  static const int version = 17;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -65,6 +67,7 @@ class DatabaseSchema {
   static const String notifications = 'notifications';
   static const String gameScores = 'game_scores';
   static const String coupons = 'coupons';
+  static const String sellerAppeals = 'seller_appeals';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
   static const List<String> tablesInCreateOrder = [
@@ -87,6 +90,7 @@ class DatabaseSchema {
     notifications,
     gameScores,
     coupons,
+    sellerAppeals,
   ];
 
   /// Таблицы прежних версий: удаляются при обновлении схемы.
@@ -110,7 +114,32 @@ class DatabaseSchema {
       user_id INTEGER PRIMARY KEY,
       shop_name TEXT NOT NULL UNIQUE,
       created_at TEXT NOT NULL,
+      $sellerStatusColumns,
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
+    )
+    ''';
+
+  /// Статус магазина (те же колонки — в миграции v17): работает,
+  /// заморожен (товары скрыты, выставлять нельзя) или удалён
+  /// администратором (можно восстановить по апелляции).
+  static const String sellerStatusColumns = '''
+      status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'frozen', 'deleted')),
+      status_reason TEXT,
+      status_at TEXT''';
+
+  /// Апелляции продавцов: «почему заморозили», «верните магазин».
+  static const String createSellerAppeals = '''
+    CREATE TABLE $sellerAppeals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      seller_id INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'accepted', 'rejected')),
+      reply TEXT,
+      resolved_at TEXT,
+      FOREIGN KEY (seller_id) REFERENCES $users(id) ON DELETE CASCADE
     )
     ''';
 
@@ -368,6 +397,7 @@ class DatabaseSchema {
     createNotifications,
     createGameScores,
     createCoupons,
+    createSellerAppeals,
     // Индексы для частых выборок: каталог, подбор, история заказов
     'CREATE INDEX idx_products_sport ON $products(sport_id)',
     'CREATE INDEX idx_products_category ON $products(category_id)',
