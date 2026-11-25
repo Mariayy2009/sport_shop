@@ -75,7 +75,7 @@ class _ProductScreenState extends State<ProductScreen> {
   }
 
   Future<void> _addToCart(Product product) async {
-    if (product.isBlocked || product.sellerInactive) {
+    if (product.isBlocked || product.sellerInactive || product.isPendingReview) {
       AppMessages.showWarning(context, 'Этот товар сейчас нельзя купить');
       return;
     }

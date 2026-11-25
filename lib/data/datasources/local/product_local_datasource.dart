@@ -8,6 +8,7 @@ import '../../../models/product_filter.dart';
 import '../../../models/sport.dart';
 import '../../database/app_database.dart';
 import '../../database/database_schema.dart';
+import 'product_screening.dart';
 
 /// SQL-запросы к таблицам products, categories, sports.
 class ProductLocalDataSource {
@@ -34,6 +35,8 @@ class ProductLocalDataSource {
     if (!filter.includeBlocked) {
       conditions.add("p.status = 'active'");
       conditions.add("(sl.status IS NULL OR sl.status = 'active')");
+      // Автопроверка нашла запрещённое — скрыт до решения администратора.
+      conditions.add("(p.moderation IS NULL OR p.moderation != 'pending')");
     }
     if (filter.sellerId != null) {
       conditions.add('p.seller_id = ?');
@@ -126,6 +129,7 @@ class ProductLocalDataSource {
       DatabaseSchema.products,
       product.toMap()..remove('id'),
     );
+    await ProductScreening.run(db, id);
     return product.copyWith(id: id);
   }
 
@@ -137,6 +141,7 @@ class ProductLocalDataSource {
       where: 'id = ?',
       whereArgs: [product.id],
     );
+    await ProductScreening.run(db, product.id!);
   }
 
   Future<void> deleteProduct(int id) async {

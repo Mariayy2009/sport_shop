@@ -32,6 +32,8 @@ void main() {
             .replaceAll('try_on_meta TEXT,', '')
             .replaceAll('composition TEXT,', '')
             .replaceAll('diet TEXT,', '')
+            .replaceAll('moderation TEXT,', '')
+            .replaceAll('risk TEXT,', '')
             .replaceAll('discount REAL NOT NULL DEFAULT 0,', '')
             .replaceAll('verified INTEGER NOT NULL DEFAULT 0,', '')
             .replaceAll('photos TEXT,', ''));

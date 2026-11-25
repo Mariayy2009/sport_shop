@@ -303,8 +303,9 @@ class SeedProductsExtra {
       'mouth_guard_5', 'mouth_guard_6', 'mouth_guard_7', 'mouth_guard_8',
       'mouth_guard_9', 'mouth_guard_10', 'mouth_guard_11',
     ],
+    // Главное фото — чёрные гетры (бывшее второе), поэтому _2 тут нет.
     'football_socks': [
-      'football_socks_2', 'football_socks_3',
+      'football_socks_3',
       'football_socks_4', 'football_socks_5', 'football_socks_6',
       'football_socks_7', 'football_socks_8', 'football_socks_9',
       'football_socks_10', 'football_socks_11', 'football_socks_12',

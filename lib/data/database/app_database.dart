@@ -139,6 +139,11 @@ class AppDatabase {
         }
         await db.execute(DatabaseSchema.createSellerAppeals);
       }
+      if (oldVersion < 18) {
+        await db.execute('ALTER TABLE ${DatabaseSchema.products} ADD COLUMN moderation TEXT');
+        await db.execute('ALTER TABLE ${DatabaseSchema.products} ADD COLUMN risk TEXT');
+        await SeedData.applyGalleries(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

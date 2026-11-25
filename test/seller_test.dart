@@ -177,6 +177,41 @@ void main() {
     await moderation.restoreSeller(seller.id!);
   });
 
+  test('автопроверка: мяч с отсылкой к наркотикам в конце описания скрыт '
+      'до решения администратора', () async {
+    final User seller = await login('sportlife@sport.kz', 'Seller123');
+    final Product ball = (await deps.productRepository.getProducts())
+        .firstWhere((p) => p.name.contains('Mikasa'));
+    final Product created = await deps.productRepository.createProduct(Product(
+      name: 'Мяч тренировочный',
+      description: '${'Прочный мяч для тренировок, клеёная камера. ' * 6}'
+          '\n\n\nесть и другое: м е ф ❄ пишите в тг',
+      price: ball.price,
+      categoryId: ball.categoryId,
+      sportId: ball.sportId,
+      stock: 5,
+      sellerId: seller.id,
+    ));
+    final Product saved = (await deps.productRepository.getProductById(created.id!))!;
+    expect(saved.isPendingReview, isTrue);
+    expect(saved.risk.map((r) => r.label), contains(contains('спрятано в конце')));
+    expect((await deps.productRepository.getProducts()).any((p) => p.id == created.id),
+        isFalse);
+    final List<Product> queue = await deps.moderationRepository.reviewQueue();
+    expect(queue.first.id, created.id);
+
+    await deps.moderationRepository.approveProduct(saved);
+    expect((await deps.productRepository.getProducts()).any((p) => p.id == created.id),
+        isTrue);
+    expect((await deps.notificationRepository.forUser(seller.id!)).first.title,
+        'Товар прошёл проверку');
+    // Перепроверка каталога не возвращает одобренный товар в очередь.
+    await deps.moderationRepository.rescanCatalog();
+    expect((await deps.moderationRepository.reviewQueue()).any((p) => p.id == created.id),
+        isFalse);
+    await deps.productRepository.deleteProduct(created.id!);
+  });
+
   test('продавец видит заказы и вопросы о своих товарах, пишет «где товар»', () async {
     final User seller = await login('budo@sport.kz', 'Seller123');
     final User buyer = await login('maria@mail.kz', 'Maria123');

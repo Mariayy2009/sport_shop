@@ -181,7 +181,12 @@ class GarmentScan {
     final double? ratio = shoulderRatio(pose);
     if (ratio == null) return null;
     _widest = math.max(_widest, ratio);
-    final bool faceVisible = (pose.joints[BodyJoint.nose]?.confidence ?? 0) > 0.6;
+    final double nose = pose.joints[BodyJoint.nose]?.confidence ?? 0;
+    // Со спины камера часто «додумывает» лицо с уверенностью 0,7–0,9,
+    // поэтому после поворота боком широкий вид считается спиной, если
+    // лицо не видно совсем отчётливо. Порядок поворота: перёд → бок →
+    // спина → другой бок.
+    final bool faceVisible = _sawSideAfterFront ? nose > 0.97 : nose > 0.6;
     if (ratio < _widest * 0.55 || ratio < 0.35) {
       return _sawSideAfterFront && seen.contains(ScanView.back)
           ? ScanView.sideB

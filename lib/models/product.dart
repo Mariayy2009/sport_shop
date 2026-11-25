@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../services/moderation/content_checker.dart';
 import 'item_options.dart';
 
 /// Товар (таблица products).
@@ -29,7 +30,18 @@ class Product {
     this.isBlocked = false,
     this.blockReason,
     this.sellerInactive = false,
+    this.moderation,
+    this.risk = const [],
   });
+
+  /// Автопроверка: pending — скрыт до проверки, flagged — в очереди
+  /// администратора, approved — администратор разрешил.
+  final String? moderation;
+
+  /// Что нашла автопроверка (для администратора).
+  final List<RiskReason> risk;
+
+  bool get isPendingReview => moderation == 'pending';
 
   /// Магазин продавца заморожен или удалён — купить товар нельзя.
   final bool sellerInactive;
@@ -176,6 +188,8 @@ class Product {
       sellerName: map['seller_name'] as String?,
       isBlocked: map['status'] == 'blocked',
       sellerInactive: map['seller_status'] != null && map['seller_status'] != 'active',
+      moderation: map['moderation'] as String?,
+      risk: _risk(map['risk']),
       blockReason: map['block_reason'] as String?,
     );
   }
@@ -216,6 +230,18 @@ class Product {
       for (final Object? item in items)
         if (item is String && item.trim().isNotEmpty) item.trim(),
     ];
+  }
+
+  static List<RiskReason> _risk(Object? value) {
+    if (value is! String || value.isEmpty) return const [];
+    try {
+      return [
+        for (final Object? item in jsonDecode(value) as List)
+          if (item is Map<String, Object?>) RiskReason.fromJson(item),
+      ];
+    } on FormatException {
+      return const [];
+    }
   }
 
   static List<ProductVariant> _variants(Object? value) {

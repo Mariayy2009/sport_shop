@@ -1,7 +1,9 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../models/product.dart';
+import '../../services/moderation/content_checker.dart';
 import '../database/app_database.dart';
+import '../datasources/local/product_screening.dart';
 import '../database/database_schema.dart';
 import 'notification_repository.dart';
 
@@ -192,6 +194,16 @@ abstract class ModerationRepository {
 
   /// Решение по апелляции: принять (магазин снова работает) или отказать.
   Future<void> resolveAppeal(int appealId, {required bool accept, String? reply});
+
+  /// Очередь автопроверки: сначала скрытые, потом сомнительные.
+  Future<List<Product>> reviewQueue();
+
+  /// Администратор посмотрел — всё в порядке, товар в каталоге.
+  Future<void> approveProduct(Product product);
+
+  /// Перепроверить весь каталог (например, после пополнения списка слов).
+  /// Возвращает, сколько товаров попало в очередь.
+  Future<int> rescanCatalog();
 }
 
 class LocalModerationRepository implements ModerationRepository {
@@ -230,6 +242,59 @@ class LocalModerationRepository implements ModerationRepository {
         text: 'Товар снят с продажи.${text == null || text.isEmpty ? '' : ' $text'}',
       );
     }
+  }
+
+  @override
+  Future<List<Product>> reviewQueue() async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      'SELECT p.*, c.name AS category_name, s.name AS sport_name, '
+      'sl.shop_name AS seller_name, sl.status AS seller_status '
+      'FROM ${DatabaseSchema.products} p '
+      'JOIN ${DatabaseSchema.categories} c ON c.id = p.category_id '
+      'JOIN ${DatabaseSchema.sports} s ON s.id = p.sport_id '
+      'LEFT JOIN ${DatabaseSchema.sellers} sl ON sl.user_id = p.seller_id '
+      "WHERE p.moderation IN ('pending', 'flagged') AND p.status = 'active' "
+      "ORDER BY p.moderation = 'pending' DESC, p.id DESC",
+    );
+    return rows.map(Product.fromMap).toList();
+  }
+
+  @override
+  Future<void> approveProduct(Product product) async {
+    final Database db = await _appDatabase.database;
+    await db.update(
+      DatabaseSchema.products,
+      {'moderation': 'approved'},
+      where: 'id = ?',
+      whereArgs: [product.id],
+    );
+    if (product.sellerId != null && product.isPendingReview) {
+      await LocalNotificationRepository.push(
+        db,
+        userId: product.sellerId!,
+        title: 'Товар прошёл проверку',
+        body: '«${product.name}» теперь в каталоге',
+        productId: product.id,
+      );
+    }
+  }
+
+  @override
+  Future<int> rescanCatalog() async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> ids = await db.query(
+      DatabaseSchema.products,
+      columns: ['id'],
+      where: "status = 'active'",
+    );
+    int queued = 0;
+    for (final Map<String, Object?> row in ids) {
+      final RiskReport report =
+          await ProductScreening.run(db, row['id']! as int);
+      if (report.flag) queued++;
+    }
+    return queued;
   }
 
   @override

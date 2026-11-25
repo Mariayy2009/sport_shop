@@ -285,6 +285,23 @@ class GarmentCutout {
     final double share = count / (w * h);
     // Фон не однотонный (вещь «съела» весь кадр) или вещи почти нет.
     if (maxX < 0 || share < 0.08 || share > 0.85) return null;
+    // Крупный план (ткань во весь кадр, как фото формы «44») — это не
+    // вещь целиком: вырезать нечего, примерка покажет 3D-модель.
+    final bool left = minX <= 1, right = maxX >= w - 2;
+    final bool top = minY <= 1, bottom = maxY >= h - 2;
+    final int touching = [left, right, top, bottom].where((e) => e).length;
+    if (touching >= 3 || (left && right)) return null;
+    // Вещь цвета фона (белое кимоно на белом): заливка «съела» ткань
+    // в середине — вместо вещи были бы дыры.
+    int holes = 0, inside = 0;
+    final int bw = maxX - minX + 1, bh = maxY - minY + 1;
+    for (int y = minY + bh * 25 ~/ 100; y < minY + bh * 55 ~/ 100; y++) {
+      for (int x = minX + bw * 35 ~/ 100; x < minX + bw * 65 ~/ 100; x++) {
+        inside++;
+        if (background[y * w + x] == 1) holes++;
+      }
+    }
+    if (inside > 0 && holes / inside > 0.2) return null;
 
     if (!isBottom) {
       _clearCollar(rgba, background, w, minX, minY, maxX, maxY);

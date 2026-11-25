@@ -18,6 +18,7 @@ import '../../models/order.dart';
 import '../../models/product.dart';
 import '../../state/product_state.dart';
 import '../../models/product_filter.dart';
+import '../../services/moderation/content_checker.dart';
 import '../../models/question.dart';
 import '../../state/auth_state.dart';
 import '../../state/order_state.dart';
@@ -60,7 +61,10 @@ class AdminScreen extends StatelessWidget {
             indicatorColor: AppColors.accent,
             labelStyle:
                 AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: const [
+              Tab(text: 'Проверка'),
               Tab(text: 'Товары'),
               Tab(text: 'Заказы'),
               Tab(text: 'Вопросы'),
@@ -69,13 +73,13 @@ class AdminScreen extends StatelessWidget {
         ),
         const Expanded(
           child: TabBarView(
-            children: [_ProductsTab(), _OrdersTab(), _QuestionsTab()],
+            children: [_ReviewTab(), _ProductsTab(), _OrdersTab(), _QuestionsTab()],
           ),
         ),
       ],
     );
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: embedded
           ? content
           : AppScaffold(
@@ -83,6 +87,226 @@ class AdminScreen extends StatelessWidget {
               navTab: MainTab.profile,
               body: content,
             ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Автопроверка
+// -----------------------------------------------------------------------------
+
+/// Очередь автопроверки: товары, в которых сторож нашёл подозрительное.
+/// Администратору не нужно читать каждое описание до конца — находки
+/// показаны сразу, с куском текста вокруг.
+class _ReviewTab extends StatefulWidget {
+  const _ReviewTab();
+
+  @override
+  State<_ReviewTab> createState() => _ReviewTabState();
+}
+
+class _ReviewTabState extends State<_ReviewTab> {
+  late Future<List<Product>> _future = _load();
+  bool _scanning = false;
+
+  Future<List<Product>> _load() => context.read<ModerationRepository>().reviewQueue();
+
+  void _reload() => setState(() => _future = _load());
+
+  Future<void> _rescan() async {
+    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final ProductState catalog = context.read<ProductState>();
+    setState(() => _scanning = true);
+    final int queued = await moderation.rescanCatalog();
+    if (!mounted) return;
+    setState(() => _scanning = false);
+    AppMessages.showInfo(
+      context,
+      queued == 0
+          ? 'Весь каталог проверен — подозрительного нет'
+          : 'Каталог проверен: на проверке $queued',
+    );
+    _reload();
+    unawaited(catalog.loadProducts());
+  }
+
+  Future<void> _approve(Product product) async {
+    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final ProductState catalog = context.read<ProductState>();
+    await moderation.approveProduct(product);
+    if (!mounted) return;
+    AppMessages.showSuccess(context, 'Товар одобрен и остаётся в каталоге');
+    _reload();
+    unawaited(catalog.loadProducts());
+  }
+
+  Future<void> _block(Product product) async {
+    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final ProductState catalog = context.read<ProductState>();
+    final (WarningReason, String?)? result = await WarningSheet.show(
+      context,
+      title: 'Снять «${product.name}» с продажи',
+      buttonText: 'Снять с продажи',
+    );
+    if (result == null) return;
+    await moderation.blockProduct(
+      product,
+      result.$1,
+      text: result.$2 ?? product.risk.map((r) => r.label).join(', '),
+    );
+    if (!mounted) return;
+    AppMessages.showSuccess(context, 'Товар снят, продавец получил предупреждение');
+    _reload();
+    unawaited(catalog.loadProducts());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Product>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final List<Product> queue = snapshot.data ?? const [];
+        return ListView(
+          padding: const EdgeInsets.all(AppSizes.screenPadding),
+          children: [
+            const Text(
+              'Каждый товар продавца проверяется автоматически при сохранении: '
+              'запрещённые слова (даже через пробелы, латиницей или в самом '
+              'конце описания), контакты для сделок вне магазина, «наркотические» '
+              'эмодзи, странная цена. Явное скрывается из каталога до вашего '
+              'решения, сомнительное остаётся в продаже, но попадает сюда.',
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: AppSizes.s),
+            OutlinedButton.icon(
+              onPressed: _scanning ? null : _rescan,
+              icon: _scanning
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.manage_search),
+              label: const Text('Проверить весь каталог'),
+            ),
+            const SizedBox(height: AppSizes.m),
+            if (snapshot.connectionState != ConnectionState.done)
+              const Center(child: CircularProgressIndicator())
+            else if (queue.isEmpty)
+              const EmptyState(
+                icon: Icons.verified_user_outlined,
+                title: 'Подозрительных товаров нет',
+                message: 'Сюда попадут товары, в которых автопроверка что-то нашла',
+              )
+            else
+              for (final Product product in queue)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.s),
+                  child: _ReviewCard(
+                    product: product,
+                    onOpen: () => Navigator.of(context)
+                        .pushNamed(AppRoutes.product, arguments: product.id),
+                    onApprove: () => _approve(product),
+                    onBlock: () => _block(product),
+                  ),
+                ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({
+    required this.product,
+    required this.onOpen,
+    required this.onApprove,
+    required this.onBlock,
+  });
+
+  final Product product;
+  final VoidCallback onOpen;
+  final VoidCallback onApprove;
+  final VoidCallback onBlock;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hidden = product.isPendingReview;
+    return AppCard(
+      onTap: onOpen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ProductImage(
+                imageUrl: product.imageUrl,
+                width: 44,
+                height: 44,
+                borderRadius: AppSizes.radiusS,
+              ),
+              const SizedBox(width: AppSizes.s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      '${Formatters.price(product.price)} · ${product.sellerTitle}',
+                      style: AppTextStyles.caption,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                hidden ? 'Скрыт' : 'В продаже',
+                style: AppTextStyles.caption.copyWith(
+                  color: hidden ? AppColors.error : const Color(0xFFB45F06),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.s),
+          for (final RiskReason reason in product.risk)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSizes.xs),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '⚠ ${reason.label}',
+                    style: AppTextStyles.bodySecondary.copyWith(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(reason.fragment, style: AppTextStyles.caption),
+                ],
+              ),
+            ),
+          Wrap(
+            spacing: AppSizes.xs,
+            children: [
+              TextButton.icon(
+                onPressed: onApprove,
+                icon: const Icon(Icons.check, size: 18, color: AppColors.success),
+                label: const Text('Всё в порядке'),
+              ),
+              TextButton.icon(
+                onPressed: onBlock,
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                icon: const Icon(Icons.block, size: 18),
+                label: const Text('Снять с продажи'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

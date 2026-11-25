@@ -13,10 +13,10 @@ import 'package:sport_shop/services/try_on/garment_scan.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Человек в кадре: [width] — ширина плеч (доля кадра), [face] — видно ли лицо.
-BodyPose person({double width = 0.2, bool face = true}) {
+BodyPose person({double width = 0.2, bool face = true, double? nose}) {
   BodyPoint p(double x, double y, [double c = 1]) => BodyPoint(x, y, 0, c);
   return BodyPose({
-    BodyJoint.nose: p(0.5, 0.2, face ? 0.95 : 0.1),
+    BodyJoint.nose: p(0.5, 0.2, nose ?? (face ? 0.99 : 0.1)),
     BodyJoint.leftShoulder: p(0.5 + width / 2, 0.3),
     BodyJoint.rightShoulder: p(0.5 - width / 2, 0.3),
     BodyJoint.leftHip: p(0.5 + width / 3, 0.55),
@@ -36,6 +36,16 @@ void main() {
     expect(scan.addPose(person(width: 0.06, face: false)), ScanView.sideB);
     expect(scan.progress, 1);
     expect(scan.isComplete, isFalse); // кадра спереди ещё нет
+  });
+
+  test('спиной камера «додумывает» лицо — после бока это всё равно спина', () {
+    final GarmentScan scan = GarmentScan(isBottom: true);
+    expect(scan.addPose(person()), ScanView.front);
+    expect(scan.addPose(person(width: 0.06)), ScanView.sideA);
+    // Затылок: модель уверена в «носе» на 0,85.
+    expect(scan.addPose(person(nose: 0.85)), ScanView.back);
+    expect(scan.addPose(person(width: 0.06, nose: 0.85)), ScanView.sideB);
+    expect(scan.progress, 1);
   });
 
   test('вещь вырезается из кадра по маске человека, без зеркала', () {

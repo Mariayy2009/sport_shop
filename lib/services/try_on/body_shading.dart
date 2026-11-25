@@ -117,7 +117,7 @@ class BodyShading {
   final Uint8List rgba;
 
   /// Ширина картинки: складкам хватает, а кадр считается за миллисекунды.
-  static const int targetWidth = 84;
+  static const int targetWidth = 160;
 
   /// Насколько сильно переносить свет: 1 — полностью. При сильном
   /// переносе сквозь вещь «просвечивает» рисунок своей одежды (надписи,
@@ -208,7 +208,7 @@ class BodyShading {
           (128 + 128 * strength * relative).round().clamp(0, 255);
       // Чёткий край силуэта: внутри тела вещь полностью непрозрачна.
       final int alpha =
-          hasMask ? ((person[i] - 0.42) / 0.16 * 255).round().clamp(0, 255) : 255;
+          hasMask ? ((person[i] - 0.3) / 0.4 * 255).round().clamp(0, 255) : 255;
       // Цвет умножен на прозрачность — так Flutter рисует пиксели.
       final int value = shade * alpha ~/ 255;
       rgba[i * 4] = value;

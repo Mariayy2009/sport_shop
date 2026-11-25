@@ -45,7 +45,9 @@ class DatabaseSchema {
   ///      скидка в заказе (orders.discount).
   /// v17: заморозка и удаление продавцов (sellers.status, status_reason,
   ///      status_at), апелляции продавцов (seller_appeals).
-  static const int version = 17;
+  /// v18: автопроверка товаров (products.moderation, products.risk),
+  ///      новое главное фото гетр.
+  static const int version = 18;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -269,6 +271,8 @@ class DatabaseSchema {
       try_on_meta TEXT,
       composition TEXT,
       diet TEXT,
+      moderation TEXT,
+      risk TEXT,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )

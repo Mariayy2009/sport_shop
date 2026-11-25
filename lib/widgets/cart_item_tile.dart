@@ -32,6 +32,7 @@ class CartItemTile extends StatelessWidget {
   String? get _problem {
     final Product product = item.product;
     if (product.isBlocked) return 'Снят с продажи — удалите из корзины';
+    if (product.isPendingReview) return 'На проверке у модератора — пока нельзя купить';
     if (product.sellerInactive) return 'Магазин продавца закрыт — удалите из корзины';
     if (product.stock == 0) return 'Нет в наличии';
     if (product.stock < item.quantity) return 'На складе только ${product.stock} шт.';

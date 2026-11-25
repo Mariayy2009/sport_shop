@@ -27,7 +27,9 @@ class KimonoOutfit {
     'assets/images/products/karate_kimono.jpg':
         KimonoOutfit(belt: Color(0xFFE5671B), photoUsable: false),
     'assets/images/products/kimono_classic.jpg':
-        KimonoOutfit(belt: Color(0xFF151515), photoHasPants: true),
+        // Белое кимоно на белом фоне не вырезается чисто (фон «съедает»
+        // ткань, у ворота — манекен): надевается 3D-кимоно с поясом.
+        KimonoOutfit(belt: Color(0xFF151515), photoUsable: false),
     'assets/images/products/kimono_kyokushin.jpg':
         KimonoOutfit(belt: Color(0xFFF4F4F2), photoUsable: false),
   };

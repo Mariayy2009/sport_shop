@@ -201,6 +201,14 @@ class _ProductsTabState extends State<_ProductsTab> {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
+                            if (product.isPendingReview)
+                              Text(
+                                'На проверке у модератора — в каталоге после проверки',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: const Color(0xFF2B6CB0),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             if (product.isBlocked)
                               Text(
                                 'Снят администратором: ${product.blockReason ?? ''}',

@@ -62,6 +62,11 @@ void main() {
       await states.auth.login(email: 'admin@sport.kz', password: 'Admin123', rememberMe: false);
     });
     await tester.pumpWidget(SportShopApp(dependencies: deps, states: states));
+    // Вкладка автопроверки открывается без ошибок.
+    await tester.tap(find.text('Модерация'));
+    await settle(tester);
+    expect(find.text('Проверить весь каталог'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.tap(find.text('Продавцы'));
     await settle(tester);
     expect(find.text('Апелляции (1)'), findsOneWidget);

@@ -176,13 +176,26 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       blockReason: widget.product?.blockReason,
     );
     try {
+      final int id;
       if (_isNew) {
-        await repository.createProduct(draft);
+        id = (await repository.createProduct(draft)).id!;
       } else {
         await repository.updateProduct(draft);
+        id = draft.id!;
       }
+      final Product? saved = await repository.getProductById(id);
       await catalog.init();
       if (!mounted) return;
+      if (saved?.isPendingReview ?? false) {
+        // Автопроверка нашла запрещённое — товар ждёт модератора.
+        AppMessages.showWarning(
+          context,
+          'Товар отправлен на проверку: ${saved!.risk.first.label}. '
+          'В каталоге он появится после решения модератора',
+        );
+        navigator.pop(true);
+        return;
+      }
       AppMessages.showSuccess(
         context,
         _isNew

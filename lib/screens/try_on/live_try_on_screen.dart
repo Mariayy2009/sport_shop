@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -77,6 +78,18 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
   GarmentMesh? _pantsMesh;
   Color _color = GarmentColor.fallback;
   BodyPose? _pose;
+
+  /// Поза для слоя одежды: каждый кадр перерисовывается только он,
+  /// без пересборки всего экрана (камера, панели) — это убирает лаги.
+  final ValueNotifier<BodyPose?> _poseNotifier = ValueNotifier<BodyPose?>(null);
+
+  /// Что видно в кадре — от этого зависит подсказка; экран
+  /// пересобирается, только когда это меняется.
+  (bool, bool, bool) _poseState(BodyPose? pose) => (
+        pose != null,
+        pose?.hasTorso ?? false,
+        pose?[BodyJoint.leftKnee] != null || pose?[BodyJoint.rightKnee] != null,
+      );
   String? _error;
   bool _isStarting = true;
   bool _showJoints = false;
@@ -141,7 +154,11 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
     try {
       await _service.start();
       _subscription ??= _service.poses.listen((pose) {
-        if (mounted) setState(() => _pose = pose);
+        if (!mounted) return;
+        final bool changed = _poseState(pose) != _poseState(_pose);
+        _pose = pose;
+        _poseNotifier.value = pose;
+        if (changed) setState(() {});
       });
       _shadingSubscription ??= _service.shading.listen(_onShading);
     } on AppException catch (error) {
@@ -266,6 +283,7 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
 
   @override
   void dispose() {
+    _poseNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     _shadingSubscription?.cancel();
@@ -454,7 +472,8 @@ class _LiveTryOnScreenState extends State<LiveTryOnScreen>
             CustomPaint(
               painter: _StagePainter(
                 mesh: mesh,
-                pose: _pose,
+                pose: null,
+                poseListenable: _poseNotifier,
                 color: _color,
                 showJoints: _showJoints,
                 shading: _shading,
@@ -513,7 +532,11 @@ class _StagePainter extends CustomPainter {
     this.skin,
     this.pantsMesh,
     this.belt,
-  });
+    this.poseListenable,
+  }) : super(repaint: poseListenable);
+
+  /// Живая поза — перерисовка по каждому кадру без пересборки экрана.
+  final ValueListenable<BodyPose?>? poseListenable;
 
   final GarmentMesh? mesh;
   final GarmentMesh? pantsMesh;
@@ -545,7 +568,7 @@ class _StagePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final BodyPose? pose = this.pose;
+    final BodyPose? pose = poseListenable?.value ?? this.pose;
     if (pose == null) return;
     if (showJoints) _paintSkeleton(canvas, size, pose);
     // Штаны кимоно — под курткой.

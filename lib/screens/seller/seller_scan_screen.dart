@@ -296,7 +296,7 @@ class _ScanCaptureScreenState extends State<_ScanCaptureScreen> {
                             (_starting
                                 ? 'Запускаю камеру…'
                                 : _view == null
-                                    ? 'Встаньте в полный рост: в кадре плечи и бёдра'
+                                    ? 'Отойдите на 2–3 шага: в кадре должны быть плечи и бёдра'
                                     : 'Медленно поворачивайтесь. Сейчас: ${_view!.label.toLowerCase()}'),
                         textAlign: TextAlign.center,
                         style: AppTextStyles.body.copyWith(color: AppColors.white),
@@ -332,6 +332,20 @@ class _ScanCaptureScreenState extends State<_ScanCaptureScreen> {
                             ),
                         ],
                       ),
+                      // Спина не ловится (тёмная одежда, тесная комната) —
+                      // можно сохранить без неё: в примерке будет перёд.
+                      if (_scan.front != null &&
+                          _scan.seen.length >= 2 &&
+                          !_scan.isComplete) ...[
+                        const SizedBox(height: AppSizes.s),
+                        TextButton(
+                          onPressed: _finished ? null : _finish,
+                          child: Text(
+                            'Сохранить так (${_scan.seen.length} из ${ScanView.values.length})',
+                            style: AppTextStyles.body.copyWith(color: AppColors.white),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

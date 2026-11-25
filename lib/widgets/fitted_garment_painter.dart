@@ -29,7 +29,7 @@ class FittedGarmentPainter {
 
   /// Сетка корпуса: чем гуще, тем плавнее изгиб.
   static const int columns = 8;
-  static const int rows = 18;
+  static const int rows = 36;
 
   static bool paint(
     Canvas canvas,
@@ -181,13 +181,18 @@ class FittedGarmentPainter {
     canvas.drawPath(cover, color);
     canvas.drawImageRect(
       shading, source, frame,
-      Paint()..blendMode = BlendMode.hardLight,
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..blendMode = BlendMode.hardLight,
     );
     canvas.restore();
     // Только в пределах силуэта человека (маска — альфа-канал).
     canvas.drawImageRect(
       shading, source, frame,
-      Paint()..blendMode = BlendMode.dstIn,
+      // Без сглаживания маска маленькая и видна «квадратами».
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..blendMode = BlendMode.dstIn,
     );
     canvas.restore();
   }

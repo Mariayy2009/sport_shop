@@ -119,6 +119,7 @@ class CartState extends ChangeNotifier {
         for (final CartItem item in _items)
           if (item.product.isBlocked ||
               item.product.sellerInactive ||
+              item.product.isPendingReview ||
               item.product.stock < item.quantity)
             item,
       ];
