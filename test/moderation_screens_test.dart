@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sport_shop/core/di/app_dependencies.dart';
+import 'package:sport_shop/core/routes/app_routes.dart';
 import 'package:sport_shop/data/database/app_database.dart';
 import 'package:sport_shop/data/datasources/local/session_local_datasource.dart';
 import 'package:sport_shop/data/datasources/local/shop_server_storage.dart';
@@ -97,6 +98,38 @@ void main() {
     await settle(tester);
     expect(find.text('Магазин заморожен'), findsOneWidget);
     expect(find.text('Подать апелляцию'), findsOneWidget);
+    await finish(tester);
+  });
+
+  testWidgets('покупатель: каталог с вариантами, магазин, корзина с галочками', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.runAsync(() async {
+      await states.init();
+      await states.auth.login(email: 'maria@mail.kz', password: 'Maria123', rememberMe: false);
+      final all = await deps.productRepository.getProducts();
+      // Магазины продавцов заморожены предыдущими тестами — берём товары SPORT.
+      final own = all.where((p) => p.sellerId == null && !p.requiresSize).toList();
+      await states.cart.add(own[0]);
+      await states.cart.add(own[1]);
+    });
+    await tester.pumpWidget(SportShopApp(dependencies: deps, states: states));
+    await tester.tap(find.text('Каталог').last);
+    await settle(tester);
+    expect(find.textContaining('Найдено:'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Корзина').last);
+    await settle(tester);
+    expect(find.text('Выбрать все'), findsOneWidget);
+    await tester.tap(find.byType(Checkbox).at(1));
+    await settle(tester);
+    expect(find.textContaining('Оформить заказ (1 шт.)'), findsOneWidget);
+    tester.state<NavigatorState>(find.byType(Navigator).first)
+        .pushNamed(AppRoutes.shop, arguments: const ShopArgs(null, 'SPORT'));
+    await settle(tester);
+    expect(find.textContaining('Официальный магазин площадки'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await finish(tester);
   });
 }

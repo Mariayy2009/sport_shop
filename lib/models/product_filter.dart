@@ -10,6 +10,7 @@ class ProductFilter {
     this.onlyAvailable = false,
     this.includeBlocked = false,
     this.sellerId,
+    this.ownGoods = false,
     this.diet = const {},
   });
 
@@ -21,6 +22,9 @@ class ProductFilter {
 
   /// Только товары этого продавца (кабинет продавца).
   final int? sellerId;
+
+  /// Только товары самого магазина SPORT (без продавца).
+  final bool ownGoods;
 
   final String query;
   final int? sportId;

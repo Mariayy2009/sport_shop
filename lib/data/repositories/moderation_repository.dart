@@ -130,7 +130,11 @@ class SellerSummary {
     this.status = SellerStatus.active,
     this.statusReason,
     this.pendingAppeals = 0,
+    this.since,
   });
+
+  /// Магазин открыт.
+  final DateTime? since;
 
   final SellerStatus status;
   final String? statusReason;
@@ -560,7 +564,7 @@ class LocalModerationRepository implements ModerationRepository {
       "(SELECT COUNT(*) FROM ${DatabaseSchema.products} p WHERE p.seller_id = s.user_id AND p.status = 'blocked') AS blocked, "
       '(SELECT COUNT(*) FROM ${DatabaseSchema.sellerWarnings} w WHERE w.seller_id = s.user_id) AS warnings, '
       "(SELECT COUNT(*) FROM ${DatabaseSchema.sellerAppeals} a WHERE a.seller_id = s.user_id AND a.status = 'pending') AS appeals, "
-      's.status, s.status_reason '
+      's.status, s.status_reason, s.created_at '
       'FROM ${DatabaseSchema.sellers} s JOIN ${DatabaseSchema.users} u ON u.id = s.user_id '
       'ORDER BY s.shop_name',
     );
@@ -576,6 +580,7 @@ class LocalModerationRepository implements ModerationRepository {
           status: SellerStatus.fromValue(row['status'] as String?),
           statusReason: row['status_reason'] as String?,
           pendingAppeals: row['appeals']! as int,
+          since: DateTime.tryParse((row['created_at'] as String?) ?? ''),
         ),
     ];
   }

@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../search/search_matcher.dart';
+
 /// Что нашла автопроверка и где.
 class RiskReason {
   const RiskReason(this.label, this.fragment, this.score);
@@ -67,7 +69,7 @@ class ContentChecker {
       'оксандролон', 'кленбутерол', 'тренболон', 'болденон', 'дианабол',
       'мельдони', 'эритропоэтин', 'гормонроста', 'steroid', 'sarms',
     ],
-    'Оружие': ['кастет', 'травмат', 'огнестрел', 'глушител', 'патрон'],
+    'Оружие': ['кастет', 'огнестрел', 'глушител', 'патрон'],
   };
 
   /// Короткие слова — только целым словом, иначе ложные срабатывания.
@@ -77,6 +79,8 @@ class ContentChecker {
       'трамадол', 'лирика', 'прегабалин', 'тропикамид', 'феназепам',
     ],
     'Допинг (запрещён в спорте)': ['сарм', 'сармы'],
+    // «Травматизм» — обычное слово, поэтому оружие — только целым словом.
+    'Оружие': ['травмат', 'травматы', 'травматик'],
   };
 
   /// Средние баллы: сами по себе не преступление, но так уводят сделку.
@@ -119,35 +123,109 @@ class ContentChecker {
   static String squash(String text) =>
       text.replaceAll(RegExp(r'[^a-zа-я]'), '');
 
+  /// Иносказания: каждое слово обычное, вместе — объявление.
+  static const List<String> _phrases = [
+    'белыйпорошок', 'порошокбелый', 'белаяпудра', 'белыекристаллы',
+    'белыйкристалл', 'кристаллыбелые', 'соливанн', 'солидляванн',
+  ];
+
+  /// Что пишут покупатели в отзывах и вопросах, если товар — прикрытие.
+  static const List<String> _buyerDrugs = [
+    'наркот', 'наркоман', 'наркош', 'нарик', 'закладк', 'кладмен', 'барыг',
+  ];
+  static const List<String> _buyerFraud = ['мошенн', 'обман', 'подделк', 'развод', 'кидал'];
+
   /// [medianPrice] — средняя цена в той же категории (для сравнения).
+  /// [extra] — другие тексты о товаре: отзывы и вопросы покупателей,
+  /// текст на фото. [category] — категория («Спортивное питание»).
+  /// [ordersLastDay] — сколько раз товар купили за последние сутки.
   static RiskReport check({
     required String name,
     String? description,
     String? composition,
+    String? material,
+    String? brand,
+    String? category,
     required double price,
     double? medianPrice,
+    List<(String, String)> extra = const [],
+    int ordersLastDay = 0,
   }) {
+    final List<RiskReason> reasons = _scanText(
+      [name, brand ?? '', description ?? '', composition ?? '', material ?? ''].join('\n'),
+    );
+    for (final (String where, String text) in extra) {
+      final bool buyers = where.contains('покупател');
+      reasons.addAll(_scanText(text, where: where, buyers: buyers));
+    }
+    final String all = toCyrillic(
+      [name, description ?? '', composition ?? '', material ?? ''].join(' '),
+    );
+    // «Синтетика» у протеина — не ткань, а сленговое название наркотиков.
+    final bool nutrition = (category ?? '').toLowerCase().contains('питани');
+    if (nutrition && all.contains('синтет')) {
+      reasons.add(RiskReason(
+        '«Синтетика» у спортивного питания — так называют синтетические наркотики',
+        material != null && material.toLowerCase().contains('синтет')
+            ? 'Материал: $material'
+            : _around(all, all.indexOf('синтет'), 7),
+        40,
+      ));
+    }
+    // Дробные граммы («0,5 г», «1.5 гр») — дозировки, а не порции.
+    final RegExpMatch? dose = RegExp(r'(?<![\d.,])(0[.,]\d+|[1-9][.,]\d+)\s*(г|гр|g)(?![a-zа-я])')
+        .firstMatch(all);
+    if (nutrition && dose != null) {
+      reasons.add(RiskReason('Дробная дозировка в граммах', _around(all, dose.start, dose.end - dose.start), 15));
+    }
+    if (medianPrice != null && medianPrice > 0) {
+      if (price < medianPrice * 0.25 || price > medianPrice * 5) {
+        reasons.add(RiskReason(
+          price < medianPrice ? 'Цена подозрительно низкая' : 'Цена подозрительно высокая',
+          '${price.round()} ₸ при обычной ~${medianPrice.round()} ₸ в этой категории',
+          20,
+        ));
+      }
+    }
+    if (ordersLastDay >= 5) {
+      reasons.add(RiskReason(
+        'Необычно много покупок за сутки',
+        '$ordersLastDay заказов за 24 часа',
+        15,
+      ));
+    }
+    return RiskReport(reasons);
+  }
+
+  static String _around(String haystack, int at, int length) {
+    if (at < 0) return '';
+    final int from = math.max(0, at - 30);
+    final int to = math.min(haystack.length, at + length + 30);
+    return '${from > 0 ? '…' : ''}${haystack.substring(from, to).replaceAll('\n', ' ').trim()}'
+        '${to < haystack.length ? '…' : ''}';
+  }
+
+  /// Проверка одного текста. [where] — откуда он («в отзывах
+  /// покупателей», «на фото товара»): попадает в подпись находки.
+  /// [buyers] — текст покупателей: ищем и их жалобы.
+  static List<RiskReason> _scanText(String text, {String? where, bool buyers = false}) {
     // «Нестероидный» (обычная мазь от ушибов) — не допинг.
-    final String raw = [name, description ?? '', composition ?? '']
-        .join('\n')
-        .replaceAll(RegExp('нестероидн', caseSensitive: false), 'н-с-в-п');
+    final String raw =
+        text.replaceAll(RegExp('нестероидн', caseSensitive: false), 'н-с-в-п');
     final String lower = raw.toLowerCase().replaceAll(_invisible, '');
     final String cyr = toCyrillic(raw);
     final String squashedCyr = squash(cyr);
     final String squashedLat = squash(lower);
+    // Латиница «на слух»: «porosho.k» = «порошок», «mefedron» = «мефедрон».
+    final String heard = SearchMatcher.simplify(lower);
     final List<RiskReason> reasons = [];
     final Set<String> found = {};
-
-    String around(String haystack, int at, int length) {
-      final int from = math.max(0, at - 30);
-      final int to = math.min(haystack.length, at + length + 30);
-      return '${from > 0 ? '…' : ''}${haystack.substring(from, to).replaceAll('\n', ' ').trim()}'
-          '${to < haystack.length ? '…' : ''}';
+    String place(String label, int at) {
+      if (where != null) return '$label — $where';
+      return at >= 0 && raw.length > 200 && at > raw.length * 0.8
+          ? '$label — спрятано в конце описания'
+          : label;
     }
-
-    // Где в тексте находка: если в последней пятой части длинного
-    // описания — так прячут от проверяющего.
-    bool hiddenAtEnd(int at) => raw.length > 200 && at > raw.length * 0.8;
 
     void add(String label, String term, int score) {
       if (!found.add('$label:$term')) return;
@@ -159,18 +237,40 @@ class ContentChecker {
             RegExp(term.split('').join(r'[\s.*_\-\u200b]*')).firstMatch(cyr);
         at = spacedAt?.start ?? -1;
       }
-      final String fragment = at >= 0 ? around(raw, at, term.length) : '«$term» (буквы разбиты пробелами или символами)';
       reasons.add(RiskReason(
-        at >= 0 && hiddenAtEnd(at) ? '$label — спрятано в конце описания' : label,
-        fragment,
+        place(label, at),
+        at >= 0
+            ? _around(raw, at, term.length)
+            : '«$term» (записано латиницей, через пробелы или символы)',
         score,
       ));
     }
 
+    bool contains(String term) {
+      if (squashedCyr.contains(term) || squashedLat.contains(term)) return true;
+      final String heardTerm = SearchMatcher.simplify(term);
+      return heardTerm.length >= 6 && heard.contains(heardTerm);
+    }
+
     for (final MapEntry<String, List<String>> group in _strong.entries) {
       for (final String term in group.value) {
-        if (squashedCyr.contains(term) || squashedLat.contains(term)) {
-          add(group.key, term, 60);
+        if (contains(term)) add(group.key, term, buyers ? 30 : 60);
+      }
+    }
+    for (final String term in _phrases) {
+      if (contains(term)) add('Иносказание о наркотиках', term, buyers ? 30 : 60);
+    }
+    if (buyers) {
+      for (final String term in _buyerDrugs) {
+        if (contains(term)) {
+          add('Покупатели пишут о наркотиках', term, 30);
+          break;
+        }
+      }
+      for (final String term in _buyerFraud) {
+        if (contains(term)) {
+          add('Покупатели жалуются на обман', term, 20);
+          break;
         }
       }
     }
@@ -188,23 +288,26 @@ class ContentChecker {
     for (final MapEntry<String, List<String>> group in _shortWords.entries) {
       for (final String term in group.value) {
         if (words.contains(term) || spacedRuns.any((run) => run.contains(term))) {
-          add(group.key, term, 40);
+          add(group.key, term, buyers ? 20 : 40);
         }
       }
     }
-    for (final (String label, RegExp pattern, int score) in _patterns) {
-      final RegExpMatch? match = pattern.firstMatch(lower) ?? pattern.firstMatch(cyr);
-      if (match == null) continue;
-      reasons.add(RiskReason(
-        hiddenAtEnd(match.start) ? '$label — спрятано в конце описания' : label,
-        around(raw, match.start, match.end - match.start),
-        score,
-      ));
+    // Контакты и ссылки в отзывах — обычное дело, у продавца и на фото — нет.
+    if (!buyers) {
+      for (final (String label, RegExp pattern, int score) in _patterns) {
+        final RegExpMatch? match = pattern.firstMatch(lower) ?? pattern.firstMatch(cyr);
+        if (match == null) continue;
+        reasons.add(RiskReason(
+          place(label, match.start),
+          _around(raw, match.start, match.end - match.start),
+          score,
+        ));
+      }
     }
     final List<String> emoji = [for (final String e in _emoji) if (raw.contains(e)) e];
     if (emoji.isNotEmpty) {
       reasons.add(RiskReason(
-        'Эмодзи, которыми обозначают наркотики',
+        place('Эмодзи, которыми обозначают наркотики', -1),
         emoji.join(' '),
         math.min(50, 25 * emoji.length),
       ));
@@ -212,22 +315,13 @@ class ContentChecker {
     // Буквы через пробел («м е ф»): обычный продавец так не пишет.
     final RegExpMatch? spaced =
         RegExp(r'(?<![a-zа-я])(?:[a-zа-я][\s.*_\-]+){3,}[a-zа-я](?![a-zа-я])').firstMatch(cyr);
-    if (spaced != null) {
+    if (spaced != null && !buyers) {
       reasons.add(RiskReason(
-        'Слово разбито на буквы — так прячут от поиска',
-        around(raw, spaced.start, spaced.end - spaced.start),
+        place('Слово разбито на буквы — так прячут от поиска', spaced.start),
+        _around(raw, spaced.start, spaced.end - spaced.start),
         15,
       ));
     }
-    if (medianPrice != null && medianPrice > 0) {
-      if (price < medianPrice * 0.25 || price > medianPrice * 5) {
-        reasons.add(RiskReason(
-          price < medianPrice ? 'Цена подозрительно низкая' : 'Цена подозрительно высокая',
-          '${price.round()} ₸ при обычной ~${medianPrice.round()} ₸ в этой категории',
-          20,
-        ));
-      }
-    }
-    return RiskReport(reasons);
+    return reasons;
   }
 }

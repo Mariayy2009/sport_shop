@@ -12,6 +12,7 @@ import '../../core/utils/validators.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
+import '../../services/moderation/photo_text_scanner.dart';
 import '../../models/sport.dart';
 import '../../services/media_storage.dart';
 import '../../state/auth_state.dart';
@@ -142,7 +143,15 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     final ProductRepository repository = context.read<ProductRepository>();
     final ProductState catalog = context.read<ProductState>();
     final NavigatorState navigator = Navigator.of(context);
+    final PhotoTextScanner scanner = context.read<PhotoTextScanner>();
     setState(() => _isSaving = true);
+
+    // Новое фото — читаем на нём текст (ник канала, ссылку в углу):
+    // автопроверка смотрит и его.
+    String? photoText = widget.product?.photoText;
+    if (_imageUrl != widget.product?.imageUrl) {
+      photoText = _imageUrl == null ? null : await scanner.scan(_imageUrl!);
+    }
 
     // Размеры храним без пробелов: «S,M,L».
     final String sizes = _sizes.text
@@ -166,6 +175,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       brand: _nullIfEmpty(_brand),
       material: _nullIfEmpty(_material),
       composition: _nullIfEmpty(_composition),
+      photoText: photoText,
       diet: _diet.toList(),
       rating: widget.product?.rating,
       reviewsCount: widget.product?.reviewsCount ?? 0,

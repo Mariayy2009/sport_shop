@@ -298,8 +298,9 @@ class SeedProductsExtra {
     ],
     'hand_wraps': ['hand_wraps_1', 'hand_wraps_2', 'hand_wraps_3'],
     'yoga_block': ['yoga_block_1', 'yoga_block_2', 'yoga_block_3', 'yoga_block_4'],
+    // Главное фото — зелёная капа (бывшее второе), поэтому _2 тут нет.
     'mouth_guard': [
-      'mouth_guard_2', 'mouth_guard_3', 'mouth_guard_4',
+      'mouth_guard_3', 'mouth_guard_4',
       'mouth_guard_5', 'mouth_guard_6', 'mouth_guard_7', 'mouth_guard_8',
       'mouth_guard_9', 'mouth_guard_10', 'mouth_guard_11',
     ],

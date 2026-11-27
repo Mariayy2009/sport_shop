@@ -32,7 +32,11 @@ class Product {
     this.sellerInactive = false,
     this.moderation,
     this.risk = const [],
+    this.photoText,
   });
+
+  /// Текст, распознанный на фото товара (для автопроверки).
+  final String? photoText;
 
   /// Автопроверка: pending — скрыт до проверки, flagged — в очереди
   /// администратора, approved — администратор разрешил.
@@ -190,6 +194,7 @@ class Product {
       sellerInactive: map['seller_status'] != null && map['seller_status'] != 'active',
       moderation: map['moderation'] as String?,
       risk: _risk(map['risk']),
+      photoText: map['photo_text'] as String?,
       blockReason: map['block_reason'] as String?,
     );
   }
@@ -213,6 +218,7 @@ class Product {
       'material': material,
       'composition': composition,
       'diet': diet.isEmpty ? null : diet.join(','),
+      'photo_text': photoText,
       'rating': rating,
       'seller_id': sellerId,
       'status': isBlocked ? 'blocked' : 'active',

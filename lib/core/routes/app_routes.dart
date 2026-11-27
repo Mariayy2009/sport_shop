@@ -12,7 +12,7 @@ class AppRoutes {
   static const String registration = '/registration';
 
   static const String filter = '/catalog/filter';
-  static const String product = '/product'; // аргумент: id товара
+  static const String product = '/product'; // аргумент: id товара или ProductArgs
 
   static const String editProfile = '/profile/edit';
 
@@ -29,6 +29,7 @@ class AppRoutes {
   static const String hallOfFame = '/hall-of-fame';
   static const String preferences = '/profile/preferences';
   static const String seller = '/seller';
+  static const String shop = '/shop'; // аргумент: ShopArgs
   static const String notifications = '/profile/notifications';
   static const String preferenceResults = '/recommendation/preferences';
   static const String ballGame = '/game/ball'; // аргумент: BallGameMode (необязателен)
@@ -41,4 +42,21 @@ class AppRoutes {
   static const String tryOn = '/try-on';
   static const String photoTryOn = '/try-on/photo'; // аргумент: id товара
   static const String liveTryOn = '/try-on/live'; // аргумент: id товара
+}
+
+/// Открыть товар сразу на нужном варианте (цвете, модели) — из карточки
+/// варианта в каталоге.
+class ProductArgs {
+  const ProductArgs(this.id, {this.variant});
+
+  final int id;
+  final String? variant;
+}
+
+/// Магазин продавца: [sellerId] null — товары самого магазина SPORT.
+class ShopArgs {
+  const ShopArgs(this.sellerId, this.name);
+
+  final int? sellerId;
+  final String name;
 }

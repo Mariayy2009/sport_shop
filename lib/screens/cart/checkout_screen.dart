@@ -57,7 +57,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final String code = _code.text.trim();
     if (code.isEmpty) return;
     final int userId = context.read<AuthState>().currentUser!.id!;
-    final List<CartItem> items = context.read<CartState>().items;
+    final List<CartItem> items = context.read<CartState>().selectedItems;
     final Coupon? coupon = await context.read<GameRepository>().findCoupon(userId, code);
     if (!mounted) return;
     if (coupon == null) {
@@ -116,23 +116,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final User user = context.read<AuthState>().currentUser!;
     final GameRepository games = context.read<GameRepository>();
     final Coupon? coupon = _coupon;
-    final double total = cart.itemsTotal -
-        OrderState.discountFor(cart.items, coupon) +
+    final double total = cart.selectedTotal -
+        OrderState.discountFor(cart.selectedItems, coupon) +
         OrderState.deliveryPrice(_deliveryMethod);
 
     final bool confirmed = await AppMessages.showConfirmDialog(
       context,
       title: 'Подтвердите заказ',
-      message: '${Formatters.itemsCount(cart.totalQuantity)} на сумму '
+      message: '${Formatters.itemsCount(cart.selectedQuantity)} на сумму '
           '${Formatters.price(total)}.\nОплата при получении.',
       confirmText: 'Подтвердить',
     );
     if (!confirmed || !mounted) return;
 
     try {
+      final List<CartItem> bought = cart.selectedItems;
       final Order order = await orders.placeOrder(
         userId: user.id!,
-        items: cart.items,
+        items: bought,
         customerName: _name.text,
         phone: _phone.text,
         deliveryMethod: _deliveryMethod,
@@ -140,7 +141,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         coupon: coupon,
       );
       if (coupon != null) await games.useCoupon(coupon.id);
-      await cart.clear();
+      // Убираем только купленное — неотмеченное остаётся в корзине.
+      await cart.removeItems(bought);
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(
         AppRoutes.orderSuccess,
@@ -162,7 +164,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final CartState cart = context.watch<CartState>();
     final bool isPlacing = context.watch<OrderState>().isPlacing;
     final double delivery = OrderState.deliveryPrice(_deliveryMethod);
-    final double discount = OrderState.discountFor(cart.items, _coupon);
+    final double discount = OrderState.discountFor(cart.selectedItems, _coupon);
 
     if (cart.isEmpty) {
       return AppScaffold(
@@ -291,7 +293,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 children: [
                   const Text('Ваш заказ', style: AppTextStyles.sectionTitle),
                   const SizedBox(height: AppSizes.s),
-                  for (final CartItem item in cart.items)
+                  for (final CartItem item in cart.selectedItems)
                     SummaryRow(
                       label: '${item.product.name}'
                           '${item.selectedSize == null ? '' : ', ${ItemOptions.decode(item.selectedSize).label}'}'
@@ -301,7 +303,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const Divider(),
                   SummaryRow(
                     label: 'Товары',
-                    value: Formatters.price(cart.itemsTotal),
+                    value: Formatters.price(cart.selectedTotal),
                   ),
                   if (discount > 0)
                     SummaryRow(
@@ -314,7 +316,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   SummaryRow(
                     label: 'Итого',
-                    value: Formatters.price(cart.itemsTotal - discount + delivery),
+                    value: Formatters.price(cart.selectedTotal - discount + delivery),
                     isTotal: true,
                   ),
                   const SizedBox(height: AppSizes.xs),

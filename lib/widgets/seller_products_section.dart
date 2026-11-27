@@ -20,13 +20,19 @@ class SellerProductsSection extends StatefulWidget {
   /// Больше не показываем — блок про варианты, а не весь магазин.
   static const int maxItems = 8;
 
-  /// Товары продавца из [all] для [product]: того же бренда, без самого
-  /// товара; сначала та же категория и вид спорта.
+  /// Товары того же продавца (магазина) из [all], без самого товара;
+  /// сначала та же категория и вид спорта. У товаров SPORT продавца нет —
+  /// тогда «тот же магазин» — это тот же бренд, чтобы не показывать весь
+  /// каталог.
   static List<Product> pick(Product product, List<Product> all) {
-    final String? brand = product.brand;
-    if (brand == null || brand.isEmpty) return const [];
+    final bool own = product.sellerId == null;
+    if (own && (product.brand == null || product.brand!.isEmpty)) return const [];
     final List<Product> same = all
-        .where((other) => other.id != product.id && other.brand == brand)
+        .where((other) =>
+            other.id != product.id &&
+            (own
+                ? other.sellerId == null && other.brand == product.brand
+                : other.sellerId == product.sellerId))
         .toList();
     int rank(Product other) =>
         (other.categoryId == product.categoryId ? 0 : 2) +
@@ -64,7 +70,14 @@ class _SellerProductsSectionState extends State<SellerProductsSection> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: AppSizes.l),
-            SectionHeader(title: 'Ещё у продавца ${widget.product.brand}'),
+            SectionHeader(
+              title: 'Ещё у продавца ${widget.product.sellerTitle}',
+              actionText: 'Магазин',
+              onAction: () => Navigator.of(context).pushNamed(
+                AppRoutes.shop,
+                arguments: ShopArgs(widget.product.sellerId, widget.product.sellerTitle),
+              ),
+            ),
             const SizedBox(height: AppSizes.s),
             SizedBox(
               height: ProductCard.height,

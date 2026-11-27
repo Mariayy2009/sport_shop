@@ -17,6 +17,7 @@ import 'package:sport_shop/models/question.dart';
 import 'package:sport_shop/models/review.dart';
 import 'package:sport_shop/models/user.dart';
 import 'package:sport_shop/services/assistant/ai_key_store.dart';
+import 'package:sport_shop/state/cart_state.dart';
 import 'package:sport_shop/state/order_state.dart';
 import 'package:sport_shop/widgets/protein_calculator_sheet.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -160,5 +161,50 @@ void main() {
     expect(plan.dailyProtein, 135);
     expect(plan.portions, 2); // 45 г белка из протеина ≈ 2 порции
     expect(plan.days, 15); // 900 г / (2 × 30 г)
+  });
+
+  test('корзина: покупаем только отмеченное, остальное остаётся', () async {
+    final User buyer = await login('maria@mail.kz', 'Maria123');
+    final CartState cart = CartState(deps.cartRepository);
+    await cart.setUser(buyer.id);
+    final Product ball = await productNamed('Мяч волейбольный Mikasa V200W');
+    final Product whey = await productNamed('Протеин сывороточный 900 г');
+    await cart.add(ball);
+    await cart.add(whey);
+    expect(cart.selectedItems.length, 2);
+    cart.toggle(cart.items.firstWhere((i) => i.product.id == whey.id));
+    expect(cart.selectedItems.single.product.id, ball.id);
+    expect(cart.selectedTotal, ball.price);
+    await cart.removeItems(cart.selectedItems);
+    expect(cart.items.single.product.id, whey.id);
+    // Снятая галочка у оставшегося товара сохраняется, «Выбрать все» её ставит.
+    expect(cart.isSelected(cart.items.single), isFalse);
+    cart.selectAll(true);
+    expect(cart.isSelected(cart.items.single), isTrue);
+  });
+
+  test('магазин: рейтинг и отзывы о товарах продавца', () async {
+    final User seller = await login('budo@sport.kz', 'Seller123');
+    final (double? rating, int count) = await deps.feedbackRepository.shopRating(seller.id);
+    expect(count, greaterThan(0));
+    expect(rating, inInclusiveRange(1, 5));
+    final List<Review> reviews = await deps.feedbackRepository.getShopReviews(seller.id);
+    expect(reviews.every((r) => r.productName != null), isTrue);
+    final List<Product> own = await deps.productRepository
+        .getProducts(const ProductFilter(ownGoods: true));
+    expect(own.every((p) => p.sellerId == null), isTrue);
+  });
+
+  test('отзыв «наркоши…» отправляет товар продавца в очередь админу', () async {
+    final User buyer = await login('maria@mail.kz', 'Maria123');
+    final Product whey = await productNamed('Протеин сывороточный 900 г');
+    await deps.feedbackRepository.saveReview(Review(
+      userId: buyer.id!, productId: whey.id!, rating: 1,
+      text: 'Наркошы эти задолбали уже здесь', createdAt: DateTime.now(),
+    ));
+    final Product checked = (await deps.productRepository.getProductById(whey.id!))!;
+    expect(checked.moderation, 'flagged');
+    expect((await deps.moderationRepository.reviewQueue()).any((p) => p.id == whey.id), isTrue);
+    await deps.feedbackRepository.deleteReview(buyer.id!, whey.id!);
   });
 }

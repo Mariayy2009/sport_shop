@@ -34,6 +34,7 @@ void main() {
             .replaceAll('diet TEXT,', '')
             .replaceAll('moderation TEXT,', '')
             .replaceAll('risk TEXT,', '')
+            .replaceAll('photo_text TEXT,', '')
             .replaceAll('discount REAL NOT NULL DEFAULT 0,', '')
             .replaceAll('verified INTEGER NOT NULL DEFAULT 0,', '')
             .replaceAll('photos TEXT,', ''));

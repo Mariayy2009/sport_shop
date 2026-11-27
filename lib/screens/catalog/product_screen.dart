@@ -38,9 +38,12 @@ import '../../widgets/what_else_section.dart';
 /// Карточка товара: фото, цена, совет по размеру, характеристики,
 /// избранное, сравнение и примерка.
 class ProductScreen extends StatefulWidget {
-  const ProductScreen({super.key, required this.productId});
+  const ProductScreen({super.key, required this.productId, this.initialVariant});
 
   final int productId;
+
+  /// Открыт из карточки варианта в каталоге — сразу этот цвет/модель.
+  final String? initialVariant;
 
   @override
   State<ProductScreen> createState() => _ProductScreenState();
@@ -51,7 +54,7 @@ class _ProductScreenState extends State<ProductScreen> {
   String? _selectedSize;
 
   /// Выбранный вариант (цвет, модель); null — у товара вариантов нет.
-  String? _variant;
+  late String? _variant = widget.initialVariant;
   bool _sizeError = false;
   bool _sizeInitialized = false;
   bool _isAdding = false;
@@ -237,12 +240,35 @@ class _ProductScreenState extends State<ProductScreen> {
         const SizedBox(height: AppSizes.xs),
         Text(product.name, style: AppTextStyles.sectionTitle.copyWith(fontSize: 20)),
         const SizedBox(height: AppSizes.xxs),
-        Row(
-          children: [
-            const Icon(Icons.storefront_outlined, size: 16, color: AppColors.textSecondary),
-            const SizedBox(width: AppSizes.xxs),
-            Text('Продавец: ${product.sellerTitle}', style: AppTextStyles.bodySecondary),
-          ],
+        // Продавец — ссылка на его магазин: все товары и отзывы.
+        InkWell(
+          onTap: () => Navigator.of(context).pushNamed(
+            AppRoutes.shop,
+            arguments: ShopArgs(product.sellerId, product.sellerTitle),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSizes.xxs),
+            child: Row(
+              children: [
+                const Icon(Icons.storefront_outlined, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: AppSizes.xxs),
+                Text('Продавец: ', style: AppTextStyles.bodySecondary),
+                Flexible(
+                  child: Text(
+                    product.sellerTitle,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySecondary.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
+                Text('все товары и отзывы', style: AppTextStyles.caption),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: AppSizes.xs),
         Text(Formatters.price(product.price), style: AppTextStyles.priceLarge),
@@ -415,11 +441,14 @@ class _ProductScreenState extends State<ProductScreen> {
             children: [
               const Text('Прикреплённые файлы', style: AppTextStyles.sectionTitle),
               const SizedBox(height: AppSizes.xs),
-              _FileRow(
-                title: 'Таблица размеров',
-                subtitle: 'Подбор размера',
-                onTap: () => SizeChartSheet.show(context, product),
-              ),
+              // Таблица размеров — только у товаров с размерами
+              // (у мяча, бутылки, протеина её нет).
+              if (product.requiresSize)
+                _FileRow(
+                  title: 'Таблица размеров',
+                  subtitle: 'Подбор размера',
+                  onTap: () => SizeChartSheet.show(context, product),
+                ),
               _FileRow(
                 title: 'Сертификат.pdf',
                 subtitle: 'Сертификат соответствия',

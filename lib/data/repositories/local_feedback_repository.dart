@@ -5,6 +5,7 @@ import '../../models/question.dart';
 import '../../models/review.dart';
 import '../database/app_database.dart';
 import '../database/database_schema.dart';
+import '../datasources/local/product_screening.dart';
 import 'feedback_repository.dart';
 import 'notification_repository.dart';
 
@@ -31,6 +32,38 @@ class LocalFeedbackRepository implements FeedbackRepository {
       [productId],
     );
     return rows.map(Review.fromMap).toList();
+  }
+
+  static String _shopWhere(int? sellerId) =>
+      sellerId == null ? 'p.seller_id IS NULL' : 'p.seller_id = ?';
+
+  @override
+  Future<List<Review>> getShopReviews(int? sellerId, {int limit = 30}) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      'SELECT r.*, $_authorName, u.avatar_path AS author_avatar_path, '
+      'p.name AS product_name '
+      'FROM ${DatabaseSchema.reviews} r '
+      'JOIN ${DatabaseSchema.users} u ON u.id = r.user_id '
+      'JOIN ${DatabaseSchema.products} p ON p.id = r.product_id '
+      'WHERE ${_shopWhere(sellerId)} ORDER BY r.created_at DESC LIMIT ?',
+      [if (sellerId != null) sellerId, limit],
+    );
+    return rows.map(Review.fromMap).toList();
+  }
+
+  @override
+  Future<(double?, int)> shopRating(int? sellerId) async {
+    final Database db = await _appDatabase.database;
+    final Map<String, Object?> row = (await db.rawQuery(
+      'SELECT AVG(r.rating) AS average, COUNT(*) AS count '
+      'FROM ${DatabaseSchema.reviews} r '
+      'JOIN ${DatabaseSchema.products} p ON p.id = r.product_id '
+      'WHERE ${_shopWhere(sellerId)}',
+      [if (sellerId != null) sellerId],
+    ))
+        .first;
+    return ((row['average'] as num?)?.toDouble(), (row['count'] as int?) ?? 0);
   }
 
   @override
@@ -83,6 +116,8 @@ class LocalFeedbackRepository implements FeedbackRepository {
           ..['verified'] = bought ? 1 : 0,
       );
       await _recalculate(txn, review.productId);
+      // Отзыв может выдать «прикрытие» — товар перепроверяется.
+      await ProductScreening.run(txn, review.productId);
     });
   }
 
@@ -166,6 +201,7 @@ class LocalFeedbackRepository implements FeedbackRepository {
       'text': question.text,
       'created_at': question.createdAt.toIso8601String(),
     });
+    await ProductScreening.run(db, question.productId);
   }
 
   @override

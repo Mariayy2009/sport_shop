@@ -8,6 +8,7 @@ import '../core/theme/app_text_styles.dart';
 import '../core/utils/cart_actions.dart';
 import '../core/utils/formatters.dart';
 import '../core/utils/product_actions.dart';
+import '../models/item_options.dart';
 import '../models/product.dart';
 import '../state/cart_state.dart';
 import '../state/compare_state.dart';
@@ -20,9 +21,13 @@ import 'rating_badge.dart';
 /// Карточка товара для сетки каталога и избранного:
 /// фото, избранное и сравнение поверх фото, рейтинг, цена, «в корзину».
 class ProductGridCard extends StatelessWidget {
-  const ProductGridCard({super.key, required this.product});
+  const ProductGridCard({super.key, required this.product, this.variant});
 
   final Product product;
+
+  /// Карточка отдельного варианта (цвета, модели): своё фото и подпись.
+  /// В карточке товара варианты по-прежнему переключаются.
+  final ProductVariant? variant;
 
   /// Соотношение сторон ячейки сетки под эту карточку.
   static const double aspectRatio = 0.6;
@@ -35,8 +40,10 @@ class ProductGridCard extends StatelessWidget {
 
     return AppCard(
       padding: const EdgeInsets.all(AppSizes.s),
-      onTap: () => Navigator.of(context)
-          .pushNamed(AppRoutes.product, arguments: product.id),
+      onTap: () => Navigator.of(context).pushNamed(
+            AppRoutes.product,
+            arguments: ProductArgs(product.id!, variant: variant?.name),
+          ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -45,7 +52,7 @@ class ProductGridCard extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: ProductImage(
-                    imageUrl: product.imageUrl,
+                    imageUrl: variant?.image ?? product.imageUrl,
                     borderRadius: AppSizes.radiusS,
                   ),
                 ),
@@ -115,7 +122,7 @@ class ProductGridCard extends StatelessWidget {
           SizedBox(
             height: 38,
             child: Text(
-              product.name,
+              variant == null ? product.name : '${product.name}, ${variant!.name.toLowerCase()}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.body.copyWith(
@@ -147,7 +154,8 @@ class ProductGridCard extends StatelessWidget {
                   shape: const CircleBorder(),
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: () => CartActions.addToCart(context, product),
+                    onTap: () =>
+                        CartActions.addToCart(context, product, variant: variant?.name),
                     child: SizedBox(
                       width: 36,
                       height: 36,

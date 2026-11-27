@@ -20,7 +20,13 @@ class CartItemTile extends StatelessWidget {
     required this.onDecrease,
     required this.onIncrease,
     required this.onRemove,
+    this.selected,
+    this.onSelectedChanged,
   });
+
+  /// Галочка «купить сейчас»; null — без галочки.
+  final bool? selected;
+  final ValueChanged<bool>? onSelectedChanged;
 
   final CartItem item;
   final VoidCallback onTap;
@@ -52,6 +58,22 @@ class CartItemTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (selected != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 20, right: AppSizes.xs),
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: Checkbox(
+                  value: selected,
+                  activeColor: AppColors.black,
+                  // Недоступный товар отметить нельзя.
+                  onChanged: onSelectedChanged == null
+                      ? null
+                      : (value) => onSelectedChanged!(value ?? false),
+                ),
+              ),
+            ),
           ProductImage(
             imageUrl: image,
             width: 72,

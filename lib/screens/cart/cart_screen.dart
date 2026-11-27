@@ -141,7 +141,7 @@ class CartScreen extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 'Часть товаров сейчас нельзя купить: их сняли '
-                                'с продажи или раскупили',
+                                'с продажи или раскупили. В заказ они не попадут',
                                 style: AppTextStyles.body
                                     .copyWith(fontWeight: FontWeight.w600),
                               ),
@@ -160,11 +160,40 @@ class CartScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+              // «Выбрать все» — купить можно только отмеченное.
+              InkWell(
+                onTap: () => cart.selectAll(!cart.allSelected),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.s),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: cart.allSelected,
+                        activeColor: AppColors.black,
+                        onChanged: (value) => cart.selectAll(value ?? false),
+                      ),
+                      Expanded(
+                        child: Text('Выбрать все', style: AppTextStyles.body),
+                      ),
+                      Flexible(
+                        child: Text(
+                          'Выбрано: ${cart.selectedItems.length} из ${items.length}',
+                          textAlign: TextAlign.right,
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               for (final CartItem item in items)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSizes.s),
                   child: CartItemTile(
                     item: item,
+                    selected: cart.isSelected(item),
+                    onSelectedChanged:
+                        cart.isAvailable(item) ? (_) => cart.toggle(item) : null,
                     onTap: () => Navigator.of(context).pushNamed(
                       AppRoutes.product,
                       arguments: item.product.id,
@@ -186,8 +215,8 @@ class CartScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     SummaryRow(
-                      label: 'Товары (${cart.totalQuantity})',
-                      value: Formatters.price(cart.itemsTotal),
+                      label: 'Товары к заказу (${cart.selectedQuantity})',
+                      value: Formatters.price(cart.selectedTotal),
                     ),
                     SummaryRow(
                       label: 'Доставка курьером',
@@ -196,7 +225,7 @@ class CartScreen extends StatelessWidget {
                     const Divider(),
                     SummaryRow(
                       label: 'Итого',
-                      value: Formatters.price(cart.itemsTotal + delivery),
+                      value: Formatters.price(cart.selectedTotal + delivery),
                       isTotal: true,
                     ),
                   ],
@@ -213,18 +242,12 @@ class CartScreen extends StatelessWidget {
             AppSizes.s,
           ),
           child: CustomButton(
-            text: 'Оформить заказ',
-            onPressed: () {
-              if (cart.unavailable.isNotEmpty) {
-                AppMessages.showWarning(
-                  context,
-                  'Сначала уберите из корзины товары, которые сняли с продажи '
-                  'или раскупили',
-                );
-                return;
-              }
-              Navigator.of(context).pushNamed(AppRoutes.checkout);
-            },
+            text: cart.selectedItems.isEmpty
+                ? 'Отметьте товары для заказа'
+                : 'Оформить заказ (${cart.selectedQuantity} шт.)',
+            onPressed: cart.selectedItems.isEmpty
+                ? null
+                : () => Navigator.of(context).pushNamed(AppRoutes.checkout),
           ),
         ),
       ],

@@ -20,6 +20,7 @@ import '../../data/repositories/local_user_repository.dart';
 import '../../data/repositories/game_repository.dart';
 import '../../data/repositories/moderation_repository.dart';
 import '../../data/repositories/notification_repository.dart';
+import '../../services/moderation/photo_text_scanner.dart';
 import '../../data/repositories/order_repository.dart';
 import '../../data/repositories/preferences_repository.dart';
 import '../../data/datasources/local/shop_server_storage.dart';
@@ -61,6 +62,7 @@ class AppDependencies {
     required this.moderationRepository,
     required this.notificationRepository,
     required this.gameRepository,
+    this.photoTextScanner = const NoPhotoTextScanner(),
     required this.tryOnScanRepository,
     required this.mediaStorage,
     required this.photoTryOnService,
@@ -123,6 +125,9 @@ class AppDependencies {
       moderationRepository: LocalModerationRepository(database),
       notificationRepository: LocalNotificationRepository(database),
       gameRepository: LocalGameRepository(database),
+      photoTextScanner: MlKitPhotoTextScanner.isSupported
+          ? MlKitPhotoTextScanner()
+          : const NoPhotoTextScanner(),
       tryOnScanRepository: tryOnScanRepository ?? LocalTryOnScanRepository(database),
       mediaStorage: mediaStorage ?? DeviceMediaStorage(),
       photoTryOnService: photoTryOnService ?? PhotoTryOnService(),
@@ -160,6 +165,9 @@ class AppDependencies {
   final ModerationRepository moderationRepository;
   final NotificationRepository notificationRepository;
   final GameRepository gameRepository;
+
+  /// Текст на фото товара — для автопроверки.
+  final PhotoTextScanner photoTextScanner;
 
   /// Примерки, отсканированные продавцами.
   final TryOnScanRepository tryOnScanRepository;

@@ -6,6 +6,8 @@ import '../../core/constants/app_sizes.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/formatters.dart';
+import '../../models/item_options.dart';
+import '../../services/search/search_matcher.dart';
 import '../../models/product.dart';
 import '../../models/product_filter.dart';
 import '../../state/compare_state.dart';
@@ -89,7 +91,25 @@ class CatalogScreen extends StatelessWidget {
       );
     }
 
-    final List<Product> products = state.products;
+    // Каждый вариант (цвет, модель) — отдельная карточка, как на
+    // маркетплейсах: каталог полнее, а в карточке товара варианты
+    // по-прежнему переключаются.
+    // Запрос «синяя капа» — только синие варианты; «капа» — все.
+    final SearchMatcher matcher = SearchMatcher(state.filter.query);
+    List<ProductVariant> shown(Product p) {
+      if (state.filter.query.trim().isEmpty) return p.variants;
+      final List<ProductVariant> exact = [
+        for (final ProductVariant v in p.variants)
+          if (matcher.matches([p.name, p.brand, p.categoryName, p.sportName, v.name])) v,
+      ];
+      return exact.isEmpty ? p.variants : exact;
+    }
+
+    final List<(Product, ProductVariant?)> products = [
+      for (final Product p in state.products)
+        if (p.variants.isEmpty) (p, null) else
+          for (final ProductVariant v in shown(p)) (p, v),
+    ];
     return RefreshIndicator(
       onRefresh: state.loadProducts,
       child: CustomScrollView(
@@ -124,7 +144,10 @@ class CatalogScreen extends StatelessWidget {
               ),
               itemCount: products.length,
               itemBuilder: (context, index) =>
-                  ProductGridCard(product: products[index]),
+                  ProductGridCard(
+                    product: products[index].$1,
+                    variant: products[index].$2,
+                  ),
             ),
           ),
         ],

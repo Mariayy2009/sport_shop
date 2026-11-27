@@ -38,6 +38,7 @@ class ProductLocalDataSource {
       // Автопроверка нашла запрещённое — скрыт до решения администратора.
       conditions.add("(p.moderation IS NULL OR p.moderation != 'pending')");
     }
+    if (filter.ownGoods) conditions.add('p.seller_id IS NULL');
     if (filter.sellerId != null) {
       conditions.add('p.seller_id = ?');
       args.add(filter.sellerId);

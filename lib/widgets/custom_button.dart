@@ -22,7 +22,7 @@ class CustomButton extends StatelessWidget {
   });
 
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final ButtonVariant variant;
   final bool isLoading;
 

@@ -8,6 +8,7 @@ import '../../../models/product.dart';
 import '../../database/app_database.dart';
 import '../../repositories/notification_repository.dart';
 import '../../repositories/order_repository.dart';
+import 'product_screening.dart';
 import '../../database/database_schema.dart';
 
 /// SQL-запросы к таблицам orders и order_items.
@@ -39,6 +40,8 @@ class OrderLocalDataSource {
         }
 
         await _warnLowStock(txn, item.productId);
+        // Слишком частые покупки товара продавца — повод проверить.
+        await ProductScreening.run(txn, item.productId);
 
         final OrderItem itemWithOrder = item.copyWith(orderId: orderId);
         final int itemId = await txn.insert(

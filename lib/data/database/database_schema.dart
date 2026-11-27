@@ -47,7 +47,8 @@ class DatabaseSchema {
   ///      status_at), апелляции продавцов (seller_appeals).
   /// v18: автопроверка товаров (products.moderation, products.risk),
   ///      новое главное фото гетр.
-  static const int version = 18;
+  /// v19: текст на фото товара (products.photo_text) для автопроверки.
+  static const int version = 19;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -273,6 +274,7 @@ class DatabaseSchema {
       diet TEXT,
       moderation TEXT,
       risk TEXT,
+      photo_text TEXT,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )

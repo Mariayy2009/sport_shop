@@ -42,12 +42,49 @@ class ProductScreening {
     final double? median = prices.length < 3
         ? null
         : (prices[prices.length ~/ 2]['price']! as num).toDouble();
+    // Что ещё известно о товаре: отзывы и вопросы покупателей (они
+    // первыми замечают «прикрытие»), текст на фото, частота покупок.
+    final List<Map<String, Object?>> category = await db.query(
+      DatabaseSchema.categories,
+      columns: ['name'],
+      where: 'id = ?',
+      whereArgs: [p['category_id']],
+    );
+    String texts(List<Map<String, Object?>> rows) => [
+          for (final Map<String, Object?> row in rows)
+            if ((row['t'] as String?)?.trim().isNotEmpty ?? false) row['t']! as String,
+        ].join('\n');
+    final String reviews = texts(await db.rawQuery(
+      'SELECT text AS t FROM ${DatabaseSchema.reviews} WHERE product_id = ?',
+      [productId],
+    ));
+    final String questions = texts(await db.rawQuery(
+      'SELECT text AS t FROM ${DatabaseSchema.questions} WHERE product_id = ?',
+      [productId],
+    ));
+    final int ordersLastDay = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(DISTINCT o.id) FROM ${DatabaseSchema.orderItems} oi '
+          'JOIN ${DatabaseSchema.orders} o ON o.id = oi.order_id '
+          'WHERE oi.product_id = ? AND o.created_at >= ?',
+          [productId, DateTime.now().subtract(const Duration(days: 1)).toIso8601String()],
+        )) ??
+        0;
     final RiskReport report = ContentChecker.check(
       name: p['name']! as String,
       description: p['description'] as String?,
       composition: p['composition'] as String?,
+      material: p['material'] as String?,
+      brand: p['brand'] as String?,
+      category: category.isEmpty ? null : category.first['name'] as String?,
       price: (p['price']! as num).toDouble(),
       medianPrice: median,
+      extra: [
+        if ((p['photo_text'] as String?)?.isNotEmpty ?? false)
+          ('на фото товара', p['photo_text']! as String),
+        if (reviews.isNotEmpty) ('в отзывах покупателей', reviews),
+        if (questions.isNotEmpty) ('в вопросах покупателей', questions),
+      ],
+      ordersLastDay: p['seller_id'] == null ? 0 : ordersLastDay,
     );
     final int? sellerId = p['seller_id'] as int?;
     // Администратор уже разрешил — пока карточка не изменилась

@@ -144,6 +144,11 @@ class AppDatabase {
         await db.execute('ALTER TABLE ${DatabaseSchema.products} ADD COLUMN risk TEXT');
         await SeedData.applyGalleries(db);
       }
+      if (oldVersion < 19) {
+        await db.execute('ALTER TABLE ${DatabaseSchema.products} ADD COLUMN photo_text TEXT');
+        // Новое главное фото капы — из галереи убрано прежнее второе фото.
+        await SeedData.applyGalleries(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

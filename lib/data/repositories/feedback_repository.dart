@@ -8,6 +8,13 @@ abstract class FeedbackRepository {
   /// Отзывы пользователя: id товара → отзыв.
   Future<Map<int, Review>> getReviewsByUser(int userId);
 
+  /// Отзывы о товарах магазина: продавца [sellerId] или, если null,
+  /// самого магазина SPORT. Новые — первыми.
+  Future<List<Review>> getShopReviews(int? sellerId, {int limit = 30});
+
+  /// Средняя оценка и число отзывов магазина.
+  Future<(double?, int)> shopRating(int? sellerId);
+
   /// Пользователь получил этот товар (есть доставленный заказ).
   Future<bool> hasPurchased(int userId, int productId);
 

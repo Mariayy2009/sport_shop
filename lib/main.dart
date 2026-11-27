@@ -13,6 +13,7 @@ import 'data/database/database_helper.dart';
 import 'data/repositories/exhibit_repository.dart';
 import 'data/repositories/feedback_repository.dart';
 import 'data/repositories/game_repository.dart';
+import 'services/moderation/photo_text_scanner.dart';
 import 'data/repositories/moderation_repository.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/preferences_repository.dart';
@@ -87,6 +88,7 @@ class SportShopApp extends StatelessWidget {
           value: dependencies.tryOnScanRepository,
         ),
         Provider<GameRepository>.value(value: dependencies.gameRepository),
+        Provider<PhotoTextScanner>.value(value: dependencies.photoTextScanner),
         Provider<ModerationRepository>.value(
           value: dependencies.moderationRepository,
         ),

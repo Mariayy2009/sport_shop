@@ -12,7 +12,11 @@ class Review {
     this.authorAvatarPath,
     this.photos = const [],
     this.verified = false,
+    this.productName,
   });
+
+  /// Название товара — для отзывов на странице магазина.
+  final String? productName;
 
   static const int minRating = 1;
   static const int maxRating = 5;
@@ -50,6 +54,7 @@ class Review {
           if (line.trim().isNotEmpty) line.trim(),
       ],
       verified: (map['verified'] as int? ?? 0) == 1,
+      productName: map['product_name'] as String?,
       authorName: map['author_name'] as String?,
       authorAvatarPath: map['author_avatar_path'] as String?,
     );

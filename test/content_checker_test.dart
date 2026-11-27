@@ -59,4 +59,48 @@ void main() {
     expect(report.reasons.map((r) => r.label),
         containsAll(['Контакт для сделки вне магазина', 'Цена подозрительно низкая']));
   });
+
+  test('протеин: «белый porosho.k - 70г» и материал «синтетика» — на проверку', () {
+    final RiskReport report = ContentChecker.check(
+      name: 'Протеин сывороточный',
+      description: 'Вкусный протеин для набора массы',
+      composition: 'белый porosho.k - 70г',
+      material: 'синтетика',
+      category: 'Спортивное питание',
+      price: 12990,
+    );
+    expect(report.hold, isTrue);
+    expect(report.reasons.map((r) => r.label),
+        containsAll(['Иносказание о наркотиках',
+          '«Синтетика» у спортивного питания — так называют синтетические наркотики']));
+    // У футболки синтетика — обычная ткань.
+    expect(ContentChecker.check(name: 'Футболка', material: 'синтетика',
+        category: 'Одежда', price: 5990).flag, isFalse);
+    // «Изотоник порошок» — обычный товар.
+    expect(ContentChecker.check(name: 'Изотоник порошок 500 г',
+        category: 'Спортивное питание', price: 5490).flag, isFalse);
+  });
+
+  test('отзыв «Наркошы эти задолбали» и ник на фото — товар в очередь админу', () {
+    final RiskReport report = ContentChecker.check(
+      name: 'Протеин', category: 'Спортивное питание', price: 12990,
+      extra: [('в отзывах покупателей', 'Наркошы эти задолбали уже здесь')],
+    );
+    expect(report.flag, isTrue);
+    expect(report.reasons.single.label, 'Покупатели пишут о наркотиках — в отзывах покупателей');
+    final RiskReport photo = ContentChecker.check(
+      name: 'Мяч', price: 9990, extra: [('на фото товара', 'BEST BALL t.me/fastshop_kz')],
+    );
+    expect(photo.reasons.map((r) => r.label),
+        contains('Контакт для сделки вне магазина — на фото товара'));
+    // Обычный отзыв ничего не меняет.
+    expect(ContentChecker.check(name: 'Мяч', price: 9990,
+        extra: [('в отзывах покупателей', 'Отличный мяч, сын доволен!')]).flag, isFalse);
+  });
+
+  test('слова латиницей «на слух»: mefedron, kokain', () {
+    expect(check('Мяч', 'в подарок mefedron').hold, isTrue);
+    expect(check('Мяч', 'есть kokain').hold, isTrue);
+    expect(check('Повязка', 'снижает травматизм на тренировках').flag, isFalse);
+  });
 }

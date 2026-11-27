@@ -16,6 +16,12 @@ class CartState extends ChangeNotifier {
   List<CartItem> _items = [];
   bool _isLoading = false;
 
+  /// Позиции, с которых покупатель снял галочку: остаются в корзине,
+  /// но не попадают в заказ.
+  final Set<String> _skipped = {};
+
+  static String _key(CartItem item) => '${item.product.id}|${item.selectedSize}';
+
   List<CartItem> get items => List.unmodifiable(_items);
   bool get isEmpty => _items.isEmpty;
   bool get isLoading => _isLoading;
@@ -23,6 +29,48 @@ class CartState extends ChangeNotifier {
   int get totalQuantity => _items.fold(0, (sum, item) => sum + item.quantity);
 
   double get itemsTotal => _items.fold(0, (sum, item) => sum + item.total);
+
+  /// Позицию можно купить сейчас (не снята с продажи, хватает на складе).
+  bool isAvailable(CartItem item) => !unavailable.contains(item);
+
+  /// Отмечена галочкой для заказа. Недоступные не отмечаются.
+  bool isSelected(CartItem item) =>
+      !_skipped.contains(_key(item)) && isAvailable(item);
+
+  void toggle(CartItem item) {
+    if (!_skipped.remove(_key(item))) _skipped.add(_key(item));
+    notifyListeners();
+  }
+
+  bool get allSelected => _items.every((item) => isSelected(item) || !isAvailable(item));
+
+  void selectAll(bool value) {
+    _skipped.clear();
+    if (!value) _skipped.addAll(_items.map(_key));
+    notifyListeners();
+  }
+
+  /// Что пойдёт в заказ.
+  List<CartItem> get selectedItems => [for (final CartItem i in _items) if (isSelected(i)) i];
+
+  int get selectedQuantity => selectedItems.fold(0, (sum, item) => sum + item.quantity);
+
+  double get selectedTotal => selectedItems.fold(0, (sum, item) => sum + item.total);
+
+  /// После заказа убираем только купленное — остальное ждёт в корзине.
+  Future<void> removeItems(List<CartItem> bought) async {
+    final int userId = _requireUser();
+    for (final CartItem item in bought) {
+      await _repository.setQuantity(
+        userId: userId,
+        productId: item.product.id!,
+        size: item.selectedSize,
+        quantity: 0,
+      );
+      _skipped.remove(_key(item));
+    }
+    await _reload();
+  }
 
   Set<int> get productIds => {for (final CartItem item in _items) item.product.id!};
 
@@ -34,6 +82,7 @@ class CartState extends ChangeNotifier {
     if (userId == _userId) return;
     _userId = userId;
     _items = [];
+    _skipped.clear();
     notifyListeners();
     if (userId == null) return;
 
