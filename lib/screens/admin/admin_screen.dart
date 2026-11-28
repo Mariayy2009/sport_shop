@@ -23,6 +23,7 @@ import '../../models/question.dart';
 import '../../state/auth_state.dart';
 import '../../state/order_state.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/law_report_sheet.dart';
 import '../../widgets/order_manage_card.dart';
 import '../../widgets/warning_sheet.dart';
 import '../../widgets/app_scaffold.dart';
@@ -303,6 +304,16 @@ class _ReviewCard extends StatelessWidget {
                 icon: const Icon(Icons.block, size: 18),
                 label: const Text('Снять с продажи'),
               ),
+              if (product.sellerId != null)
+                TextButton.icon(
+                  onPressed: () => LawReportSheet.show(
+                    context,
+                    sellerId: product.sellerId!,
+                    productId: product.id,
+                  ),
+                  icon: const Icon(Icons.local_police_outlined, size: 18),
+                  label: const Text('Материалы для полиции'),
+                ),
             ],
           ),
         ],
@@ -393,10 +404,11 @@ class _ProductsTabState extends State<_ProductsTab>
     AppMessages.showSuccess(context, 'Предупреждение отправлено продавцу');
   }
 
-  Future<void> _edit(Product? product) async {
-    final Object? changed = await Navigator.of(context)
-        .pushNamed(AppRoutes.adminProduct, arguments: product);
-    if (changed == true && mounted) setState(() => _future = _load());
+  /// Администратор товары не создаёт и не правит — это работа продавцов
+  /// (в том числе магазина SPORT). Он открывает карточку, как её видит
+  /// покупатель, и решает: оставить, снять с продажи или предупредить.
+  Future<void> _open(Product product) async {
+    await Navigator.of(context).pushNamed(AppRoutes.product, arguments: product.id);
   }
 
   @override
@@ -435,13 +447,6 @@ class _ProductsTabState extends State<_ProductsTab>
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSizes.s),
-                IconButton.filled(
-                  tooltip: 'Добавить товар',
-                  style: IconButton.styleFrom(backgroundColor: AppColors.black),
-                  onPressed: () => _edit(null),
-                  icon: const Icon(Icons.add, color: AppColors.white),
-                ),
               ],
             ),
             const SizedBox(height: AppSizes.m),
@@ -455,7 +460,7 @@ class _ProductsTabState extends State<_ProductsTab>
                 padding: const EdgeInsets.only(bottom: AppSizes.s),
                 child: AppCard(
                   padding: const EdgeInsets.all(AppSizes.s),
-                  onTap: () => _edit(product),
+                  onTap: () => _open(product),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -604,9 +609,9 @@ class _OrdersTabState extends State<_OrdersTab>
               const SizedBox(height: AppSizes.s),
           itemBuilder: (context, index) => OrderManageCard(
             order: orders[index],
-            // Администратор ведёт только заказы товаров самого магазина
-            // SPORT; заказы продавцов — их забота, здесь только просмотр.
-            readOnly: !orders[index].items.any((item) => item.isOwnGoods),
+            // Заказы ведут продавцы (и магазин SPORT в своём кабинете);
+            // администратор видит их, чтобы разбирать жалобы.
+            readOnly: true,
             onChanged: () async {
               // Если это заказ самого администратора — обновим и его историю.
               await context.read<OrderState>().load();

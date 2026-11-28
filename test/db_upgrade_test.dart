@@ -20,7 +20,8 @@ void main() {
             statement == DatabaseSchema.createNotifications ||
             statement == DatabaseSchema.createGameScores ||
             statement == DatabaseSchema.createCoupons ||
-            statement == DatabaseSchema.createSellerAppeals) {
+            statement == DatabaseSchema.createSellerAppeals ||
+            statement == DatabaseSchema.createLawReports) {
           continue;
         }
         await db.execute(statement
@@ -35,6 +36,7 @@ void main() {
             .replaceAll('moderation TEXT,', '')
             .replaceAll('risk TEXT,', '')
             .replaceAll('photo_text TEXT,', '')
+            .replaceAll('certificate TEXT,', '')
             .replaceAll('discount REAL NOT NULL DEFAULT 0,', '')
             .replaceAll('verified INTEGER NOT NULL DEFAULT 0,', '')
             .replaceAll('photos TEXT,', ''));

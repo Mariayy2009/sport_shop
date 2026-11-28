@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sport_shop/core/di/app_dependencies.dart';
+import 'package:sport_shop/core/legal/legal_documents.dart';
 import 'package:sport_shop/core/routes/app_routes.dart';
+import 'package:sport_shop/widgets/law_report_sheet.dart';
 import 'package:sport_shop/data/database/app_database.dart';
 import 'package:sport_shop/data/datasources/local/session_local_datasource.dart';
 import 'package:sport_shop/data/datasources/local/shop_server_storage.dart';
@@ -110,7 +112,7 @@ void main() {
       await states.auth.login(email: 'maria@mail.kz', password: 'Maria123', rememberMe: false);
       final all = await deps.productRepository.getProducts();
       // Магазины продавцов заморожены предыдущими тестами — берём товары SPORT.
-      final own = all.where((p) => p.sellerId == null && !p.requiresSize).toList();
+      final own = all.where((p) => p.sellerName == 'SPORT' && !p.requiresSize).toList();
       await states.cart.add(own[0]);
       await states.cart.add(own[1]);
     });
@@ -129,6 +131,37 @@ void main() {
         .pushNamed(AppRoutes.shop, arguments: const ShopArgs(null, 'SPORT'));
     await settle(tester);
     expect(find.textContaining('Официальный магазин площадки'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
+  testWidgets('стать продавцом, документы, материалы для полиции — без ошибок', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    late int sellerId;
+    await tester.runAsync(() async {
+      await states.init();
+      sellerId = (await deps.authService
+              .login(email: 'budo@sport.kz', password: 'Seller123', rememberMe: false))
+          .id!;
+      await states.auth.login(email: 'admin@sport.kz', password: 'Admin123', rememberMe: false);
+    });
+    await tester.pumpWidget(SportShopApp(dependencies: deps, states: states));
+    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.pushNamed(AppRoutes.sellerVerification, arguments: true);
+    await settle(tester);
+    expect(find.text('Открыть магазин'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    nav.pop();
+    nav.pushNamed(AppRoutes.legal, arguments: LegalDoc.sellerRules);
+    await settle(tester);
+    expect(find.textContaining('Кто может продавать'), findsOneWidget);
+    nav.pop();
+    await settle(tester);
+    LawReportSheet.show(tester.element(find.byType(Scaffold).first), sellerId: sellerId);
+    await settle(tester);
+    expect(find.text('Скопировать и записать в журнал'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await finish(tester);
   });

@@ -8,6 +8,8 @@ import '../models/sport.dart';
 
 /// Сортировка каталога.
 enum ProductSort {
+  /// Вперемешку: разные товары рядом, варианты одного — врассыпную.
+  recommended('Рекомендуем'),
   byName('По названию'),
   priceAsc('Сначала дешевле'),
   priceDesc('Сначала дороже');
@@ -28,7 +30,7 @@ class ProductState extends ChangeNotifier {
   List<ProductCategory> _categories = [];
   List<String> _allSizes = [];
   ProductFilter _filter = const ProductFilter();
-  ProductSort _sort = ProductSort.byName;
+  ProductSort _sort = ProductSort.recommended;
   bool _isLoading = false;
   String? _error;
 
@@ -114,6 +116,9 @@ class ProductState extends ChangeNotifier {
   List<Product> _sorted(List<Product> source) {
     final List<Product> list = List.of(source);
     switch (_sort) {
+      case ProductSort.recommended:
+        // Перемешивание — в каталоге, вместе с вариантами товаров.
+        break;
       case ProductSort.byName:
         list.sort((a, b) => a.name.compareTo(b.name));
       case ProductSort.priceAsc:

@@ -29,8 +29,9 @@ class AppStrings {
   static const String lastNameLabel = 'Фамилия';
   static const String registrationPasswordLabel = 'Пароль';
   static const String confirmPasswordLabel = 'Повторите пароль';
-  static const String agreement = 
-      'Я согласен(на) на обработку персональных данных';
+  static const String agreement =
+      'Я принимаю Пользовательское соглашение и Политику конфиденциальности '
+      'и согласен(на) на обработку персональных данных';
   static const String registrationButton = 'Регистрация';
 
   // Общие сообщения

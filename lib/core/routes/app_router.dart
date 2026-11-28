@@ -32,6 +32,9 @@ import '../../screens/profile/edit_profile_screen.dart';
 import '../../screens/recommendation/recommendation_quiz_screen.dart';
 import '../../screens/recommendation/recommendation_result_screen.dart';
 import '../../screens/catalog/shop_screen.dart';
+import '../../screens/legal/legal_screen.dart';
+import '../../screens/seller/seller_verification_screen.dart';
+import '../legal/legal_documents.dart';
 import '../../screens/profile/notifications_screen.dart';
 import '../../screens/shell/main_shell.dart';
 import 'app_routes.dart';
@@ -75,6 +78,9 @@ class AppRouter {
       AppRoutes.preferences => const PreferencesScreen(),
       AppRoutes.seller => const SellerScreen(),
       AppRoutes.shop when args is ShopArgs => ShopScreen(args: args),
+      AppRoutes.legal when args is LegalDoc => LegalScreen(doc: args),
+      AppRoutes.sellerVerification =>
+        SellerVerificationScreen(openShop: args == true),
       AppRoutes.notifications => const NotificationsScreen(),
       AppRoutes.preferenceResults => const PreferenceResultsScreen(),
       AppRoutes.ballGame => BallGameScreen(

@@ -493,6 +493,16 @@ class SeedData {
     }
   }
 
+  /// Демонстрационные номера документов о соответствии для спортпита
+  /// (не настоящие документы). Отдельным шагом: колонка certificate
+  /// появляется только в версии базы 20.
+  static Future<void> applyDemoCertificates(DatabaseExecutor db) => db.rawUpdate(
+        "UPDATE ${DatabaseSchema.products} SET certificate = 'ЕАЭС N KZ Д-DEMO.' || printf('%04d', id) "
+        "WHERE certificate IS NULL AND category_id IN "
+        "(SELECT id FROM ${DatabaseSchema.categories} WHERE name = ?)",
+        [nutritionCategory],
+      );
+
   static Future<void> insertNutrition(DatabaseExecutor db) async {
     Future<int?> idOf(String table, String column, String value) async {
       final List<Map<String, Object?>> rows = await db.query(table,
@@ -592,6 +602,8 @@ class SeedData {
     await insertUniversal(db);
     await insertNutrition(db);
     await insertGameScores(db);
+    await insertSportShop(db);
+    await applyDemoCertificates(db);
   }
 
   /// Экспонаты «Зала славы» (экспозиция КНУС).
@@ -804,6 +816,40 @@ class SeedData {
         whereArgs: [shop],
       );
     }
+  }
+
+  /// Магазин SPORT — обычный продавец со своим кабинетом: ему
+  /// принадлежат все товары без продавца, он сам ведёт их заказы.
+  /// Администратор при этом только следит за порядком.
+  static const String sportEmail = 'sport@sport.kz';
+
+  static Future<void> insertSportShop(DatabaseExecutor db) async {
+    final List<Map<String, Object?>> existing = await db.query(
+      DatabaseSchema.users,
+      columns: ['id'],
+      where: 'email = ?',
+      whereArgs: [sportEmail],
+    );
+    final DateTime created = DateTime(2026, 10, 6);
+    final int userId = existing.isNotEmpty
+        ? existing.first['id']! as int
+        : await db.insert(DatabaseSchema.users, {
+            'email': sportEmail,
+            'password_hash': PasswordHasher.hash('Seller123'),
+            'role': UserRole.customer.value,
+            'first_name': 'SPORT',
+            'created_at': created.toIso8601String(),
+          });
+    await db.insert(
+      DatabaseSchema.sellers,
+      {'user_id': userId, 'shop_name': 'SPORT', 'created_at': created.toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+    await db.update(
+      DatabaseSchema.products,
+      {'seller_id': userId},
+      where: 'seller_id IS NULL',
+    );
   }
 
   /// Спортсмены Казахстана в «Зале славы». Вызывается и при создании

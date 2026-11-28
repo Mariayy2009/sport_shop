@@ -30,6 +30,8 @@ class AppRoutes {
   static const String preferences = '/profile/preferences';
   static const String seller = '/seller';
   static const String shop = '/shop'; // аргумент: ShopArgs
+  static const String legal = '/legal'; // аргумент: LegalDoc
+  static const String sellerVerification = '/seller/verification'; // аргумент: true — открыть магазин
   static const String notifications = '/profile/notifications';
   static const String preferenceResults = '/recommendation/preferences';
   static const String ballGame = '/game/ball'; // аргумент: BallGameMode (необязателен)

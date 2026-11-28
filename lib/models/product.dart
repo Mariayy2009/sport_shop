@@ -33,7 +33,12 @@ class Product {
     this.moderation,
     this.risk = const [],
     this.photoText,
+    this.certificate,
   });
+
+  /// Номер сертификата или декларации о соответствии (обязателен
+  /// для спортивного питания).
+  final String? certificate;
 
   /// Текст, распознанный на фото товара (для автопроверки).
   final String? photoText;
@@ -195,6 +200,7 @@ class Product {
       moderation: map['moderation'] as String?,
       risk: _risk(map['risk']),
       photoText: map['photo_text'] as String?,
+      certificate: map['certificate'] as String?,
       blockReason: map['block_reason'] as String?,
     );
   }
@@ -219,6 +225,7 @@ class Product {
       'composition': composition,
       'diet': diet.isEmpty ? null : diet.join(','),
       'photo_text': photoText,
+      'certificate': certificate,
       'rating': rating,
       'seller_id': sellerId,
       'status': isBlocked ? 'blocked' : 'active',

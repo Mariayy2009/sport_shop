@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
+import '../../core/routes/app_routes.dart';
 import '../../core/routes/main_tab.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/app_messages.dart';
@@ -149,10 +150,36 @@ class _ProductsTabState extends State<_ProductsTab> {
         return ListView(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           children: [
+            if (!context.watch<SellerBadgeState>().legalComplete)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSizes.m),
+                child: AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Заполните данные продавца',
+                        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: AppSizes.xxs),
+                      const Text(
+                        'ИИН или БИН, юридический адрес и согласие с правилами площадки. '
+                        'Без них выставлять товары нельзя.',
+                        style: AppTextStyles.bodySecondary,
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.sellerVerification),
+                        child: const Text('Заполнить'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             OutlinedButton.icon(
               // Замороженный магазин не может выставлять товары.
-              onPressed: context.watch<SellerBadgeState>().status ==
-                      SellerStatus.active
+              onPressed: context.watch<SellerBadgeState>().status == SellerStatus.active &&
+                      context.watch<SellerBadgeState>().legalComplete
                   ? () => _edit(null)
                   : null,
               icon: const Icon(Icons.add),

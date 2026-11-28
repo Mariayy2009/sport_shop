@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../core/errors/app_exception.dart';
 import '../data/repositories/cart_repository.dart';
 import '../models/cart_item.dart';
+import '../models/item_options.dart';
 import '../models/product.dart';
 
 /// Состояние корзины текущего пользователя.
@@ -76,6 +77,11 @@ class CartState extends ChangeNotifier {
 
   bool containsProduct(int? productId) =>
       _items.any((item) => item.product.id == productId);
+
+  /// В корзине именно этот вариант (цвет, модель) товара.
+  bool containsVariant(int? productId, String? variant) => _items.any((item) =>
+      item.product.id == productId &&
+      (variant == null || ItemOptions.decode(item.selectedSize).variant == variant));
 
   /// Вызывается при входе / выходе пользователя.
   Future<void> setUser(int? userId) async {

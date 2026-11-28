@@ -149,6 +149,22 @@ class AppDatabase {
         // Новое главное фото капы — из галереи убрано прежнее второе фото.
         await SeedData.applyGalleries(db);
       }
+      if (oldVersion < 20) {
+        final Set<String> sellerColumns = {
+          for (final Map<String, Object?> row
+              in await db.rawQuery('PRAGMA table_info(${DatabaseSchema.sellers})'))
+            row['name']! as String,
+        };
+        for (final String column in DatabaseSchema.sellerLegalColumns.split(',\n')) {
+          final String definition = column.trim();
+          if (sellerColumns.contains(definition.split(' ').first)) continue;
+          await db.execute('ALTER TABLE ${DatabaseSchema.sellers} ADD COLUMN $definition');
+        }
+        await db.execute('ALTER TABLE ${DatabaseSchema.products} ADD COLUMN certificate TEXT');
+        await db.execute(DatabaseSchema.createLawReports);
+        await SeedData.insertSportShop(db);
+        await SeedData.applyDemoCertificates(db);
+      }
       return;
     }
     for (final String table in DatabaseSchema.tablesInDropOrder) {

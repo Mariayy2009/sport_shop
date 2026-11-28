@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/errors/app_exception.dart';
 import '../../models/product.dart';
 import '../../services/moderation/content_checker.dart';
 import '../database/app_database.dart';
@@ -118,6 +119,62 @@ class SellerAppeal {
       );
 }
 
+/// Данные продавца, обязательные для торговли (как у ИП/ТОО на
+/// маркетплейсах), и согласие с правилами.
+class SellerLegal {
+  const SellerLegal({
+    this.legalForm,
+    this.iin,
+    this.legalName,
+    this.phone,
+    this.address,
+    this.agreedAt,
+    this.rulesVersion,
+  });
+
+  /// «ИП», «ТОО» или «Самозанятый».
+  final String? legalForm;
+
+  /// ИИН (ИП, самозанятый) или БИН (ТОО).
+  final String? iin;
+
+  /// ФИО предпринимателя или название организации.
+  final String? legalName;
+  final String? phone;
+  final String? address;
+  final DateTime? agreedAt;
+  final String? rulesVersion;
+
+  static const List<String> forms = ['ИП', 'ТОО', 'Самозанятый'];
+
+  bool get isBin => legalForm == 'ТОО';
+
+  /// Можно торговать: всё заполнено и правила приняты.
+  bool get complete =>
+      [legalForm, iin, legalName, phone, address].every((v) => v != null && v.isNotEmpty) &&
+      agreedAt != null;
+
+  factory SellerLegal.fromMap(Map<String, Object?> map) => SellerLegal(
+        legalForm: map['legal_form'] as String?,
+        iin: map['iin'] as String?,
+        legalName: map['legal_name'] as String?,
+        phone: map['legal_phone'] as String?,
+        address: map['legal_address'] as String?,
+        agreedAt: DateTime.tryParse((map['agreed_at'] as String?) ?? ''),
+        rulesVersion: map['rules_version'] as String?,
+      );
+
+  Map<String, Object?> toMap() => {
+        'legal_form': legalForm,
+        'iin': iin,
+        'legal_name': legalName,
+        'legal_phone': phone,
+        'legal_address': address,
+        'agreed_at': agreedAt?.toIso8601String(),
+        'rules_version': rulesVersion,
+      };
+}
+
 /// Магазин продавца для администратора: сколько товаров и нарушений.
 class SellerSummary {
   const SellerSummary({
@@ -205,6 +262,28 @@ abstract class ModerationRepository {
   /// Администратор посмотрел — всё в порядке, товар в каталоге.
   Future<void> approveProduct(Product product);
 
+  Future<SellerLegal> legalOf(int sellerId);
+
+  /// Сохранить данные продавца и согласие с правилами.
+  Future<void> saveLegal(int sellerId, SellerLegal legal);
+
+  /// Покупатель открывает магазин: проверенные данные и название.
+  Future<void> openShop(int userId, String shopName, SellerLegal legal);
+
+  /// Материалы для правоохранительных органов: продавец, его данные,
+  /// подозрительные товары с находками, заказы, предупреждения.
+  Future<String> buildLawReport({required int sellerId, int? productId});
+
+  /// Записать в журнал, что материалы подготовлены (кто и когда).
+  Future<void> saveLawReport({
+    required int sellerId,
+    int? productId,
+    int? adminId,
+    required String text,
+  });
+
+  Future<int> lawReportsCount(int sellerId);
+
   /// Перепроверить весь каталог (например, после пополнения списка слов).
   /// Возвращает, сколько товаров попало в очередь.
   Future<int> rescanCatalog();
@@ -246,6 +325,154 @@ class LocalModerationRepository implements ModerationRepository {
         text: 'Товар снят с продажи.${text == null || text.isEmpty ? '' : ' $text'}',
       );
     }
+  }
+
+  @override
+  Future<SellerLegal> legalOf(int sellerId) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> rows = await db.query(
+      DatabaseSchema.sellers,
+      where: 'user_id = ?',
+      whereArgs: [sellerId],
+    );
+    return rows.isEmpty ? const SellerLegal() : SellerLegal.fromMap(rows.first);
+  }
+
+  @override
+  Future<void> saveLegal(int sellerId, SellerLegal legal) async {
+    final Database db = await _appDatabase.database;
+    await db.update(
+      DatabaseSchema.sellers,
+      legal.toMap(),
+      where: 'user_id = ?',
+      whereArgs: [sellerId],
+    );
+  }
+
+  @override
+  Future<void> openShop(int userId, String shopName, SellerLegal legal) async {
+    final Database db = await _appDatabase.database;
+    // NOCASE в SQLite не понимает кириллицу — сравниваем сами.
+    final List<Map<String, Object?>> shops = await db.query(
+      DatabaseSchema.sellers,
+      columns: ['user_id', 'shop_name'],
+    );
+    if (shops.any((row) => row['user_id'] == userId)) {
+      throw const AppException('У вас уже есть магазин');
+    }
+    final String wanted = shopName.trim().toLowerCase();
+    if (shops.any((row) => (row['shop_name']! as String).toLowerCase() == wanted)) {
+      throw const AppException('Магазин с таким названием уже есть — выберите другое');
+    }
+    await db.insert(DatabaseSchema.sellers, {
+      'user_id': userId,
+      'shop_name': shopName.trim(),
+      'created_at': DateTime.now().toIso8601String(),
+      ...legal.toMap(),
+    });
+  }
+
+  @override
+  Future<String> buildLawReport({required int sellerId, int? productId}) async {
+    final Database db = await _appDatabase.database;
+    final List<Map<String, Object?>> seller = await db.rawQuery(
+      'SELECT s.*, u.email, u.created_at AS user_created '
+      'FROM ${DatabaseSchema.sellers} s JOIN ${DatabaseSchema.users} u ON u.id = s.user_id '
+      'WHERE s.user_id = ?',
+      [sellerId],
+    );
+    if (seller.isEmpty) throw const AppException('Продавец не найден');
+    final Map<String, Object?> s = seller.first;
+    final SellerLegal legal = SellerLegal.fromMap(s);
+    String v(Object? value) =>
+        value is String && value.isNotEmpty ? value : 'не указано';
+    final List<Map<String, Object?>> products = await db.query(
+      DatabaseSchema.products,
+      where: productId == null
+          ? "seller_id = ? AND (risk IS NOT NULL OR status = 'blocked')"
+          : 'id = ?',
+      whereArgs: [productId ?? sellerId],
+    );
+    final StringBuffer out = StringBuffer()
+      ..writeln('МАТЕРИАЛЫ О ВОЗМОЖНОМ НАРУШЕНИИ НА ПЛОЩАДКЕ SPORT SHOP')
+      ..writeln('Дата подготовки: ${DateTime.now().toIso8601String().substring(0, 16).replaceFirst('T', ' ')}')
+      ..writeln()
+      ..writeln('1. Продавец')
+      ..writeln('Магазин: ${s['shop_name']}')
+      ..writeln('Форма: ${v(legal.legalForm)}; ${legal.isBin ? 'БИН' : 'ИИН'}: ${v(legal.iin)}')
+      ..writeln('ФИО / наименование: ${v(legal.legalName)}')
+      ..writeln('Телефон: ${v(legal.phone)}; email: ${s['email']}')
+      ..writeln('Юридический адрес: ${v(legal.address)}')
+      ..writeln('Аккаунт создан: ${v(s['user_created'])}; правила приняты: '
+          '${legal.agreedAt?.toIso8601String().substring(0, 10) ?? 'нет'} (редакция ${v(legal.rulesVersion)})')
+      ..writeln('Статус магазина: ${v(s['status'])} ${s['status_reason'] == null ? '' : '(${s['status_reason']})'}')
+      ..writeln()
+      ..writeln('2. Товары и находки автоматической проверки');
+    if (products.isEmpty) out.writeln('Подозрительных товаров нет.');
+    for (final Map<String, Object?> p in products) {
+      final int orders = Sqflite.firstIntValue(await db.rawQuery(
+            'SELECT COUNT(DISTINCT order_id) FROM ${DatabaseSchema.orderItems} WHERE product_id = ?',
+            [p['id']],
+          )) ??
+          0;
+      out
+        ..writeln('— «${p['name']}» (№${p['id']}), цена ${(p['price']! as num).round()} ₸, заказов: $orders, '
+            'статус: ${p['status']}${p['block_reason'] == null ? '' : ' — ${p['block_reason']}'}')
+        ..writeln('  Описание: ${v(p['description'])}')
+        ..writeln('  Состав: ${v(p['composition'])}; материал: ${v(p['material'])}');
+      if ((p['photo_text'] as String?)?.isNotEmpty ?? false) {
+        out.writeln('  Текст на фото: ${p['photo_text']}');
+      }
+      final Product product = Product.fromMap(p);
+      for (final RiskReason r in product.risk) {
+        out.writeln('  Находка: ${r.label}: ${r.fragment}');
+      }
+    }
+    final List<Map<String, Object?>> warnings = await db.query(
+      DatabaseSchema.sellerWarnings,
+      where: 'seller_id = ?',
+      whereArgs: [sellerId],
+      orderBy: 'created_at',
+    );
+    out
+      ..writeln()
+      ..writeln('3. Предупреждения продавцу: ${warnings.length}');
+    for (final Map<String, Object?> w in warnings) {
+      out.writeln('— ${(w['created_at']! as String).substring(0, 10)}: ${w['reason']}${w['text'] == null ? '' : '. ${w['text']}'}');
+    }
+    out
+      ..writeln()
+      ..writeln('Материалы подготовлены администрацией площадки для передачи в правоохранительные '
+          'органы в порядке, установленном законодательством Республики Казахстан. Продавец '
+          'принял Правила для продавцов, предусматривающие такую передачу.');
+    return out.toString();
+  }
+
+  @override
+  Future<void> saveLawReport({
+    required int sellerId,
+    int? productId,
+    int? adminId,
+    required String text,
+  }) async {
+    final Database db = await _appDatabase.database;
+    await db.insert(DatabaseSchema.lawReports, {
+      'seller_id': sellerId,
+      'product_id': productId,
+      'admin_id': adminId,
+      'text': text,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  @override
+  Future<int> lawReportsCount(int sellerId) async {
+    final Database db = await _appDatabase.database;
+    return Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM ${DatabaseSchema.lawReports} WHERE seller_id = ?',
+          [sellerId],
+        )) ??
+        0;
   }
 
   @override

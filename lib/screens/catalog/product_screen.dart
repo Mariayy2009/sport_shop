@@ -107,13 +107,13 @@ class _ProductScreenState extends State<ProductScreen> {
     if (mounted && product != null) setState(() => _refreshed = product);
   }
 
-  void _showCertificate() {
+  void _showCertificate(String number) {
     AppMessages.showInfoDialog(
       context,
       title: 'Сертификат соответствия',
-      message: 'Товар сертифицирован. Электронная копия сертификата будет '
-          'доступна для скачивания в следующей версии приложения, '
-          'бумажную копию можно запросить при получении заказа.',
+      message: 'Продавец указал документ: $number.\n\nПо правилам площадки продавец '
+          'обязан предоставить копию по запросу. Бумажную копию можно запросить '
+          'при получении заказа.',
     );
   }
 
@@ -434,12 +434,14 @@ class _ProductScreenState extends State<ProductScreen> {
             ),
           ),
         ],
+        // Нет ни таблицы размеров, ни сертификата — блока нет.
+        if (product.requiresSize || product.certificate != null) ...[
         const SizedBox(height: AppSizes.m),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Прикреплённые файлы', style: AppTextStyles.sectionTitle),
+              const Text('Документы', style: AppTextStyles.sectionTitle),
               const SizedBox(height: AppSizes.xs),
               // Таблица размеров — только у товаров с размерами
               // (у мяча, бутылки, протеина её нет).
@@ -449,14 +451,16 @@ class _ProductScreenState extends State<ProductScreen> {
                   subtitle: 'Подбор размера',
                   onTap: () => SizeChartSheet.show(context, product),
                 ),
-              _FileRow(
-                title: 'Сертификат.pdf',
-                subtitle: 'Сертификат соответствия',
-                onTap: _showCertificate,
-              ),
+              if (product.certificate != null)
+                _FileRow(
+                  title: 'Сертификат соответствия',
+                  subtitle: product.certificate!,
+                  onTap: () => _showCertificate(product.certificate!),
+                ),
             ],
           ),
         ),
+        ],
         SellerProductsSection(product: product),
         ProductFeedbackSection(
           product: product,

@@ -105,4 +105,42 @@ class Validators {
     if (number < min || number > max) return rangeMessage;
     return null;
   }
+
+  /// ИИН (физлицо, ИП, самозанятый) или БИН (ТОО): 12 цифр и верная
+  /// контрольная цифра. У ИИН первые 6 цифр — дата рождения ГГММДД,
+  /// 7-я — век и пол (1–6); у БИН 5-я цифра — тип организации (4–6).
+  static String? iin(String? value, {required bool bin}) {
+    final String text = value?.trim() ?? '';
+    final String name = bin ? 'БИН' : 'ИИН';
+    if (text.isEmpty) return 'Укажите $name';
+    if (!RegExp(r'^\d{12}$').hasMatch(text)) return '$name — это 12 цифр';
+    final List<int> d = text.split('').map(int.parse).toList();
+    if (bin) {
+      if (d[4] < 4 || d[4] > 6) return 'Неверный БИН: 5-я цифра — тип организации (4, 5 или 6)';
+    } else {
+      final int month = d[2] * 10 + d[3], day = d[4] * 10 + d[5];
+      if (month < 1 || month > 12 || day < 1 || day > 31 || d[6] < 1 || d[6] > 6) {
+        return 'Неверный ИИН: первые цифры — дата рождения';
+      }
+    }
+    if (!hasValidChecksum(text)) return 'Неверный $name: не сходится контрольная цифра';
+    return null;
+  }
+
+  /// Контрольная цифра ИИН/БИН: сумма цифр с весами 1–11 по модулю 11;
+  /// если получилось 10 — веса 3–11, 1, 2; снова 10 — номер неверный.
+  static bool hasValidChecksum(String twelveDigits) {
+    final List<int> d = twelveDigits.split('').map(int.parse).toList();
+    int sum(List<int> weights) {
+      int s = 0;
+      for (int i = 0; i < 11; i++) {
+        s += d[i] * weights[i];
+      }
+      return s % 11;
+    }
+
+    int control = sum(const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    if (control == 10) control = sum(const [3, 4, 5, 6, 7, 8, 9, 10, 11, 1, 2]);
+    return control != 10 && control == d[11];
+  }
 }

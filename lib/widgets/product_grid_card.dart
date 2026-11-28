@@ -36,7 +36,8 @@ class ProductGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isFavorite = context.watch<FavoritesState>().contains(product.id);
     final bool inCompare = context.watch<CompareState>().contains(product.id);
-    final bool inCart = context.watch<CartState>().containsProduct(product.id);
+    // Галочка «в корзине» — только у того варианта, что положили.
+    final bool inCart = context.watch<CartState>().containsVariant(product.id, variant?.name);
 
     return AppCard(
       padding: const EdgeInsets.all(AppSizes.s),

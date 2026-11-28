@@ -16,6 +16,7 @@ import '../../core/utils/formatters.dart';
 import '../../models/user.dart';
 import '../../models/user_sizes.dart';
 import '../../state/auth_state.dart';
+import '../legal/legal_screen.dart';
 import '../../state/notification_state.dart';
 import '../../state/profile_state.dart';
 import '../../widgets/app_card.dart';
@@ -225,6 +226,20 @@ class ProfileScreen extends StatelessWidget {
               title: 'Кабинет продавца',
               onTap: () => Navigator.of(context).pushNamed(AppRoutes.seller),
             ),
+          // Покупатель может открыть свой магазин: заполнить данные
+          // продавца и принять правила.
+          if (!(authState.currentUser?.isSeller ?? false) && !authState.isAdmin)
+            _MenuItem(
+              icon: Icons.add_business_outlined,
+              title: 'Стать продавцом',
+              onTap: () => Navigator.of(context)
+                  .pushNamed(AppRoutes.sellerVerification, arguments: true),
+            ),
+          _MenuItem(
+            icon: Icons.gavel_outlined,
+            title: 'Правила и документы',
+            onTap: () => LegalScreen.showList(context),
+          ),
           if (authState.isAdmin)
             _MenuItem(
               icon: Icons.admin_panel_settings_outlined,

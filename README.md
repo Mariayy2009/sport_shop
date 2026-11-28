@@ -169,5 +169,6 @@ flutter run   # Android-эмулятор, устройство или Windows
 | admin@sport.kz | Admin123 | Администратор |
 | budo@sport.kz | Seller123 | Продавец, магазин «Budo Pro» (кимоно) |
 | sportlife@sport.kz | Seller123 | Продавец, магазин «Sportlife» |
+| sport@sport.kz | Seller123 | Продавец, магазин «SPORT» (товары площадки) |
 
 Список картинок товаров: [docs/product_images.md](docs/product_images.md).

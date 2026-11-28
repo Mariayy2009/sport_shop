@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_sizes.dart';
+import '../../core/legal/legal_documents.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/routes/app_routes.dart';
@@ -194,7 +195,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       if (value) _showAgreementError = false;
                     }),
                   ),
-                  const SizedBox(height: AppSizes.l),
+                  // Документы можно прочитать до регистрации.
+                  Wrap(
+                    children: [
+                      for (final LegalDoc doc in [LegalDoc.terms, LegalDoc.privacy])
+                        TextButton(
+                          onPressed: () => Navigator.of(context)
+                              .pushNamed(AppRoutes.legal, arguments: doc),
+                          child: Text(doc.title),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.s),
                   CustomButton(
                     text: AppStrings.registrationButton,
                     isLoading: isLoading,

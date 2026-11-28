@@ -20,6 +20,7 @@ class SellerBadgeState extends ChangeNotifier {
   int _questions = 0;
   SellerStatus _status = SellerStatus.active;
   String? _statusReason;
+  bool _legalComplete = true;
   Timer? _timer;
 
   /// Непрочитанные предупреждения.
@@ -33,6 +34,10 @@ class SellerBadgeState extends ChangeNotifier {
   /// Магазин работает, заморожен или удалён администратором.
   SellerStatus get status => _status;
   String? get statusReason => _statusReason;
+
+  /// Данные продавца (ИИН/БИН, адрес…) заполнены и правила приняты —
+  /// без этого выставлять товары нельзя.
+  bool get legalComplete => _legalComplete;
 
   /// Вход продавца — начинаем проверять; покупатель или выход — сброс.
   Future<void> setSeller(int? sellerId) async {
@@ -59,10 +64,12 @@ class SellerBadgeState extends ChangeNotifier {
       final List<Question> questions =
           await _feedback.getQuestionsForSeller(sellerId);
       final (SellerStatus status, String? reason) = await _moderation.statusOf(sellerId);
+      final bool legal = (await _moderation.legalOf(sellerId)).complete;
       if (_sellerId != sellerId) return;
-      if (status != _status || reason != _statusReason) {
+      if (status != _status || reason != _statusReason || legal != _legalComplete) {
         _status = status;
         _statusReason = reason;
+        _legalComplete = legal;
         notifyListeners();
       }
       _set(warnings, questions.where((q) => q.answer == null).length);

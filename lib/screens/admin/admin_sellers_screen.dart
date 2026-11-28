@@ -9,6 +9,7 @@ import '../../core/utils/formatters.dart';
 import '../../data/repositories/moderation_repository.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/law_report_sheet.dart';
 import '../../widgets/text_input_sheet.dart';
 import '../../widgets/warning_sheet.dart';
 
@@ -136,8 +137,9 @@ class _AdminSellersScreenState extends State<AdminSellersScreen> {
   }
 
   Future<void> _history(SellerSummary seller) async {
-    final List<SellerWarning> warnings =
-        await context.read<ModerationRepository>().warningsFor(seller.userId);
+    final ModerationRepository moderation = context.read<ModerationRepository>();
+    final List<SellerWarning> warnings = await moderation.warningsFor(seller.userId);
+    final SellerLegal legal = await moderation.legalOf(seller.userId);
     if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
@@ -146,6 +148,24 @@ class _AdminSellersScreenState extends State<AdminSellersScreen> {
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         shrinkWrap: true,
         children: [
+          Text('Данные продавца: ${seller.shopName}', style: AppTextStyles.sectionTitle),
+          const SizedBox(height: AppSizes.xs),
+          if (!legal.complete)
+            Text(
+              'Продавец ещё не заполнил данные и не принял правила — выставлять товары он не может',
+              style: AppTextStyles.bodySecondary.copyWith(color: AppColors.error),
+            )
+          else ...[
+            Text('${legal.legalForm}, ${legal.isBin ? 'БИН' : 'ИИН'} ${legal.iin}', style: AppTextStyles.body),
+            Text(legal.legalName ?? '', style: AppTextStyles.body),
+            Text('${legal.phone} · ${seller.email}', style: AppTextStyles.bodySecondary),
+            Text(legal.address ?? '', style: AppTextStyles.bodySecondary),
+            Text(
+              'Правила (ред. ${legal.rulesVersion}) приняты ${Formatters.date(legal.agreedAt!)}',
+              style: AppTextStyles.caption,
+            ),
+          ],
+          const SizedBox(height: AppSizes.m),
           Text('Предупреждения: ${seller.shopName}', style: AppTextStyles.sectionTitle),
           const SizedBox(height: AppSizes.s),
           if (warnings.isEmpty)
@@ -234,6 +254,7 @@ class _AdminSellersScreenState extends State<AdminSellersScreen> {
                   onFreeze: () => _freeze(seller),
                   onDelete: () => _delete(seller),
                   onRestore: () => _restore(seller),
+                  onLaw: () => LawReportSheet.show(context, sellerId: seller.userId),
                 ),
               ),
           ],
@@ -251,8 +272,10 @@ class _SellerCard extends StatelessWidget {
     required this.onFreeze,
     required this.onDelete,
     required this.onRestore,
+    required this.onLaw,
   });
 
+  final VoidCallback onLaw;
   final SellerSummary seller;
   final VoidCallback onHistory;
   final VoidCallback onWarn;
@@ -341,6 +364,11 @@ class _SellerCard extends StatelessWidget {
                       ? 'Восстановить'
                       : 'Разморозить'),
                 ),
+              TextButton.icon(
+                onPressed: onLaw,
+                icon: const Icon(Icons.local_police_outlined, size: 18),
+                label: const Text('Материалы для полиции'),
+              ),
               if (seller.status != SellerStatus.deleted)
                 TextButton.icon(
                   onPressed: onDelete,

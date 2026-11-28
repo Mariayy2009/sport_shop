@@ -49,6 +49,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
   late final TextEditingController _brand;
   late final TextEditingController _material;
   late final TextEditingController _composition;
+  late final TextEditingController _certificate;
   int? _sportId;
   int? _categoryId;
   Set<String> _diet = {};
@@ -77,6 +78,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
     );
     _material = TextEditingController(text: product?.material ?? '');
     _composition = TextEditingController(text: product?.composition ?? '');
+    _certificate = TextEditingController(text: product?.certificate ?? '');
     _sportId = product?.sportId;
     _categoryId = product?.categoryId;
     _diet = {...?product?.diet};
@@ -94,6 +96,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       _brand,
       _material,
       _composition,
+      _certificate,
     ]) {
       controller.dispose();
     }
@@ -129,6 +132,9 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       }
     }
   }
+
+  bool _isNutrition(ProductState catalog) => catalog.categories
+      .any((c) => c.id == _categoryId && c.name.toLowerCase().contains('питани'));
 
   String? _nullIfEmpty(TextEditingController controller) {
     final String text = controller.text.trim();
@@ -176,6 +182,7 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
       material: _nullIfEmpty(_material),
       composition: _nullIfEmpty(_composition),
       photoText: photoText,
+      certificate: _nullIfEmpty(_certificate),
       diet: _diet.toList(),
       rating: widget.product?.rating,
       reviewsCount: widget.product?.reviewsCount ?? 0,
@@ -403,6 +410,17 @@ class _AdminProductScreenState extends State<AdminProductScreen> {
             AppTextField(label: 'Бренд', controller: _brand, maxLength: 40),
             const SizedBox(height: AppSizes.m),
             AppTextField(label: 'Материал', controller: _material, maxLength: 60),
+            const SizedBox(height: AppSizes.m),
+            AppTextField(
+              label: _isNutrition(catalog) ? 'Сертификат или декларация (обязательно)' : 'Сертификат или декларация',
+              hint: 'Например: ЕАЭС N RU Д-RU.РА01.В.12345/26',
+              controller: _certificate,
+              maxLength: 80,
+              // Спортивное питание без документа о соответствии продавать нельзя.
+              validator: (v) => _isNutrition(catalog) && (v?.trim().length ?? 0) < 5
+                  ? 'Для спортивного питания укажите номер сертификата или декларации'
+                  : null,
+            ),
             const SizedBox(height: AppSizes.m),
             AppTextField(
               label: 'Состав',

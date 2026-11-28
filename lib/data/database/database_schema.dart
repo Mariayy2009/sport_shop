@@ -48,7 +48,9 @@ class DatabaseSchema {
   /// v18: автопроверка товаров (products.moderation, products.risk),
   ///      новое главное фото гетр.
   /// v19: текст на фото товара (products.photo_text) для автопроверки.
-  static const int version = 19;
+  /// v20: магазин SPORT — продавец со своим аккаунтом (sport@sport.kz);
+  ///      данные продавца для проверки, сертификаты, обращения в полицию.
+  static const int version = 20;
 
   // Имена таблиц
   static const String sports = 'sports';
@@ -71,6 +73,7 @@ class DatabaseSchema {
   static const String gameScores = 'game_scores';
   static const String coupons = 'coupons';
   static const String sellerAppeals = 'seller_appeals';
+  static const String lawReports = 'law_reports';
 
   /// Порядок создания: сначала таблицы, на которые ссылаются внешние ключи.
   static const List<String> tablesInCreateOrder = [
@@ -94,6 +97,7 @@ class DatabaseSchema {
     gameScores,
     coupons,
     sellerAppeals,
+    lawReports,
   ];
 
   /// Таблицы прежних версий: удаляются при обновлении схемы.
@@ -118,7 +122,37 @@ class DatabaseSchema {
       shop_name TEXT NOT NULL UNIQUE,
       created_at TEXT NOT NULL,
       $sellerStatusColumns,
+      $sellerLegalColumns,
       FOREIGN KEY (user_id) REFERENCES $users(id) ON DELETE CASCADE
+    )
+    ''';
+
+  /// Данные продавца, которые обязательны для торговли на площадке
+  /// (те же колонки — в миграции v20): форма (ИП, ТОО, самозанятый),
+  /// ИИН или БИН, ФИО или название, телефон, юридический адрес,
+  /// когда и с какой версией правил продавец согласился.
+  static const String sellerLegalColumns = '''
+      legal_form TEXT,
+      iin TEXT,
+      legal_name TEXT,
+      legal_phone TEXT,
+      legal_address TEXT,
+      agreed_at TEXT,
+      rules_version TEXT''';
+
+  /// Материалы, подготовленные администратором для правоохранительных
+  /// органов: кто, когда, по какому продавцу и товару.
+  static const String createLawReports = '''
+    CREATE TABLE $lawReports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      seller_id INTEGER NOT NULL,
+      product_id INTEGER,
+      admin_id INTEGER,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (seller_id) REFERENCES $users(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES $products(id) ON DELETE SET NULL,
+      FOREIGN KEY (admin_id) REFERENCES $users(id) ON DELETE SET NULL
     )
     ''';
 
@@ -275,6 +309,7 @@ class DatabaseSchema {
       moderation TEXT,
       risk TEXT,
       photo_text TEXT,
+      certificate TEXT,
       FOREIGN KEY (category_id) REFERENCES $categories(id) ON DELETE RESTRICT,
       FOREIGN KEY (sport_id) REFERENCES $sports(id) ON DELETE RESTRICT
     )
@@ -404,6 +439,7 @@ class DatabaseSchema {
     createGameScores,
     createCoupons,
     createSellerAppeals,
+    createLawReports,
     // Индексы для частых выборок: каталог, подбор, история заказов
     'CREATE INDEX idx_products_sport ON $products(sport_id)',
     'CREATE INDEX idx_products_category ON $products(category_id)',

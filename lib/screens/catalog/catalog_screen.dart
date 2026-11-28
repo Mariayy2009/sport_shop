@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -105,11 +107,13 @@ class CatalogScreen extends StatelessWidget {
       return exact.isEmpty ? p.variants : exact;
     }
 
-    final List<(Product, ProductVariant?)> products = [
+    final List<(Product, ProductVariant?)> cards = [
       for (final Product p in state.products)
         if (p.variants.isEmpty) (p, null) else
           for (final ProductVariant v in shown(p)) (p, v),
     ];
+    final List<(Product, ProductVariant?)> products =
+        state.sort == ProductSort.recommended ? CatalogMix.mix(cards) : cards;
     return RefreshIndicator(
       onRefresh: state.loadProducts,
       child: CustomScrollView(
@@ -336,5 +340,37 @@ class _ActiveFilters extends StatelessWidget {
     }
     if (min != null) return 'от ${Formatters.price(min)}';
     return 'до ${Formatters.price(max!)}';
+  }
+}
+
+/// «Рекомендуем»: карточки вперемешку, чтобы разбегались глаза, а
+/// варианты одного товара не стояли рядом (в сетке из двух колонок —
+/// ни в одном ряду, ни в соседних). Порядок держится до перезапуска
+/// приложения, иначе карточки прыгали бы при каждом обновлении.
+class CatalogMix {
+  CatalogMix._();
+
+  static final int _seed = DateTime.now().millisecondsSinceEpoch;
+
+  /// Сколько последних карточек не должны быть тем же товаром.
+  static const int gap = 4;
+
+  static List<(Product, ProductVariant?)> mix(
+    List<(Product, ProductVariant?)> cards, {
+    int? seed,
+  }) {
+    final List<(Product, ProductVariant?)> pool = List.of(cards)
+      ..shuffle(math.Random(seed ?? _seed));
+    final List<(Product, ProductVariant?)> result = [];
+    while (pool.isNotEmpty) {
+      final Set<int?> recent = {
+        for (final (Product p, _) in result.skip(math.max(0, result.length - gap))) p.id,
+      };
+      // Первая карточка другого товара; если такой нет — какая есть.
+      int at = pool.indexWhere((card) => !recent.contains(card.$1.id));
+      if (at < 0) at = 0;
+      result.add(pool.removeAt(at));
+    }
+    return result;
   }
 }
